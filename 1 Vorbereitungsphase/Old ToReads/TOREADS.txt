@@ -1,0 +1,70 @@
+SVG-ANIMATIONS:   
+
+draw.io (lo utilizan en Gefasoft)
+
+Conceptdraw - biblioteca con simbolos ya creados para sacar ideas
+
+Process Flow Diagram Symbols:
+http://www.conceptdraw.com/How-To-Guide/process-flow-diagram-symbols
+
+Chemical and Process Engineering
+http://www.conceptdraw.com/solution-park/engineering-chemical-process
+
+
+
+LAYOUT ALGORITHMS:
+
+Major Layout Algorithms
+http://docs.yworks.com/yfiles/doc/developers-guide/major_layouters.html
+
+
+
+CONNECTION TO DATABASE: 
+
+Dont Do:   Direct access to database with JavaScript -> BAD IDEA !!!!
+Do:    	   Write a server side script/programm (python) to acess the database, check access rights and deliver
+           data in JSON format.
+
+Reason:
+As JavaScript is executed on client side and is generally a bad idea to expose the database directly to 
+the user (even if it is read-only), you should create a server side service (use any script or programming 
+language you prefer or know) which will provide a necessary interface between the client (running your 
+JavaScript code) and the database.
+A good example is to create an API and communicate with it via AJAX calls. You can send requests with 
+additional information needed for data selection, filtering and sorting. This information can be included 
+in the request's GET or POST (or any other) method (verb) as defined by the HTTP protocol.
+
+Example:
+1. JavaScript binds to a click event on a DOM element (button to load some info).
+2. User clicks and an event is triggered. JavaScript function handles this event.
+3. This JavaScript function creates a request to be sent to the server. 
+   Say that it is a JSON string object: { "controller" : "Users", "method" : "getActiveUserCount" }.
+4. This JSON string is sent to the service on the server via a HTTP POST request.
+5. An animation is started to give the user some idea that a process is being executed in the background (optional).
+6. The service picks it up and handles it = executes the getActiveUserCount method of the Users class (controller).
+   The result is also a JSON string (an object), for example: { "status" : "ok", "numberOfActiveUsers" : 351 }
+7. The client picks up this response and checks the JSON object's status value 
+   (if "ok", which it is in this example, continues) and then displays the numberOfActiveUsers value from the 
+   same returned object.
+8. The animation is stopped. (optional).
+9. The click event has been fully handled.
+
+https://www.researchgate.net/post/How_can_we_access_any_database_using_Javascript_for_creating_a_website
+https://stackoverflow.com/questions/857670/how-to-connect-to-sql-server-database-from-javascript-in-the-browser
+
+How To Work with JSON in JavaScript:
+https://www.digitalocean.com/community/tutorials/how-to-work-with-json-in-javascript
+Python to create json data:
+https://docs.python.org/3/library/json.html
+
+
+DATABASES TUTORIALS:
+
+http://sebastianraschka.com/Articles/2014_sqlite_in_python_tutorial.html
+http://www.agiledata.org/essays/mappingObjects.html
+http://en.tekstenuitleg.net/articles/software/database-design-tutorial/creating-an-entity-relationship-diagram-(erd)
+https://www.codeproject.com/Articles/359654/important-database-designing-rules-which-I-fo
+
+
+HyperUA (OPC + Web)
+https://www.youtube.com/watch?v=IIt-JygNzOc

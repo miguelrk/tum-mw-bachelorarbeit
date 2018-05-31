@@ -1,0 +1,13 @@
+<div style="margin-bottom:8pt">
+    {{#if updatePossible}}<div class="button button-success" style="margin-bottom:8pt;width:100%" onClick={{action 'startUpload' false}} id={{concat "btn-upload-" elementId}}>
+        <span class="icon-upload button-text" >Knoten updaten</span>
+    </div>{{else}}{{/if}}
+    <div class="button button-success" style="margin-bottom:8pt;width:100%;display:block" onClick={{action 'startUpload' true}} id={{concat "btn-upload-" elementId}}>
+        <span class="icon-upload button-text" >Modell importieren unter</span>
+    </div>
+    <div class="text-box" id={{concat "output-box-" elementId}} name="outputText" style="white-space:pre-wrap;">{{archiveLog}}{{activeLog0}}{{activeLog1}}
+<span style='color:red'>{{errorLog}}</span>
+</div>
+</div>
+
+

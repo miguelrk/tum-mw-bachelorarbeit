@@ -1,0 +1,50 @@
+<h2 class="compact-kpi-headline">Stückzahlen</h2>
+<div class="chart-container"> 
+</div>
+
+<div class="left-bar">
+    <div class="cell number-cell">
+        <label class="title">
+            {{currentKPILabel}}
+        </label>
+        <div> 
+            {{currentKPIValue}}
+        </div>
+    </div>
+    <div class="cell number-cell">
+        <label class="title">
+            {{currentKPITrend1Label}}
+        </label>
+        <div> 
+            {{currentKPITrend1Value}}
+        </div>
+    </div>
+    <div class="cell number-cell">
+        <label class="title">
+            {{currentKPITrend2Label}}
+        </label>
+        <div> 
+            {{currentKPITrend2Value}}
+        </div>
+    </div>
+    <div class="cell number-cell">
+        <label class="title">
+            {{totalKPILabel}}
+        </label>
+        <div> 
+            {{totalKPIValue}}
+        </div>
+    </div>
+    <div class="cell with-icon">
+        <label class="title">
+            {{graphicControlLabel}}
+        </label>
+        <div class="icon-piececounter"> 
+           <img src={{graphicControlValue}}/>
+        </div>
+    </div>
+</div>
+
+<div class="value-highlight">
+    {{currentKPIValue}}
+</div>
