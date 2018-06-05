@@ -83,8 +83,7 @@ window.addEventListener('load', () => {
     };
 
 
-    // ASYNC????????????????????????????????????????????????????????????????
-    async function objectRelationalMapper(shapesLibrary, cModuleInstances) {
+    async function mapInstancesToShapes(shapesLibrary, cModuleInstances) {
         let counter = 0;
         let shapesCount = libraryJson.length;
         let cModulesCount = cModulesJson.length;
@@ -114,7 +113,7 @@ window.addEventListener('load', () => {
         createTableButton.disabled = true;
     }
     createTableButton.addEventListener("click", () => {
-        objectRelationalMapper(libraryJson, cModulesJson)
+        mapInstancesToShapes(libraryJson, cModulesJson)
     }, false);
 
 
