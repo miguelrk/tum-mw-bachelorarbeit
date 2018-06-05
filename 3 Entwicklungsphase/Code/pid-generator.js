@@ -1,4 +1,4 @@
-"use strict"; // Prohibit use of undeclared variables
+pid - shapes - library "use strict"; // Prohibit use of undeclared variables
 
 window.addEventListener('load', () => {
 
@@ -65,7 +65,6 @@ window.addEventListener('load', () => {
                 // Generate XML string from JS-Object
                 pidXmlString = generatePidXmlString(pidJson);
                 console.log(`2) pidString converted with generatePidXmlString() to pidXmlString: \n${pidXmlString}`);
-
 
                 // Parse XML string to XML-Document (with DOM Parser)
                 pidXml = parseXml(pidXmlString);

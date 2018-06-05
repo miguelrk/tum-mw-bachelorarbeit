@@ -2,9 +2,9 @@
 <html lang="eng">
 
 <head>
-    <title>P&amp;ID Designer</title>
+    <title>P&amp;ID Boardlet</title>
     <meta charset="utf-8">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="pid-boardlet.css">
     <!-- Include Enriqueta google font -->
     <link href="https://fonts.googleapis.com/css?family=Enriqueta:700" rel="stylesheet">
     <!-- To display the webpage in edge mode if in IE6-11 -->
@@ -22,65 +22,51 @@
 
 <body>
     <header id="header">
-        <h1>P&amp;ID Designer</h1>
+        <h1>P&amp;ID Boardlet</h1>
     </header>
 
-    <section id="file-input-section">
+    <div id="create-pid-div">
         <table>
             <tr>
-                <!-- Shape Library as a Parameter Specification (Process Control Systems Engineering pg.96) -->
                 <td align="right">
                     <label for="pid-shapes-library">P&amp;ID Shape Library: </label>
                 </td>
                 <td>
                     <input id="pid-shapes-library" type="file" name="json-file" accept=".json, .text" required="required" />
                 </td>
+                <td></td>
             </tr>
             <tr>
-                <!-- cModule Instances as a Model Specification (Process Control Systems Engineering pg.96) -->
                 <td align="right">
-                    <label for="cmodule-instances">cModule Instances:
-            <br />
-            <span style="color:red">(eventually from l_nodes in DB):</span>
-          </label>
+                    <label for="cmodule-instances">Plant Model Instances: </label>
                 </td>
                 <td>
                     <input id="cmodule-instances" type="file" name="json-file" accept=".json, .text" required="required" />
                 </td>
+                <td></td>
             </tr>
             <tr>
-                <td colspan="2" align="right">
-                    <button id="create-table-button" type="submit" disabled="true">Create Table</button>
+                <td colspan="3">
+                    <button id="generate-pid-button" type="submit" disabled="true">Generate P&amp;ID XML</button>
                 </td>
             </tr>
         </table>
-    </section>
+    </div>
 
-    <section id="table-section">
-        <div id="table-header" class="header-div">
-            <p id="total-counter"></p>
-            <h3 id="table-instructions"></h3>
+    <div id="view-pid-div">
+        <h3 id="table-title">P&amp;ID XML File Viewer:</h3>
+        <p id="total-counter"></p>
+        <div id="xml-container-div">
         </div>
-        <div id="table-content" class="content-div">
-        </div>
-        <br />
-        <div id="download-div" class="footer-div">
-            <button id="download-json-button" class="download-button" type="submit" disabled="true">Download JSON</button>
-            <button id="download-xlsx-button" class="download-button" type="submit" disabled="true">Download XLSX</button>
-            <button id="render-pid-button" type="submit" disabled="true">Render P&amp;ID</button>
-            <button id="create-pid-button" type="submit" disabled="true">Create P&amp;ID</button>
-        </div>
-        <br />
-        <br />
-    </section>
+    </div>
 
-    <section id="visu-section">
-        <div id="visu-container">
-        </div>
-    </section>
+    <div id="download-pid-div">
+        <button id="download-json-button" type="submit" disabled="true" disabled="true">Download JSON</button>
+        <button id="download-pid-button" type="submit" disabled="true">Download P&amp;ID</button>
+    </div>
 
     <script type="text/javascript" src="https://www.draw.io/js/viewer.min.js"></script>
-    <script src="pid-designer.js"></script>
+    <script src="pid-boardlet.js"></script>
 
 </body>
 

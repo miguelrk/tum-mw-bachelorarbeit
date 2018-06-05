@@ -4,7 +4,7 @@ window.addEventListener('load', () => {
 
     console.log("Page loaded succesfully.");
 
-    const libraryInput = document.getElementById("pid-shape-library");
+    const libraryInput = document.getElementById("pid-shapes-library");
     const instancesInput = document.getElementById("cmodule-instances");
     const createTableButton = document.getElementById("create-table-button");
     const tableInstructions = document.getElementById("table-instructions");
@@ -131,24 +131,75 @@ window.addEventListener('load', () => {
             resizableRows: true,
             clipboard: true,
             clipboardPasteAction: "replace",
-            initialSort: [
-                { column: "eModule", dir: "asc" },
-                { column: "cModule", dir: "asc" },
-                { column: "_id", dir: "asc" },
-                { column: "", dir: "asc" },
+            initialSort: [{
+                    column: "eModule",
+                    dir: "asc"
+                },
+                {
+                    column: "cModule",
+                    dir: "asc"
+                },
+                {
+                    column: "_id",
+                    dir: "asc"
+                },
+                {
+                    column: "",
+                    dir: "asc"
+                },
             ],
             //groupBy: "shapeCategory",
             columns: [ //Define Table Columns
-                { title: "", field: "", sortable: true, sorter: "number", align: "center", width: 30, formatter: "rownum" },
-                { title: "Include", field: "shapeIncluded", editor: "tick", sortable: true, align: "center", width: 30, formatter: "buttonTick" },
+                {
+                    title: "",
+                    field: "",
+                    sortable: true,
+                    sorter: "number",
+                    align: "center",
+                    width: 30,
+                    formatter: "rownum"
+                },
+                {
+                    title: "Include",
+                    field: "shapeIncluded",
+                    editor: "tick",
+                    sortable: true,
+                    align: "center",
+                    width: 30,
+                    formatter: "buttonTick"
+                },
                 //{title:"Shape Name", field:"shapeName", sortable:true, width:225},
-                { title: "Unit", field: "eModule", sortable: true },
+                {
+                    title: "Unit",
+                    field: "eModule",
+                    sortable: true
+                },
                 //{title:"EModule", field:"eModule", sortable:true},
-                { title: "CModule", field: "cModule", sortable: true },
-                { title: "ID", field: "_id", sortable: true },
-                { title: "Thumbnail", field: "shapeThumbnail", sortable: true, align: "center", formatter: "image" },
+                {
+                    title: "CModule",
+                    field: "cModule",
+                    sortable: true
+                },
+                {
+                    title: "ID",
+                    field: "_id",
+                    sortable: true
+                },
+                {
+                    title: "Thumbnail",
+                    field: "shapeThumbnail",
+                    sortable: true,
+                    align: "center",
+                    formatter: "image"
+                },
                 //{title:"Path", field:"shapePath", sortable:true},
-                { title: "setPoint", field: "_width", editor: "number", align: "center", width: 60 },
+                {
+                    title: "setPoint",
+                    field: "_width",
+                    editor: "number",
+                    align: "center",
+                    width: 60
+                },
                 {
                     title: "Logic",
                     field: "name",
@@ -162,11 +213,40 @@ window.addEventListener('load', () => {
                         "<": "<",
                     }
                 },
-                { title: "width", field: "_height", editor: "number", align: "center", width: 60 },
-                { title: "Alarm Color", field: "color", sortable: false, width: 25, formatter: "color" },
-                { title: "width", field: "_width", editor: "number", align: "center", width: 70 },
-                { title: "height", field: "_height", editor: "range", align: "center", width: 70 },
-                { title: "Variable", field: "variable", sortable: true, color: "blue" },
+                {
+                    title: "width",
+                    field: "_height",
+                    editor: "number",
+                    align: "center",
+                    width: 60
+                },
+                {
+                    title: "Alarm Color",
+                    field: "color",
+                    sortable: false,
+                    width: 25,
+                    formatter: "color"
+                },
+                {
+                    title: "width",
+                    field: "_width",
+                    editor: "number",
+                    align: "center",
+                    width: 70
+                },
+                {
+                    title: "height",
+                    field: "_height",
+                    editor: "range",
+                    align: "center",
+                    width: 70
+                },
+                {
+                    title: "Variable",
+                    field: "variable",
+                    sortable: true,
+                    color: "blue"
+                },
                 //{title:"= 0-100px", field:"_width", editor:"progress", sortable:true, sorter:"number", formatter:"progress", formatterParams:{color:["#B3E5FC", "#03A9F4", "#1976D2"]}},
                 //{title:"= 0-100px", field:"_height", editor:"progress", sortable:true, sorter:"number", formatter:"progress", formatterParams:{color:["#B3E5FC", "#03A9F4", "#1976D2"]}},
                 //{title:"Rating", field:"rating", sortable:true, sorter:"number", formatter:"star"},
@@ -194,7 +274,9 @@ window.addEventListener('load', () => {
 
     //trigger download of data.xlsx file
     $("#download-xlsx-button").click(function() {
-        $("#table-content").tabulator("download", "xlsx", "data.xlsx", { sheetName: "data" });
+        $("#table-content").tabulator("download", "xlsx", "data.xlsx", {
+            sheetName: "data"
+        });
     });
 
 

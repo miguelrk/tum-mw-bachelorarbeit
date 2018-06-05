@@ -1,0 +1,60 @@
+html,
+body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+div {
+    width: 98%;
+    padding: 10px;
+}
+
+header {
+    padding: 10px;
+    color: #00796b;
+    font-family: 'Enriqueta', serif;
+}
+
+input:hover {
+    font-weight: bold;
+}
+
+button {
+    border: none;
+    color: white;
+    padding: 5px 15px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 14px;
+    margin: 4px 2px;
+    cursor: pointer;
+}
+
+#generate-pid-button {
+    background-color: #00796b;
+    float: right;
+    margin: 15px;
+}
+
+#total-counter {
+    padding-right: 30px;
+    display: block;
+    float: right;
+    color: #37474f;
+}
+
+#table-title {
+    color: #37474f;
+}
+
+#xml-container-div {
+    height: 230px;
+    overflow: scroll;
+    border: 1px solid #ccc;
+    font-family: sans-serif;
+}
+
+#download-pid-button {
+    background-color: #00796b;
+    float: right;
+}
