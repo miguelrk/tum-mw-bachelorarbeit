@@ -3,7 +3,7 @@ window.addEventListener('load', () => {
     console.log("Page loaded succesfully.");
 
     const libraryInput = document.getElementById("pid-shapes-library");
-    const instancesInput = document.getElementById("cmodule-instances");
+    const instancesInput = document.getElementById("pid-instances");
     const generatePidButton = document.getElementById("generate-pid-button");
     const totalCounter = document.getElementById("total-counter");
     const xmlContainer = document.getElementById("xml-container-div");
@@ -13,10 +13,10 @@ window.addEventListener('load', () => {
 
     let file1Present = false;
     let file2Present = false;
-    let libraryString;
-    let libraryJson;
-    let cModulesString;
-    let cModulesJson;
+    let pidShapesLibraryString;
+    let pidShapesLibrary;
+    let pidInstancesString;
+    let pidInstances;
     let verteci = [];
     let verteciString = '';
     let visuJson;
@@ -41,14 +41,14 @@ window.addEventListener('load', () => {
         } else {
             fileReader.onload = (event) => {
                 if (target === "pid-shapes-library") {
-                    libraryString = event.target.result;
-                    libraryJson = JSON.parse(libraryString);
-                    console.table(libraryJson);
+                    pidShapesLibraryString = event.target.result;
+                    pidShapesLibrary = JSON.parse(pidShapesLibraryString);
+                    console.table(pidShapesLibrary);
                     file1Present = true;
-                } else if (target == "cmodule-instances") {
-                    cModulesString = event.target.result;
-                    cModulesJson = JSON.parse(cModulesString);
-                    console.table(cModulesJson);
+                } else if (target == "pidInstance-instances") {
+                    pidInstancesString = event.target.result;
+                    pidInstances = JSON.parse(pidInstancesString);
+                    console.table(pidInstances);
                     file2Present = true;
                 }
                 if (file1Present && file2Present) {
@@ -68,33 +68,33 @@ window.addEventListener('load', () => {
 
 
     function generatePidXml() {
-        mapInstancesToShapes(libraryJson, cModulesJson);
+        mapInstancesToShapes(pidShapesLibrary, pidInstances);
         downloadPidButton.disabled = false;
 
     }
     generatePidButton.addEventListener("click", () => {
-        generatePidXml(libraryJson, cModulesJson);
+        generatePidXml(pidShapesLibrary, pidInstances);
         //totalCounter.innerHTML = "";
         console.log(`${verteci.length} verteci generated succesfully.`);
         generatePidButton.disabled = true;
     }, false);
 
-    function mapInstancesToShapes(shapesLibrary, cModuleInstances) {
+    function mapInstancesToShapes(pidShapesLibrary, pidInstances) {
         let counter = 0;
-        let shapesCount = libraryJson.length;
-        let cModulesCount = cModulesJson.length;
+        let pidShapesLibraryCount = pidShapesLibrary.length;
+        let pidInstancesCount = pidInstances.length;
 
-        // Eventually fetch and push cModules from l_nodes in DB into cModulesJson array
-        cModulesJson.forEach((cModule) => {
+        // Eventually fetch and push pidInstances from l_nodes in DB into pidInstances array
+        pidInstances.forEach((pidInstance) => {
             counter++;
             let matchingShape = {};
-            matchingShape = libraryJson.find((shape) => shape.shapeName === cModule.shapeName);
-            console.log(cModule);
-            console.log(matchingShape);
-            totalCounter.innerHTML = `CModules: ${counter}  |  Shapes: ${cModulesCount}`;
+            matchingShape = pidShapesLibrary.find((shape) => shape.shapeName === pidInstances.shapeName);
+            //console.log(pidInstance);
+            //console.log(matchingShape);
+            totalCounter.innerHTML = `pidInstances: ${counter}  |  Shapes: ${pidInstancesCount}`;
 
             // Clone all properties to NEW target object (which is returned)
-            let vertex = Object.assign({}, cModule, matchingShape);
+            let vertex = Object.assign({}, pidInstance, matchingShape);
             verteci.push(vertex);
         });
         verteciString = JSON.stringify(verteci);

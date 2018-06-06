@@ -1,4 +1,5 @@
-var pidInstancesArray: [{
+// static declaration of pidInstancesArray for testing
+let pidInstancesObject = [{
         shapeName: "gate_valve_(diaphragm)",
         site: "Aida",
         area: "Brewery",
@@ -37,8 +38,8 @@ var pidInstancesArray: [{
         unit: "Lauter_kettle",
         eModule: "Vessel",
         cModule: "Kettle_sensor_Z",
-        pceCategory: "ZS",
-        pceLocation: "4000",
+        pidFunction: "ZS",
+        pidNumber: "4000",
         variable: "Kettle_sensor_Z_12"
     },
     {
@@ -49,8 +50,8 @@ var pidInstancesArray: [{
         unit: "Lauter_kettle",
         eModule: "Vessel",
         cModule: "Kettle_sensor_T",
-        pceCategory: "TE",
-        pceLocation: "4000",
+        pidFunction: "TE",
+        pidNumber: "4000",
         variable: "Kettle_sensor_T_13"
     },
     {
@@ -92,8 +93,8 @@ var pidInstancesArray: [{
         unit: "Mash_pan",
         eModule: "Vessel",
         cModule: "Kettle_sensor_L",
-        pceCategory: "LS",
-        pceLocation: "1000",
+        pidFunction: "LS",
+        pidNumber: "1000",
         variable: "Kettle_sensor_L_21"
     },
     {
@@ -104,8 +105,8 @@ var pidInstancesArray: [{
         unit: "Mash_pan",
         eModule: "Vessel",
         cModule: "Kettle_sensor_Z",
-        pceCategory: "ZS",
-        pceLocation: "1000",
+        pidFunction: "ZS",
+        pidNumber: "1000",
         variable: "Kettle_sensor_Z_22"
     },
     {
@@ -116,8 +117,8 @@ var pidInstancesArray: [{
         unit: "Mash_pan",
         eModule: "Vessel",
         cModule: "Kettle_sensor_T",
-        pceCategory: "TE",
-        pceLocation: "1000",
+        pidFunction: "TE",
+        pidNumber: "1000",
         variable: "Kettle_sensor_T_24"
     },
     {
@@ -238,8 +239,8 @@ var pidInstancesArray: [{
         unit: "Pump_station",
         eModule: "Outlet",
         cModule: "Sensor_flow",
-        pceCategory: "FT",
-        pceLocation: "3000",
+        pidFunction: "FT",
+        pidNumber: "3000",
         variable: "Sensor_flow_40"
     },
     {
@@ -351,8 +352,8 @@ var pidInstancesArray: [{
         unit: "Water_supply",
         eModule: "Mixing_valve",
         cModule: "Three_way_tap",
-        pceCategory: "FV",
-        pceLocation: "2000",
+        pidFunction: "FV",
+        pidNumber: "2000",
         variable: "Three_way_tap_56"
     },
     {
@@ -363,8 +364,8 @@ var pidInstancesArray: [{
         unit: "Water_supply",
         eModule: "Mixing_valve",
         cModule: "Sensor_flow",
-        pceCategory: "FT",
-        pceLocation: "2000",
+        pidFunction: "FT",
+        pidNumber: "2000",
         variable: "Sensor_flow_57"
     },
     {
@@ -446,8 +447,8 @@ var pidInstancesArray: [{
         cell: "Brewhouse",
         unit: "Water_supply",
         eModule: "Mixing_valve",
-        pceCategory: "FT",
-        pceLocation: "2000"
+        pidFunction: "FT",
+        pidNumber: "2000"
     },
     {
         shapeName: "tank_(conical_roof)",
@@ -472,8 +473,8 @@ var pidInstancesArray: [{
         cell: "Brewhouse",
         unit: "Pump_station",
         eModule: "Outlet",
-        pceCategory: "FT",
-        pceLocation: "3000"
+        pidFunction: "FT",
+        pidNumber: "3000"
     },
     {
         shapeName: "funnel",
