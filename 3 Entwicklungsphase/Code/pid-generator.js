@@ -1,4 +1,4 @@
-pid - shapes - library "use strict"; // Prohibit use of undeclared variables
+"use strict"; // Prohibit use of undeclared variables
 
 window.addEventListener('load', () => {
 
@@ -102,23 +102,6 @@ window.addEventListener('load', () => {
     <mxCell id="0"/>
     <mxCell id="1" parent="0"/>`;
 
-        // Sets cModule attributes
-
-        //QUITAR ESTOS COMMENTS PARA IMPLEMENTAR USEROBJECTS COMO EN EL EXAMPLE DONDE LOS ATRIBUTOS EXTRA VAN FUERA DE MXCELL Y PUEDES UTILIZARLOS PARA TOOLTIPS POR EJEMPLO
-        // Sets shape attributes
-        // verteci.forEach((vertex) => {
-        //   pidXmlString += `
-        //   <${vertex._id}>
-        //   <mxCell id=\"${vertex._id}\" value=\"${vertex._value}\" style=\"${vertex._style}\" vertex=\"${vertex._vertex}\" parent=\"${vertex._parent}\">
-        //   <mxGeometry x="${vertex._x}\" y="${vertex._y}\" width="${vertex._width}\" height="${vertex._height}\" as="${vertex._as}\"></mxGeometry>
-        //   </mxCell>
-        //   </${vertex._id}>`;
-        // });
-
-
-        // Template-string tag definitions
-
-
         // Create an HTML compatible XML String (encode HTML unsafe characters: ', ", <, >, and &)
         verteci.forEach((vertex) => {
             //
@@ -133,13 +116,13 @@ window.addEventListener('load', () => {
 </mxGraphModel>`;
 
         return pidXmlString;
-    }
+    };
 
 
     function xmlToHtml(xmlString) {
         let htmlString = String(xmlString).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         return htmlString;
-    }
+    };
 
 
     function concatenateStyles(stylesObject) {
@@ -155,7 +138,7 @@ window.addEventListener('load', () => {
             }
             return stylesString;
         });
-    }
+    };
 
 
     function parseXml(xmlString) {
@@ -176,7 +159,7 @@ window.addEventListener('load', () => {
         } else {
             pom.click();
         }
-    }
+    };
     saveButton.addEventListener("click", () => {
         download('pidXmlString.xml', pidXmlString);
     })

@@ -3,7 +3,7 @@ window.addEventListener('load', () => {
     console.log("Page loaded succesfully.");
 
     const libraryInput = document.getElementById("pid-shapes-library");
-    const instancesInput = document.getElementById("cmodule-instances");
+    const instancesInput = document.getElementById("pid-instances");
     const generatePidButton = document.getElementById("generate-pid-button");
     const totalCounter = document.getElementById("total-counter");
     const xmlContainer = document.getElementById("xml-container-div");
@@ -13,15 +13,15 @@ window.addEventListener('load', () => {
 
     let file1Present = false;
     let file2Present = false;
-    let libraryString;
-    let libraryJson;
-    let cModulesString;
-    let cModulesJson;
+    let pidShapesLibraryString;
+    let pidShapesLibrary;
+    let pidInstancesString;
+    let pidInstances;
     let verteci = [];
     let verteciString = '';
-    let pidJson;
-    let pidXmlString;
-    let pidXml;
+    let visuJson;
+    let visuXmlString;
+    let visuXml;
 
     if (window.File && window.FileReader && window.FileList) {
         // All the File APIs are supported.
@@ -32,7 +32,9 @@ window.addEventListener('load', () => {
 
     function loadJson(event) {
         let target = event.target.id;
-        console.log(`File name: ${target}`);
+        let files = event.target.files;
+        var fileName = files[0].name;
+        console.log(`Loading ${fileName} for ${target}...`);
         let jsonFile = event.target.files[0];
         let fileReader = new FileReader();
 
@@ -41,15 +43,17 @@ window.addEventListener('load', () => {
         } else {
             fileReader.onload = (event) => {
                 if (target === "pid-shapes-library") {
-                    libraryString = event.target.result;
-                    libraryJson = JSON.parse(libraryString);
-                    console.table(libraryJson);
+                    pidShapesLibraryString = event.target.result;
+                    pidShapesLibrary = JSON.parse(pidShapesLibraryString);
+                    console.table(pidShapesLibrary);
                     file1Present = true;
-                } else if (target == "cmodule-instances") {
-                    cModulesString = event.target.result;
-                    cModulesJson = JSON.parse(cModulesString);
-                    console.table(cModulesJson);
+                } else if (target == "pid-instances") {
+                    pidInstancesString = event.target.result;
+                    pidInstances = JSON.parse(pidInstancesString);
+                    console.table(pidInstances);
                     file2Present = true;
+                } else {
+                    alert(`${fileName} is not the appropriate file for ${target} input. Please select the correct file.`);
                 }
                 if (file1Present && file2Present) {
                     generatePidButton.disabled = false;
@@ -67,41 +71,45 @@ window.addEventListener('load', () => {
     instancesInput.addEventListener("change", loadJson, false);
 
 
-    function generatePidXml() {
-        downloadPidButton.disabled = false;
-        // EVENTUALLY pidJson has both VERTECI AND EDGES INFO !!!!!!!!!!!!!
-        pidJson = mapVertexInstancesToShapes(libraryJson, cModulesJson);
-        generatePidXmlString(pidJson);
+    async function generatePidXml() {
+        try {
+            generatePidButton.disabled = true;
+            downloadPidButton.disabled = false;
 
+            pidJson = await mapVertexInstancesToShapes(pidShapesLibrary, pidInstances);
+            pidXmlString = await generatePidXmlString(pidJson);
+        } catch {
+            console.error(e);
+        }
     }
     generatePidButton.addEventListener("click", () => {
-        generatePidXml(libraryJson, cModulesJson);
+        generatePidXml(pidShapesLibrary, pidInstances);
         //totalCounter.innerHTML = "";
-        console.log(`${verteci.length} verteci generated succesfully.`);
-        generatePidButton.disabled = true;
     }, false);
 
-    function mapVertexInstancesToShapes(shapesLibrary, cModuleInstances) {
-        let counter = 0;
-        let shapesCount = libraryJson.length;
-        let cModulesCount = cModulesJson.length;
+    function mapVertexInstancesToShapes(pidShapesLibrary, pidInstances) {
+        console.log("Mapping of vertex instances to shapes started...")
 
-        // Eventually fetch and push cModules from l_nodes in DB into cModulesJson array
-        cModulesJson.forEach((cModule) => {
+        let counter = 0;
+        let pidShapesLibraryCount = pidShapesLibrary.length;
+        let pidInstancesCount = pidInstances.length;
+
+        // Eventually fetch and push pidInstances from l_nodes in DB into pidInstances array
+        pidInstances.forEach((pidInstance) => {
             counter++;
             let matchingShape = {};
-            matchingShape = libraryJson.find((shape) => shape.shapeName === cModule.shapeName);
-            console.log(cModule);
+            matchingShape = pidShapesLibrary.find((shape) => shape.shapeName === pidInstance.shapeName);
+            console.log(pidInstance);
             console.log(matchingShape);
-            totalCounter.innerHTML = `CModules: ${counter}  |  Shapes: ${cModulesCount}`;
+            totalCounter.innerHTML = `pidInstances: ${counter} / ${pidInstancesCount}  |  Shapes in library: ${pidShapesLibraryCount}`;
 
             // Clone all properties to NEW target object (which is returned)
-            let vertex = Object.assign({}, cModule, matchingShape);
+            let vertex = Object.assign({}, pidInstance, matchingShape);
             verteci.push(vertex);
         });
         verteciString = JSON.stringify(verteci);
+        console.log(`${verteci.length} verteci generated succesfully.`);
         downloadJsonButton.disabled = false;
-        return verteci;
     }
 
 
@@ -117,23 +125,6 @@ window.addEventListener('load', () => {
   <mxCell id="0"/>
   <mxCell id="1" parent="0"/>`;
 
-        // Sets cModule attributes
-
-        //QUITAR ESTOS COMMENTS PARA IMPLEMENTAR USEROBJECTS COMO EN EL EXAMPLE DONDE LOS ATRIBUTOS EXTRA VAN FUERA DE MXCELL Y PUEDES UTILIZARLOS PARA TOOLTIPS POR EJEMPLO
-        // Sets shape attributes
-        // verteci.forEach((vertex) => {
-        //   pidXmlString += `
-        //   <${vertex._id}>
-        //   <mxCell id=\"${vertex._id}\" value=\"${vertex._value}\" style=\"${vertex._style}\" vertex=\"${vertex._vertex}\" parent=\"${vertex._parent}\">
-        //   <mxGeometry x="${vertex._x}\" y="${vertex._y}\" width="${vertex._width}\" height="${vertex._height}\" as="${vertex._as}\"></mxGeometry>
-        //   </mxCell>
-        //   </${vertex._id}>`;
-        // });
-
-
-        // Template-string tag definitions
-
-
         // Create an HTML compatible XML String (encode HTML unsafe characters: ', ", <, >, and &)
         verteci.forEach((vertex) => {
             //
@@ -148,36 +139,7 @@ window.addEventListener('load', () => {
 </mxGraphModel>`;
 
         return pidXmlString;
-    }
-
-
-    function xmlToHtml(xmlString) {
-        let htmlString = String(xmlString).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-        return htmlString;
-    }
-
-
-    function concatenateStyles(stylesObject) {
-        let styles = stylesObject;
-        let stylesString = "";
-        // USE REDUCE INSTEAD OF FOREACH
-        styles.forEach((style) => {
-            if (style === "") {
-                // Skip empty attribute
-            } else {
-                // Concatenate attribute
-                stylesString += `${style};`;
-            }
-            return stylesString;
-        });
-    }
-
-
-    function parseXml(xmlString) {
-        var domParser = new DOMParser();
-        var xmlDocument = domParser.parseFromString(xmlString, "application/xml");
-    }
-
+    };
 
 
     function downloadFile(filename, text) {
@@ -203,7 +165,7 @@ window.addEventListener('load', () => {
 
     function renderXml() {
         const breweryPidSvg = "<img src=\"data\\brewery_pid_diagram.svg\"></img>";
-        visuContainer.innerHTML = `${breweryPidSvg}`;
+        xmlContainer.innerHTML = `${brewerySvg}`;
         visuContainer.scrollIntoView();
     }
 
