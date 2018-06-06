@@ -14,7 +14,6 @@ window.addEventListener('load', () => {
     let pidXmlString;
     let pidHtmlString;
     let pidXml;
-    let xhr = new XMLHttpRequest;
 
 
     // async function fetchJson() {
@@ -23,6 +22,7 @@ window.addEventListener('load', () => {
     //     console.log(json);
     //   };
 
+    // let xhr = new XMLHttpRequest;
 
     // function fetchJson(event) {
     //   xhr.onload = (() => {

@@ -19,9 +19,9 @@ window.addEventListener('load', () => {
     let pidInstances;
     let verteci = [];
     let verteciString = '';
-    let visuJson;
-    let visuXmlString;
-    let visuXml;
+    let pidJson;
+    let pidXmlString;
+    let pidXml;
 
     if (window.File && window.FileReader && window.FileList) {
         // All the File APIs are supported.
@@ -71,21 +71,31 @@ window.addEventListener('load', () => {
     instancesInput.addEventListener("change", loadJson, false);
 
 
-    async function generatePidXml() {
-        try {
-            generatePidButton.disabled = true;
-            downloadPidButton.disabled = false;
+    function generatePidXml() {
+        generatePidButton.disabled = true;
+        downloadPidButton.disabled = false;
 
-            pidJson = await mapVertexInstancesToShapes(pidShapesLibrary, pidInstances);
-            pidXmlString = await generatePidXmlString(pidJson);
-        } catch {
-            console.error(e);
-        }
+        // Add verteci to pidJson
+        pidJson = mapVertexInstancesToShapes(pidShapesLibrary, pidInstances);
+        // Add edges to pidJson
+
+        // Add database bindings to pidJson
+
+        // Generate XML string from JS-Object
+        pidXmlString = generatePidXmlString(pidJson);
+
+        // Parse XML string to XML-Document (with DOM Parser)
+        pidXml = parseXml(pidXmlString);
+
+        // Render encoded XML String directly in markup (xml-container-div)
+        renderXml(pidXmlString);
+
     }
     generatePidButton.addEventListener("click", () => {
         generatePidXml(pidShapesLibrary, pidInstances);
         //totalCounter.innerHTML = "";
     }, false);
+
 
     function mapVertexInstancesToShapes(pidShapesLibrary, pidInstances) {
         console.log("Mapping of vertex instances to shapes started...")
@@ -110,12 +120,13 @@ window.addEventListener('load', () => {
         verteciString = JSON.stringify(verteci);
         console.log(`${verteci.length} verteci generated succesfully.`);
         downloadJsonButton.disabled = false;
+        return verteci;
     }
 
 
     function generatePidXmlString(pidJson) {
         let verteci = pidJson;
-        let vertexCount = pidJson.length;
+        let vertexCount = verteci.length;
         console.log(`vertexCount = ${vertexCount}`);
 
         // Instanciate Verteci:
@@ -142,6 +153,85 @@ window.addEventListener('load', () => {
     };
 
 
+    // function concatenateStyles(stylesObject) {
+    //     let styles = stylesObject;
+    //     let stylesString = "";
+    //     // USE REDUCE INSTEAD OF FOREACH
+    //     styles.forEach((style) => {
+    //         if (style === "") {
+    //             // Skip empty attribute
+    //         } else {
+    //             // Concatenate attribute
+    //             stylesString += `${style};`;
+    //         }
+    //         return stylesString;
+    //     });
+    // };
+
+
+    // DELETE??????? IS THIS REALLY NECESARRY???????
+    function parseXml(xmlString) {
+        var domParser = new DOMParser();
+        try {
+            var xmlDocument = domParser.parseFromString(xmlString, "application/xml");
+            console.log("pidXmlString parsed to pidXml File");
+            return xmlDocument;
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+
+    function renderXml(xmlString) {
+        // Formats raw XML-string to pretty print
+        let formattedXmlString = formatXml(xmlString);
+
+        // Encodes XML string to valid HTML string (HTML characters)
+        let htmlString = escapeXmlToHtml(xmlString);
+        console.log(`pidHtmlString = \n${htmlString}`);
+
+        xmlContainer.innerHTML = htmlString;
+    }
+
+
+    function formatXml(xml) {
+        var formatted = '';
+        var reg = /(>)(<)(\/*)/g;
+        xml = xml.replace(reg, '$1\r\n$2$3');
+        var pad = 0;
+        jQuery.each(xml.split('\r\n'), function(index, node) {
+            var indent = 0;
+            if (node.match(/.+<\/\w[^>]*>$/)) {
+                indent = 0;
+            } else if (node.match(/^<\/\w/)) {
+                if (pad != 0) {
+                    pad -= 1;
+                }
+            } else if (node.match(/^<\w[^>]*[^\/]>.*$/)) {
+                indent = 1;
+            } else {
+                indent = 0;
+            }
+
+            var padding = '';
+            for (var i = 0; i < pad; i++) {
+                padding += '  ';
+            }
+
+            formatted += padding + node + '\r\n';
+            pad += indent;
+        });
+
+        return formatted;
+    }
+
+
+    function escapeXmlToHtml(xmlString) {
+        let htmlString = String(xmlString).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/ /g, '&nbsp;').replace(/\n/g, '<br />');
+        return htmlString;
+    };
+
+
     function downloadFile(filename, text) {
         // stackoverflow: using-html5-javascript-to-generate-and-save-a-file
         var pom = document.createElement('a');
@@ -161,12 +251,5 @@ window.addEventListener('load', () => {
     downloadPidButton.addEventListener("click", () => {
         downloadFile('pid-visualization.xml', pidXmlString);
     });
-
-
-    function renderXml() {
-        const breweryPidSvg = "<img src=\"data\\brewery_pid_diagram.svg\"></img>";
-        xmlContainer.innerHTML = `${brewerySvg}`;
-        visuContainer.scrollIntoView();
-    }
 
 }, false);

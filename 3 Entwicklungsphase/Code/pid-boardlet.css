@@ -43,12 +43,12 @@ button {
     color: #37474f;
 }
 
-#table-title {
+#xml-container-header {
     color: #37474f;
 }
 
 #xml-container-div {
-    height: 230px;
+    height: 430px;
     overflow: scroll;
     border: 1px solid #ccc;
     font-family: sans-serif;
