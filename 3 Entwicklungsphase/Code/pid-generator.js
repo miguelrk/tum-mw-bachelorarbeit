@@ -133,13 +133,13 @@ window.addEventListener('load', () => {
 </mxGraphModel>`;
 
         return pidXmlString;
-    };
+    }
 
 
     function xmlToHtml(xmlString) {
         let htmlString = String(xmlString).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         return htmlString;
-    };
+    }
 
 
     function concatenateStyles(stylesObject) {
@@ -155,7 +155,7 @@ window.addEventListener('load', () => {
             }
             return stylesString;
         });
-    };
+    }
 
 
     function parseXml(xmlString) {
@@ -176,7 +176,7 @@ window.addEventListener('load', () => {
         } else {
             pom.click();
         }
-    };
+    }
     saveButton.addEventListener("click", () => {
         download('pidXmlString.xml', pidXmlString);
     })

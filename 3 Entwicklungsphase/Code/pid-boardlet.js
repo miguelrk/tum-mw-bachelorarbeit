@@ -19,9 +19,9 @@ window.addEventListener('load', () => {
     let cModulesJson;
     let verteci = [];
     let verteciString = '';
-    let visuJson;
-    let visuXmlString;
-    let visuXml;
+    let pidJson;
+    let pidXmlString;
+    let pidXml;
 
     if (window.File && window.FileReader && window.FileList) {
         // All the File APIs are supported.
@@ -68,8 +68,10 @@ window.addEventListener('load', () => {
 
 
     function generatePidXml() {
-        mapInstancesToShapes(libraryJson, cModulesJson);
         downloadPidButton.disabled = false;
+        // EVENTUALLY pidJson has both VERTECI AND EDGES INFO !!!!!!!!!!!!!
+        pidJson = mapVertexInstancesToShapes(libraryJson, cModulesJson);
+        generatePidXmlString(pidJson);
 
     }
     generatePidButton.addEventListener("click", () => {
@@ -79,7 +81,7 @@ window.addEventListener('load', () => {
         generatePidButton.disabled = true;
     }, false);
 
-    function mapInstancesToShapes(shapesLibrary, cModuleInstances) {
+    function mapVertexInstancesToShapes(shapesLibrary, cModuleInstances) {
         let counter = 0;
         let shapesCount = libraryJson.length;
         let cModulesCount = cModulesJson.length;
@@ -99,7 +101,83 @@ window.addEventListener('load', () => {
         });
         verteciString = JSON.stringify(verteci);
         downloadJsonButton.disabled = false;
+        return verteci;
     }
+
+
+    function generatePidXmlString(pidJson) {
+        let verteci = pidJson;
+        let vertexCount = pidJson.length;
+        console.log(`vertexCount = ${vertexCount}`);
+
+        // Instanciate Verteci:
+        pidXmlString = `
+<mxGraphModel dx="3952" dy="2849" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" background="#ffffff" math="0" shadow="0">
+<root>
+  <mxCell id="0"/>
+  <mxCell id="1" parent="0"/>`;
+
+        // Sets cModule attributes
+
+        //QUITAR ESTOS COMMENTS PARA IMPLEMENTAR USEROBJECTS COMO EN EL EXAMPLE DONDE LOS ATRIBUTOS EXTRA VAN FUERA DE MXCELL Y PUEDES UTILIZARLOS PARA TOOLTIPS POR EJEMPLO
+        // Sets shape attributes
+        // verteci.forEach((vertex) => {
+        //   pidXmlString += `
+        //   <${vertex._id}>
+        //   <mxCell id=\"${vertex._id}\" value=\"${vertex._value}\" style=\"${vertex._style}\" vertex=\"${vertex._vertex}\" parent=\"${vertex._parent}\">
+        //   <mxGeometry x="${vertex._x}\" y="${vertex._y}\" width="${vertex._width}\" height="${vertex._height}\" as="${vertex._as}\"></mxGeometry>
+        //   </mxCell>
+        //   </${vertex._id}>`;
+        // });
+
+
+        // Template-string tag definitions
+
+
+        // Create an HTML compatible XML String (encode HTML unsafe characters: ', ", <, >, and &)
+        verteci.forEach((vertex) => {
+            //
+            pidXmlString += `
+  <mxCell id=\"${vertex._id}\" value=\"${vertex._value}\" style=\"${vertex._style}\" vertex=\"${vertex._vertex}\" parent=\"${vertex._parent}\">
+    <mxGeometry x="50\" y="50\" width="${vertex.mxGeometry._width}\" height="${vertex.mxGeometry._height}\" as="${vertex.mxGeometry._as}\"></mxGeometry>
+  </mxCell>`
+        });
+
+        pidXmlString += `
+</root>
+</mxGraphModel>`;
+
+        return pidXmlString;
+    }
+
+
+    function xmlToHtml(xmlString) {
+        let htmlString = String(xmlString).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        return htmlString;
+    }
+
+
+    function concatenateStyles(stylesObject) {
+        let styles = stylesObject;
+        let stylesString = "";
+        // USE REDUCE INSTEAD OF FOREACH
+        styles.forEach((style) => {
+            if (style === "") {
+                // Skip empty attribute
+            } else {
+                // Concatenate attribute
+                stylesString += `${style};`;
+            }
+            return stylesString;
+        });
+    }
+
+
+    function parseXml(xmlString) {
+        var domParser = new DOMParser();
+        var xmlDocument = domParser.parseFromString(xmlString, "application/xml");
+    }
+
 
 
     function downloadFile(filename, text) {
