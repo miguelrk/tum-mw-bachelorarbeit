@@ -45,12 +45,14 @@ window.addEventListener('load', () => {
                 if (target === "pid-shapes-library") {
                     pidShapesLibraryString = event.target.result;
                     pidShapesLibrary = JSON.parse(pidShapesLibraryString);
-                    console.table(pidShapesLibrary);
+                    console.log(`${fileName} succesfully loaded`);
+                    //console.table(pidShapesLibrary);
                     file1Present = true;
                 } else if (target == "pid-instances") {
                     pidInstancesString = event.target.result;
                     pidInstances = JSON.parse(pidInstancesString);
-                    console.table(pidInstances);
+                    console.log(`${fileName} succesfully loaded`);
+                    //console.table(pidInstances);
                     file2Present = true;
                 } else {
                     alert(`${fileName} is not the appropriate file for ${target} input. Please select the correct file.`);
@@ -184,50 +186,33 @@ window.addEventListener('load', () => {
 
     function renderXml(xmlString) {
         // Formats raw XML-string to pretty print
-        let formattedXmlString = formatXml(xmlString);
-
+        let formattedXmlString = formatXml(xmlString, "  ");
         // Encodes XML string to valid HTML string (HTML characters)
-        let htmlString = escapeXmlToHtml(xmlString);
-        console.log(`pidHtmlString = \n${htmlString}`);
-
-        xmlContainer.innerHTML = htmlString;
+        let formattedHtmlString = escapeXmlToHtml(formattedXmlString);
+        console.log(`pidHtmlString = \n${formattedHtmlString}`);
+        xmlContainer.innerHTML = formattedHtmlString;
     }
 
 
-    function formatXml(xml) {
-        var formatted = '';
-        var reg = /(>)(<)(\/*)/g;
-        xml = xml.replace(reg, '$1\r\n$2$3');
-        var pad = 0;
-        jQuery.each(xml.split('\r\n'), function(index, node) {
-            var indent = 0;
-            if (node.match(/.+<\/\w[^>]*>$/)) {
-                indent = 0;
-            } else if (node.match(/^<\/\w/)) {
-                if (pad != 0) {
-                    pad -= 1;
-                }
-            } else if (node.match(/^<\w[^>]*[^\/]>.*$/)) {
-                indent = 1;
-            } else {
-                indent = 0;
-            }
-
-            var padding = '';
-            for (var i = 0; i < pad; i++) {
-                padding += '  ';
-            }
-
-            formatted += padding + node + '\r\n';
-            pad += indent;
-        });
-
-        return formatted;
-    }
+function formatXml(xml, tab) { // tab = optional indent value, default is tab (\t)
+    var formatted = '', indent= '';
+    tab = tab || '\t';
+    xml.split(/>\s*</).forEach(function(node) {
+        if (node.match( /^\/\w/ )) indent = indent.substring(tab.length); // decrease indent by one 'tab'
+        formatted += indent + '<' + node + '>\r\n';
+        if (node.match( /^<?\w[^>]*[^/]$/ )) indent += tab;              // increase indent
+    });
+    return formatted.substring(1, formatted.length-3);
+}
 
 
     function escapeXmlToHtml(xmlString) {
-        let htmlString = String(xmlString).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/ /g, '&nbsp;').replace(/\n/g, '<br />');
+        let htmlString = String(xmlString)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/ /g, '&nbsp;')
+        .replace(/\n/g, '<br />');
         return htmlString;
     };
 

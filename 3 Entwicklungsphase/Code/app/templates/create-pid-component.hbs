@@ -1,23 +1,25 @@
 <div class="form" style="margin-bottom:8pt">
-  <div class = "form-line">P&amp;ID Shapes Library: {{json-load-component
+  <div id="pid-shape-library" class = "form-line">
+    <span style=“font-weight:bold;”>P&amp;ID Shapes Library:</span>
+    {{json-load-component
     id=(concat 'json-load-' elementId)
     typeAccept = '.json'
     onLoadSuccess=(action 'loadSuccess' 'pidShapesLibraryObject')
     onLoadError=(action 'loadError')}}
   </div>
-  <!-- EVENTUALLY DELETE AND FETCH INSTANCES FROM DATABASE: -->
-  <div class = "form-line">P&amp;ID Instances:{{json-load-component
-    id=(concat 'json-load-' elementId)
-    typeAccept = '.json'
-    onLoadSuccess=(action 'loadSuccess' 'pidInstancesObject')
-    onLoadError=(action 'loadError')}}
+  <br />
+  <div id="generate-pid-button" class="button button-success disabled" style="margin-bottom:8pt;width:100%">
+    <span class="icon-export button-text"> Generate P&amp;ID Visualization</span>
+  </div>
+    <br />
+  <div id="xml-viewer-div" style="margin-bottom:8pt;width:100%;height:600px;float:right;overflow:scroll;font-family: sans-serif;">
   </div>
   <br />
-  <div class="button button-success" style="margin-bottom:8pt;width:100%" onClick={{action 'generatePidXml' id=(concat 'btn-generate-pid-xml-' elementId)}}>
-    <span class="icon-upload-cloud button-text"> Generate P&amp;ID Visualization</span>
-  </div>
-  <br />
-  <div class="button button-success" style="margin-bottom:8pt;width:100%" onClick={{action 'download' id=(concat 'btn-download-' elementId)}}>
+  <div id="download-pid-button" class="button button-success disabled" style="margin-bottom:8pt;width:100%">
     <span class="icon-download button-text"> Download P&amp;ID Visualization</span>
+  </div>
+    <br />
+  <div id="upload-pid-button" class="button button-success disabled" style="margin-bottom:8pt;width:100%">
+    <span class="icon-upload button-text"> Upload P&amp;ID Visualization</span>
   </div>
 </div>

@@ -289,12 +289,19 @@ var component = SapientComponent.extend(Evented,{
             let thisClass = model.nodes.find(o => o.modelId === idObj.model_id);
             //add database id
             if (idObj.db_id) thisClass.dbId = idObj.db_id;
+            if (idObj.gw_node_id) thisClass.gwNodeId = idObj.gw_node_id;
+            if (idObj.opc_ua_level!=null) thisClass.opcUALevel = idObj.opc_ua_level;
+            if (idObj.opc_ua_ns_name) thisClass.opcUANamespaceName = idObj.opc_ua_ns_name;
+            if (idObj.opc_ua_ns_prefix) thisClass.opcUANamespacePrefix = idObj.opc_ua_ns_prefix;
 
             //add database id and valuePrefix to all child classes
             model.nodes.filter(c => c.parent.modelId === idObj.model_id).forEach(c => {
                 c.parent.dbId = thisClass.dbId;
                 if (idObj.value_prefix) c.valPrefix = idObj.value_prefix + c.name + ".";
                 if (idObj.connection) c.connection = idObj.connection;
+                if (idObj.opc_ua_level!=null) c.opcUALevel = idObj.opc_ua_level + 1;
+                if (idObj.opc_ua_ns_name) c.opcUANamespaceName = idObj.opc_ua_ns_name;
+                if (idObj.opc_ua_ns_prefix) c.opcUANamespacePrefix = idObj.opc_ua_ns_prefix;
             });
 
             //find child properties
