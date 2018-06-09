@@ -1,7 +1,9 @@
 import Evented from "@ember/object/evented";
 import SapientComponent from "core/objects/component-base";
 //import ParameterContext from 'core/objects/parameter-context';
-import { inject as service } from "@ember/service";
+import {
+    inject as service
+} from "@ember/service";
 
 var component = SapientComponent.extend(Evented, {
     classNames: ["create-pid-component"],
@@ -20,8 +22,7 @@ var component = SapientComponent.extend(Evented, {
         loadSuccess: function(object, response) {
             // Initializes variables for global availability in loadSuccess function block
             // FIXIT: DATABASE FETCHING IN INDIVIDUAL MAPPING FUNCTIONS
-            let pidNodes = [
-                {
+            let pidNodes = [{
                     shapeName: "gate_valve_(diaphragm)",
                     site: "Aida",
                     area: "Brewery",
@@ -534,27 +535,28 @@ var component = SapientComponent.extend(Evented, {
                 // sapient loading doesn´t work here because out of scope
                 //this.set('loading', true);
 
-                // 1) Generate JSON Object of P&ID (pidJson)
-                //FIXIT: pidJson is to be fetched and generated from database
+                // 1) TODO: Generate JSON Object of P&ID (pidJson) FROM DATABASE QUERIES
                 let pidJson = [];
-                // 1.1) Add verteci to pidJson
-                pidJson = mapNodesToShapes(pidShapesLibraryObject, pidNodes);
-                // 1.2) Add edges to pidJson
-                //pidJson.push(mapConnectionsToShapes(pidShapesLibraryObject, pidConnections));
-
-                // 1.3) Add database bindings to pidJson
-                //pidJson.push(mapDataBindingsToShapes(pidShapesLibraryObject, pidDataBindings));
-
+                // Add verteci to pidJson
+                let pidVerteci = mapNodesToShapes(pidShapesLibrary, pidNodes);
+                // Add edges to pidJson
+                let pidEdges = mapConnectionsToShapes(pidShapesLibrary, pidConnections);
+                // Add database bindings to pidJson 
+                //let pidDatabaseBindings = mapDataBindingsToShapes(pidShapesLibrary, pidDataBindings);
+                // Concatenate arrays to single array using ES6 Spread operator
+                //FIXME: Replace with: pidJson = [...pidVerteci, ...pidEdges, ...pidDatabaseBindings];
+                pidJson = [...pidVerteci, ...pidEdges];
                 // 2) Generate XML File of P&ID Visualization (pidXml) from pidJson
-                // 2.1) Generate XML String from pidJson
                 pidXmlString = generatePidXmlString(pidJson);
-                // 2.2) Parse XML String of PID Visualization into an XML File
                 //let pidXml = parseXml(pidXmlString); // Delete: downloadFile() requires xml string not xml file
 
                 // 3) Render XML as Text in xml-viewer-div of boardlet
                 renderXml(pidXmlString);
 
-                // Remove sapient disabled class for success-button
+                // 4) Enable download by adding event listener and removing sapient disabled class style
+                document.getElementById("download-pid-button").addEventListener("click", () => {
+                    downloadFile("pid-visualization.xml", pidXmlString);
+                }, false);
                 document.getElementById("download-pid-button").className =
                     "button button-success";
 
@@ -562,12 +564,9 @@ var component = SapientComponent.extend(Evented, {
                 console.timeEnd();
             }
             document.getElementById("generate-pid-button").addEventListener(
-                "click",
-                () => {
+                "click", () => {
                     generatePidXml();
-                },
-                false
-            );
+                }, false);
 
             // Downloads XML File of P&ID on button click
             function downloadFile(filename, text) {
@@ -586,13 +585,7 @@ var component = SapientComponent.extend(Evented, {
                     pom.click();
                 }
             }
-            document.getElementById("download-pid-button").addEventListener(
-                "click",
-                () => {
-                    downloadFile("pid-visualization.xml", pidXmlString);
-                },
-                false
-            );
+
 
             // Uploads XML File of P&ID on button click to C:\devsource\research-sapient-app\public\assets\detail-layout for Legato Graphic Designer Boardlet to import
             // function uploadPidXml() {
@@ -605,59 +598,58 @@ var component = SapientComponent.extend(Evented, {
             ////////////////////////////////////////////////////////////////////
 
             function mapNodesToShapes(pidShapesLibrary, pidNodes) {
-                console.log("Mapping nodes to shapes...");
-                let pidShapesCount = pidShapesLibrary.length;
-                let pidNodesCount = pidNodes.length;
+                const pidShapesCount = pidShapesLibrary.length;
+                const pidNodesCount = pidNodes.length;
                 let pidVerteci = [];
-
-                console.log(
-                    `Mapping ${pidNodesCount} node instances from ${pidShapesCount} total shapes in library...`
-                );
-                console.log("pidNodes:");
-                console.table(pidNodes);
 
                 // TODO: pidNodes = (FETCH FROM PRJ_PRC_VISU_VERTECI)
                 pidNodes.forEach(pidNode => {
                     let matchingShape = {};
-                    matchingShape = pidShapesLibrary.find(
-                        shape => shape.shapeName === pidNode.shapeName
-                    );
+                    matchingShape = pidShapesLibrary.find(shape => shape.shapeName === pidNode.shapeName);
                     //console.log(pidNode);
                     //console.log(matchingShape);
                     // Clone all properties to NEW target object (which is returned)
                     let pidVertex = Object.assign({}, pidNode, matchingShape);
                     pidVerteci.push(pidVertex);
                 });
+
+                console.log(`Mapped ${pidNodesCount} node instances to vertex shapes from ${pidShapesCount} total shapes in library.`);
+                console.log("pidNodes:");
+                console.table(pidNodes);
                 console.log("pidVerteci:");
                 console.table(pidVerteci);
+
                 return pidVerteci;
             }
 
             /*function mapConnectionsToShapes(pidShapesLibrary, pidConnections) {
-                console.log("Mapping connections to shapes...");
-                let pidShapesCount = pidShapesLibrary.length;
-                let pidConnectionsCount = pidConnections.length;
-                let pidEdges = [];
+                  const pidShapesCount = pidShapesLibrary.length;
+                  const pidConnectionsCount = pidConnections.length;
+                  let pidEdges = [];
 
-                console.log(`Mapping ${pidConnectionsCount} node instances from ${pidShapesCount} total shapes in library...`);
-                console.log('pidConnections:');
-                console.table(pidConnections);
+                  // TODO: pidConnections = (FETCH FROM PRJ_PRC_PRO_FLOWS) 
+                  pidConnections.forEach(pidConnection => {
+                      let matchingShape = {};
+                      matchingShape = pidShapesLibrary.find(shape => shape.shapeName === pidConnection.shapeName);
+                      //console.log(pidConnection);
+                      //console.log(matchingShape);
+                      // Clone all properties to NEW target object (which is returned)
+                      let pidEdge = Object.assign({}, pidConnection, matchingShape);
+                      pidEdges.push(pidEdge);
+                  });
 
-                // TODO: pidConnections = (FETCH FROM PRJ_PRC_PRO_FLOWS) 
-                pidConnections.forEach((pidConnection) => {
-                    let matchingShape = {};
-                    matchingShape = pidShapesLibrary.find((shape) => shape.shapeName === pidConnection.shapeName);
-                    //console.log(pidConnection);
-                    //console.log(matchingShape);
-                    // Clone all properties to NEW target object (which is returned)
-                    let pidEdge = Object.assign({}, pidConnection, matchingShape);
-                    pidEdges.push(pidEdge);
-                });
-                console.log('pidEdges:');
-                console.table(pidEdges);
-                return pidEdges;
-            } 
-            }*/
+                  // Enable download button an change style to enabled
+                  downloadJsonButton.disabled = false;
+                  downloadJsonButton.className = 'enabled';
+
+                  console.log(`Mapped ${pidConnectionsCount} connection instances to edge shapes from ${pidShapesCount} total shapes in library.`);
+                  console.log('pidConnections:');
+                  console.table(pidConnections);
+                  console.log('pidEdges:');
+                  console.table(pidEdges);
+
+                  return pidEdges;
+              }*/
 
             /*function mapDataBindingsToShapes(pidShapesLibrary, pidDataBindings) {
                 console.log("Mapping data bindings to shapes...");
@@ -674,19 +666,19 @@ var component = SapientComponent.extend(Evented, {
                     pidInstance => pidInstance.pidClass === "equipment"
                 );
                 let pidInstruments;
-                pidInstruments  = pidJson.filter(
+                pidInstruments = pidJson.filter(
                     pidInstance => pidInstance.pidClass === "instrument"
                 );
                 let pidArrows;
-                pidArrows  = pidJson.filter(
+                pidArrows = pidJson.filter(
                     pidInstance => pidInstance.pidClass === "arrow"
                 );
                 let pidGroups;
-                pidGroups  = pidJson.filter(
+                pidGroups = pidJson.filter(
                     pidInstance => pidInstance.pidClass === "group"
                 );
                 let pidLines;
-                pidLines  = pidJson.filter(
+                pidLines = pidJson.filter(
                     pidInstance => pidInstance.pidClass === "line"
                 );
 
@@ -703,62 +695,62 @@ var component = SapientComponent.extend(Evented, {
                 // Add mxGraph and mxGraphModel boilerplate settings
                 pidXmlString = `
 <mxGraphModel dx="3952" dy="2849" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" background="#ffffff" math="0" shadow="0">
-<root>
-  <mxCell id="0"/>
-  <mxCell id="1" parent="0"/>`;
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>`;
 
                 // Add verteci:
                 pidEquipments.forEach((pidEquipment) => {
                     const equipmentCount = pidEquipments.length;
                     console.log(`Generating XML-tags for ${equipmentCount} equipment instances...`);
                     pidXmlString += `
-  <mxCell id="${pidEquipment._id}" value="${pidEquipment._value}" style="${pidEquipment._style}" vertex="${pidEquipment._vertex}" parent="${pidEquipment._parent}">
-    <mxGeometry x="50" y="50" width="${pidEquipment.mxGeometry._width}" height="${pidEquipment.mxGeometry._height}" as="${pidEquipment.mxGeometry._as}"></mxGeometry>
-  </mxCell>`;
+    <mxCell id="${pidEquipment._id}" value="${pidEquipment._value}" style="${pidEquipment._style}" vertex="${pidEquipment._vertex}" parent="${pidEquipment._parent}">
+      <mxGeometry x="50" y="50" width="${pidEquipment.mxGeometry._width}" height="${pidEquipment.mxGeometry._height}" as="${pidEquipment.mxGeometry._as}"></mxGeometry>
+    </mxCell>`;
                 });
 
                 pidInstruments.forEach((pidInstrument) => {
                     const instrumentCount = pidInstruments.length;
                     console.log(`Generating XML-tags for ${instrumentCount} instrument instances...`);
                     pidXmlString += `
-  <mxCell id="${pidInstrument._id}" value="${pidInstrument._value}" style="${pidInstrument._style}" vertex="${pidInstrument._vertex}" parent="${pidInstrument._parent}">
-    <mxGeometry x="50" y="50" width="${pidInstrument.mxGeometry._width}" height="${pidInstrument.mxGeometry._height}" as="${pidInstrument.mxGeometry._as}"></mxGeometry>
-  </mxCell>`;
+    <mxCell id="${pidInstrument._id}" value="${pidInstrument._value}" style="${pidInstrument._style}" vertex="${pidInstrument._vertex}" parent="${pidInstrument._parent}">
+      <mxGeometry x="50" y="50" width="${pidInstrument.mxGeometry._width}" height="${pidInstrument.mxGeometry._height}" as="${pidInstrument.mxGeometry._as}"></mxGeometry>
+    </mxCell>`;
                 });
 
                 pidArrows.forEach((pidArrow) => {
                     const arrowCount = pidArrows.length;
                     console.log(`Generating XML-tags for ${arrowCount} arrow instances...`);
                     pidXmlString += `
-  <mxCell id="${pidArrow._id}" value="${pidArrow._value}" style="${pidArrow._style}" vertex="${pidArrow._vertex}" parent="${pidArrow._parent}">
-    <mxGeometry x="50" y="50" width="${pidArrow.mxGeometry._width}" height="${pidArrow.mxGeometry._height}" as="${pidArrow.mxGeometry._as}"></mxGeometry>
-  </mxCell>`;
+    <mxCell id="${pidArrow._id}" value="${pidArrow._value}" style="${pidArrow._style}" vertex="${pidArrow._vertex}" parent="${pidArrow._parent}">
+      <mxGeometry x="50" y="50" width="${pidArrow.mxGeometry._width}" height="${pidArrow.mxGeometry._height}" as="${pidArrow.mxGeometry._as}"></mxGeometry>
+    </mxCell>`;
                 });
 
                 pidGroups.forEach((pidGroup) => {
                     const groupCount = pidGroups.length;
                     console.log(`Generating XML-tags for ${groupCount} group instances...`);
                     pidXmlString += `
-  <mxCell id="${pidGroup._id}" value="${pidGroup._value}" style="${pidGroup._style}" vertex="${pidGroup._vertex}" parent="${pidGroup._parent}">
-    <mxGeometry x="50" y="50" width="${pidGroup.mxGeometry._width}" height="${pidGroup.mxGeometry._height}" as="${pidGroup.mxGeometry._as}"></mxGeometry>
-  </mxCell>`;
+    <mxCell id="${pidGroup._id}" value="${pidGroup._value}" style="${pidGroup._style}" vertex="${pidGroup._vertex}" parent="${pidGroup._parent}">
+      <mxGeometry x="50" y="50" width="${pidGroup.mxGeometry._width}" height="${pidGroup.mxGeometry._height}" as="${pidGroup.mxGeometry._as}"></mxGeometry>
+    </mxCell>`;
                 });
-                
+
                 // Add edges:
                 pidLines.forEach((pidLine) => {
                     const lineCount = pidLines.length;
                     console.log(`Generating XML-tags for ${lineCount} line instances...`);
                     pidXmlString += `
-  <mxCell id="${pidLine._id}" value="${pidLine._value}" style="${pidLine._style}" vertex="${pidLine._vertex}" parent="${pidLine._parent}">
-    <mxGeometry x="50" y="50" width="${pidLine.mxGeometry._width}" height="${pidLine.mxGeometry._height}" as="${pidLine.mxGeometry._as}"></mxGeometry>
-  </mxCell>`;
+    <mxCell id="${pidLine._id}" value="${pidLine._value}" style="${pidLine._style}" edge="${pidLine._edge}" source="${pidLine.source}" target="${pidLine.target}" parent="${pidLine._parent}">
+      <mxGeometry x="50" y="50" as="${pidLine.mxGeometry._as}"></mxGeometry>
+    </mxCell>`;
                 });
-                
+
                 // Add database bindings
 
                 // Add boilerplate closing tags
                 pidXmlString += `
-</root>
+  </root>
 </mxGraphModel>`;
 
                 console.log(pidXmlString);
@@ -790,14 +782,15 @@ var component = SapientComponent.extend(Evented, {
 
             function formatXml(xml, tab) { // tab = optional indent value, default is tab (\t)
                 console.log("Formatting pidXmlString...");
-                var formatted = '', indent= '';
+                var formatted = '',
+                    indent = '';
                 tab = tab || '\t';
                 xml.split(/>\s*</).forEach(function(node) {
-                    if (node.match( /^\/\w/ )) indent = indent.substring(tab.length); // decrease indent by one 'tab'
+                    if (node.match(/^\/\w/)) indent = indent.substring(tab.length); // decrease indent by one 'tab'
                     formatted += indent + '<' + node + '>\r\n';
-                    if (node.match( /^<?\w[^>]*[^/]$/ )) indent += tab;              // increase indent
+                    if (node.match(/^<?\w[^>]*[^/]$/)) indent += tab; // increase indent
                 });
-                return formatted.substring(1, formatted.length-3);
+                return formatted.substring(1, formatted.length - 3);
             }
 
 

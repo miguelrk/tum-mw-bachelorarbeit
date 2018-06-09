@@ -30,10 +30,42 @@ button {
     cursor: pointer;
 }
 
+button.disabled {
+    border: none;
+    color: #88959c;
+    padding: 5px 15px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 14px;
+    margin: 4px 2px;
+    cursor: pointer;
+}
+
+button.enabled {
+    border: none;
+    color: white;
+    padding: 5px 15px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 14px;
+    margin: 4px 2px;
+    cursor: pointer;
+}
+
 #generate-pid-button {
     background-color: #00796b;
     float: right;
     margin: 15px;
+}
+
+#download-json-button {
+    background-color: #4c5b63;
+    float: left;
+}
+
+#download-pid-button {
+    background-color: #00796b;
+    float: right;
 }
 
 #total-counter {
@@ -52,9 +84,5 @@ button {
     overflow: scroll;
     border: 1px solid #ccc;
     font-family: sans-serif;
-}
-
-#download-pid-button {
-    background-color: #00796b;
-    float: right;
+    font-size: 10pt;
 }
