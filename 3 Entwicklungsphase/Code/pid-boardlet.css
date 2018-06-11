@@ -22,6 +22,7 @@ input:hover {
 button {
     border: none;
     color: white;
+    background-color: #00796b;
     padding: 5px 15px;
     text-align: center;
     text-decoration: none;
@@ -31,29 +32,14 @@ button {
 }
 
 button.disabled {
-    border: none;
     color: #88959c;
-    padding: 5px 15px;
-    text-align: center;
-    text-decoration: none;
-    font-size: 14px;
-    margin: 4px 2px;
-    cursor: pointer;
 }
 
 button.enabled {
-    border: none;
     color: white;
-    padding: 5px 15px;
-    text-align: center;
-    text-decoration: none;
-    font-size: 14px;
-    margin: 4px 2px;
-    cursor: pointer;
 }
 
 #generate-pid-button {
-    background-color: #00796b;
     float: right;
     margin: 15px;
 }
@@ -63,8 +49,8 @@ button.enabled {
     float: left;
 }
 
-#download-pid-button {
-    background-color: #00796b;
+#download-xml-button {
+    display: block;
     float: right;
 }
 

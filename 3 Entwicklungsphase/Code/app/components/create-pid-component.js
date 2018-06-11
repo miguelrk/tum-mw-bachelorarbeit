@@ -508,7 +508,107 @@ var component = SapientComponent.extend(Evented, {
                     eModule: "Inlet"
                 }
             ];
-            //let pidConnections = {};
+            let pidConnections = [{
+                    "shapeName": "pipe_line",
+                    "source": "2",
+                    "target": "3"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "2",
+                    "target": "4"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "4",
+                    "target": "5"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "5",
+                    "target": "6"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "6",
+                    "target": "7"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "7",
+                    "target": "8"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "8",
+                    "target": "9"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "9",
+                    "target": "10"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "10",
+                    "target": "11"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "11",
+                    "target": "12"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "12",
+                    "target": "13"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "13",
+                    "target": "14"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "14",
+                    "target": "15"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "15",
+                    "target": "16"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "16",
+                    "target": "17"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "17",
+                    "target": "18"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "18",
+                    "target": "19"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "19",
+                    "target": "20"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "20",
+                    "target": "21"
+                },
+                {
+                    "shapeName": "pipe_line",
+                    "source": "21",
+                    "target": "22"
+                }
+            ];
             //let pidDataBindings = {};
             let pidXmlString = "";
 
@@ -540,11 +640,12 @@ var component = SapientComponent.extend(Evented, {
                 // Add verteci to pidJson
                 let pidVerteci = mapNodesToShapes(pidShapesLibrary, pidNodes);
                 // Add edges to pidJson
+                // TODO: _parent attribute must be overriden from default (_parent="1";) for ALL Nodes (info from DB fetch)
                 let pidEdges = mapConnectionsToShapes(pidShapesLibrary, pidConnections);
                 // Add database bindings to pidJson 
                 //let pidDatabaseBindings = mapDataBindingsToShapes(pidShapesLibrary, pidDataBindings);
                 // Concatenate arrays to single array using ES6 Spread operator
-                //FIXME: Replace with: pidJson = [...pidVerteci, ...pidEdges, ...pidDatabaseBindings];
+                // FIXME: Replace with: pidJson = [...pidVerteci, ...pidEdges, ...pidDatabaseBindings];
                 pidJson = [...pidVerteci, ...pidEdges];
                 // 2) Generate XML File of P&ID Visualization (pidXml) from pidJson
                 pidXmlString = generatePidXmlString(pidJson);
@@ -553,12 +654,19 @@ var component = SapientComponent.extend(Evented, {
                 // 3) Render XML as Text in xml-viewer-div of boardlet
                 renderXml(pidXmlString);
 
-                // 4) Enable download by adding event listener and removing sapient disabled class style
+                // 4) Enable download and upload by adding event listener and removing sapient disabled class style
                 document.getElementById("download-pid-button").addEventListener("click", () => {
-                    downloadFile("pid-visualization.xml", pidXmlString);
+                    downloadFile("pid-visualization.json", pidXmlString);
                 }, false);
                 document.getElementById("download-pid-button").className =
                     "button button-success";
+                // TODO: Change callback to uploadFile() when done implementing
+                document.getElementById("upload-pid-button").addEventListener("click", () => {
+                    downloadFile("pid-visualization.xml", pidXmlString);
+                }, false);
+                document.getElementById("upload-pid-button").className =
+                    "button button-success";
+
 
                 console.log('generatePidXml() done after:');
                 console.timeEnd();
@@ -587,11 +695,23 @@ var component = SapientComponent.extend(Evented, {
             }
 
 
-            // Uploads XML File of P&ID on button click to C:\devsource\research-sapient-app\public\assets\detail-layout for Legato Graphic Designer Boardlet to import
-            // function uploadPidXml() {
-            //     this.set('loading', true);
-            //     console.log("Upload P&ID XML-file to Sapient Engine...");
-            // }
+            const xmlFileName = 'pid-visualization.xml'
+            const xmlUrl = 'Desktop';
+            let xhr = new XMLHttpRequest;
+
+            // Change to ES6 with async/await
+            function uploadFile(fileName, url, text) {
+                xhr.onload = (() => {
+                    if (xhr.status === 200) {
+                        console.log('xhr.onload succeeded');
+                        console.log(text);
+                    };
+                });
+                // Specifies the type of request (post, url, async)
+                xhr.open("POST", url, true);
+                // Sends the request to the server
+                xhr.send(text);
+            }
 
             ////////////////////////////////////////////////////////////////////
             //                         Secondary Function declarations:
@@ -622,34 +742,34 @@ var component = SapientComponent.extend(Evented, {
                 return pidVerteci;
             }
 
-            /*function mapConnectionsToShapes(pidShapesLibrary, pidConnections) {
-                  const pidShapesCount = pidShapesLibrary.length;
-                  const pidConnectionsCount = pidConnections.length;
-                  let pidEdges = [];
+            function mapConnectionsToShapes(pidShapesLibrary, pidConnections) {
+                const pidShapesCount = pidShapesLibrary.length;
+                const pidConnectionsCount = pidConnections.length;
+                let pidEdges = [];
 
-                  // TODO: pidConnections = (FETCH FROM PRJ_PRC_PRO_FLOWS) 
-                  pidConnections.forEach(pidConnection => {
-                      let matchingShape = {};
-                      matchingShape = pidShapesLibrary.find(shape => shape.shapeName === pidConnection.shapeName);
-                      //console.log(pidConnection);
-                      //console.log(matchingShape);
-                      // Clone all properties to NEW target object (which is returned)
-                      let pidEdge = Object.assign({}, pidConnection, matchingShape);
-                      pidEdges.push(pidEdge);
-                  });
+                // TODO: pidConnections = (FETCH FROM PRJ_PRC_PRO_FLOWS) 
+                pidConnections.forEach(pidConnection => {
+                    let matchingShape = {};
+                    matchingShape = pidShapesLibrary.find(shape => shape.shapeName === pidConnection.shapeName);
+                    //console.log(pidConnection);
+                    //console.log(matchingShape);
+                    // Clone all properties to NEW target object (which is returned)
+                    let pidEdge = Object.assign({}, pidConnection, matchingShape);
+                    pidEdges.push(pidEdge);
+                });
 
-                  // Enable download button an change style to enabled
-                  downloadJsonButton.disabled = false;
-                  downloadJsonButton.className = 'enabled';
+                // Enable download button an change style to enabled
+                downloadJsonButton.disabled = false;
+                downloadJsonButton.className = 'enabled';
 
-                  console.log(`Mapped ${pidConnectionsCount} connection instances to edge shapes from ${pidShapesCount} total shapes in library.`);
-                  console.log('pidConnections:');
-                  console.table(pidConnections);
-                  console.log('pidEdges:');
-                  console.table(pidEdges);
+                console.log(`Mapped ${pidConnectionsCount} connection instances to edge shapes from ${pidShapesCount} total shapes in library.`);
+                console.log('pidConnections:');
+                console.table(pidConnections);
+                console.log('pidEdges:');
+                console.table(pidEdges);
 
-                  return pidEdges;
-              }*/
+                return pidEdges;
+            }
 
             /*function mapDataBindingsToShapes(pidShapesLibrary, pidDataBindings) {
                 console.log("Mapping data bindings to shapes...");

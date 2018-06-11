@@ -10,10 +10,11 @@ window.addEventListener('load', () => {
     // Buttons
     const generatePidButton = document.getElementById("generate-pid-button");
     const downloadJsonButton = document.getElementById("download-json-button");
-    const downloadPidButton = document.getElementById("download-pid-button");
+    const downloadXmlButton = document.getElementById("download-xml-button");
     // Other
     const totalCounter = document.getElementById("total-counter");
     const xmlContainer = document.getElementById("xml-container-div");
+
 
 
     let file1Present = false;
@@ -30,9 +31,15 @@ window.addEventListener('load', () => {
     let pidDataBindingsString;
     let pidDataBindings;
 
+
+    let pidVerteci;
+    let pidEdges;
+    let pidDatabaseBindings;
     let pidJson = [];
-    let pidXmlString;
+    let pidJsonString = '';
+    let pidXmlString = '';
     let pidXml;
+
 
     if (window.File && window.FileReader && window.FileList) {
         // All the File APIs are supported.
@@ -103,18 +110,18 @@ window.addEventListener('load', () => {
     function generatePidXml() {
         generatePidButton.disabled = true;
         generatePidButton.className = 'disabled';
-        downloadPidButton.disabled = false;
-        downloadPidButton.className = 'enabled';
 
         // Add verteci to pidJson
-        let pidVerteci = mapNodesToShapes(pidShapesLibrary, pidNodes);
+        pidVerteci = mapNodesToShapes(pidShapesLibrary, pidNodes);
         // Add edges to pidJson
-        let pidEdges = mapConnectionsToShapes(pidShapesLibrary, pidConnections);
+        pidEdges = mapConnectionsToShapes(pidShapesLibrary, pidConnections);
         // Add database bindings to pidJson 
-        //let pidDatabaseBindings = mapDataBindingsToShapes(pidShapesLibrary, pidDataBindings);
+        //pidDatabaseBindings = mapDataBindingsToShapes(pidShapesLibrary, pidDataBindings);
         // Concatenate arrays to single array using ES6 Spread operator
-        //FIXME: Replace with: pidJson = [...pidVerteci, ...pidEdges, ...pidDatabaseBindings];
+        // FIXME: Replace with: pidJson = [...pidVerteci, ...pidEdges, ...pidDatabaseBindings];
         pidJson = [...pidVerteci, ...pidEdges];
+        // Generate JSON string from JS-Object
+        pidJsonString = JSON.stringify(pidJson);
 
         // Generate XML string from JS-Object
         pidXmlString = generatePidXmlString(pidJson);
@@ -171,9 +178,11 @@ window.addEventListener('load', () => {
             pidEdges.push(pidEdge);
         });
 
-        // Enable download button an change style to enabled
+        // Enable download and upload button and set style to enabled
         downloadJsonButton.disabled = false;
         downloadJsonButton.className = 'enabled';
+        downloadXmlButton.disabled = false;
+        downloadXmlButton.className = 'enabled';
 
         console.log(`Mapped ${pidConnectionsCount} connection instances to edge shapes from ${pidShapesCount} total shapes in library.`);
         console.log('pidConnections:');
@@ -194,7 +203,9 @@ window.addEventListener('load', () => {
         console.log("Generating pidXmlString from pidJson...");
         console.log("pidJson:");
         console.table(pidJson);
-        // Filters nodes by their individual pidClasses and creates new individual objects
+        // Filter nodes by their individual pidClasses and create new 
+        // individual objects (not too expensive and filtered once before
+        // layout algorithm and string generation, both which need filtered data
         let pidEquipments;
         pidEquipments = pidJson.filter(
             pidInstance => pidInstance.pidClass === "equipment"
@@ -215,33 +226,58 @@ window.addEventListener('load', () => {
         pidLines = pidJson.filter(
             pidInstance => pidInstance.pidClass === "line"
         );
+        // let pidDatabaseBindings;
+        // pidDatabaseBindings = pidJson.filter(
+        //     pidInstance => pidInstance.pidClass === "data_binding" ??? pidClass or xml object or what
+        // );
 
-        console.log(`pidEquipments = ${pidEquipments}`);
-        console.log(`pidInstruments = ${pidInstruments}`);
-        console.log(`pidArrows = ${pidArrows}`);
-        console.log(`pidGroups = ${pidGroups}`);
-        console.log(`pidLines = ${pidLines}`);
+        console.log(`pidEquipments: ${pidEquipments.length}`);
+        console.log(`pidInstruments: ${pidInstruments.length}`);
+        console.log(`pidArrows: ${pidArrows.length}`);
+        console.log(`pidGroups: ${pidGroups.length}`);
+        console.log(`pidLines: ${pidLines.length}`);
 
-        //let edges = pidJson;
-        //let databaseBindings = pidJson;
+        // Grid layout algorithm to set _x and _y attributes of pidNodes
+        console.log("Grid layout algorithm started...");
+        //pidLayoutAlgorithm(pidVerteci, pidEdges);
+
+
         console.log("XML String generation started...");
+
+        const graphSettings = {
+            dx: "3952",
+            dy: "2849",
+            grid: "1",
+            gridSize: "10",
+            guides: "1",
+            tooltips: "1",
+            connect: "1",
+            arrows: "1",
+            fold: "1",
+            page: "1",
+            pageScale: "1",
+            pageWidth: "1654",
+            pageHeight: "1169",
+            background: "#ffffff",
+            math: "0",
+            shadow: "0"
+        }
 
         // Add mxGraph and mxGraphModel boilerplate settings
         pidXmlString = `
-<mxGraphModel dx="3952" dy="2849" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" background="#ffffff" math="0" shadow="0">
+<mxGraphModel dx="${graphSettings.dx}" dy="${graphSettings.dy}" grid="${graphSettings.grid}" gridSize="${graphSettings.gridSize}" guides="${graphSettings.guides}" tooltips="${graphSettings.tooltips}" connect="${graphSettings.connect}" arrows="${graphSettings.arrows}" fold="${graphSettings.fold}" page="${graphSettings.page}" pageScale="${graphSettings.pageScale}" pageWidth="${graphSettings.pageWidth}" pageHeight="${graphSettings.pageHeight}" background="${graphSettings.background}" math="${graphSettings.math}" shadow="${graphSettings.shadow}">
   <root>
     <mxCell id="0"/>
     <mxCell id="1" parent="0"/>`;
-
-        // Implement GLOBAL ID Generator starting from 2
-        let previousId = 1;
 
         // Add verteci:
         pidEquipments.forEach((pidEquipment) => {
             const equipmentCount = pidEquipments.length;
             console.log(`Generating XML-tags for ${equipmentCount} equipment instances...`);
+            // Conditional inside template literal to set either parent or default _parent
+            // Values not preceeded with '_' are instance attributes (from database)
             pidXmlString += `
-    <mxCell id="${previousId += 1}" value="${pidEquipment._value}" style="${pidEquipment._style}" vertex="${pidEquipment._vertex}" parent="${pidEquipment._parent}">
+    <mxCell id="${pidEquipment.id}" value="${pidEquipment._value}" style="${pidEquipment._style}" vertex="${pidEquipment._vertex}" parent="${pidEquipment.parent ? pidEquipment.parent : pidEquipment._parent}">
       <mxGeometry x="50" y="50" width="${pidEquipment.mxGeometry._width}" height="${pidEquipment.mxGeometry._height}" as="${pidEquipment.mxGeometry._as}"></mxGeometry>
     </mxCell>`;
         });
@@ -250,7 +286,7 @@ window.addEventListener('load', () => {
             const instrumentCount = pidInstruments.length;
             console.log(`Generating XML-tags for ${instrumentCount} instrument instances...`);
             pidXmlString += `
-    <mxCell id="${previousId += 1}" value="${pidInstrument._value}" style="${pidInstrument._style}" vertex="${pidInstrument._vertex}" parent="${pidInstrument._parent}">
+    <mxCell id="${pidInstrument.id}" value="${pidInstrument._value}" style="${pidInstrument._style}" vertex="${pidInstrument._vertex}" parent="${pidInstrument.parent ? pidInstrument.parent : pidInstrument._parent}">
       <mxGeometry x="50" y="50" width="${pidInstrument.mxGeometry._width}" height="${pidInstrument.mxGeometry._height}" as="${pidInstrument.mxGeometry._as}"></mxGeometry>
     </mxCell>`;
         });
@@ -259,7 +295,7 @@ window.addEventListener('load', () => {
             const arrowCount = pidArrows.length;
             console.log(`Generating XML-tags for ${arrowCount} arrow instances...`);
             pidXmlString += `
-    <mxCell id="${previousId += 1}" value="${pidArrow._value}" style="${pidArrow._style}" vertex="${pidArrow._vertex}" parent="${pidArrow._parent}">
+    <mxCell id="${pidArrow.id}" value="${pidArrow._value}" style="${pidArrow._style}" vertex="${pidArrow._vertex}" parent="${pidArrow.parent ? pidArrow.parent : pidArrow._parent}">
       <mxGeometry x="50" y="50" width="${pidArrow.mxGeometry._width}" height="${pidArrow.mxGeometry._height}" as="${pidArrow.mxGeometry._as}"></mxGeometry>
     </mxCell>`;
         });
@@ -268,7 +304,7 @@ window.addEventListener('load', () => {
             const groupCount = pidGroups.length;
             console.log(`Generating XML-tags for ${groupCount} group instances...`);
             pidXmlString += `
-    <mxCell id="${previousId += 1}" value="${pidGroup._value}" style="${pidGroup._style}" vertex="${pidGroup._vertex}" parent="${pidGroup._parent}">
+    <mxCell id="${pidGroup.id}" value="${pidGroup._value}" style="${pidGroup._style}" vertex="${pidGroup._vertex}" parent="${pidGroup.parent ? pidGroup.parent : pidGroup._parent}">
       <mxGeometry x="50" y="50" width="${pidGroup.mxGeometry._width}" height="${pidGroup.mxGeometry._height}" as="${pidGroup.mxGeometry._as}"></mxGeometry>
     </mxCell>`;
         });
@@ -278,7 +314,7 @@ window.addEventListener('load', () => {
             const lineCount = pidLines.length;
             console.log(`Generating XML-tags for ${lineCount} line instances...`);
             pidXmlString += `
-    <mxCell id="${previousId += 1}" value="${pidLine._value}" style="${pidLine._style}" edge="${pidLine._edge}" source="${pidLine.source}" target="${pidLine.target}" parent="${pidLine._parent}">
+    <mxCell id="${pidLine.id}" value="${pidLine._value}" style="${pidLine._style}" edge="${pidLine._edge}" source="${pidLine.node_0}" target="${pidLine.node_1}" parent="${pidLine._parent}">
       <mxGeometry x="50" y="50" as="${pidLine.mxGeometry._as}"></mxGeometry>
     </mxCell>`;
         });
@@ -292,6 +328,76 @@ window.addEventListener('load', () => {
 
         console.log(pidXmlString);
         return pidXmlString;
+    }
+
+
+    function pidLayoutAlgorithm(verteci, edges) {
+        // Layout settings and constraints
+        const groupPadding = 10;
+        const spacing = 10;
+
+        // const hierarchyLevels = 8;
+        // let nodesLevel = [];
+        // for (level in range(hierarchyLevels)) {
+        //   let nodesLevel[level];
+        //   nodesLevel[level] = verteci.filter(
+        //     vertex => vertex.node_level === level
+        // );
+        // }
+        let nodes0Level;
+        level0Nodes = verteci.filter(
+            vertex => vertex.node_level === 0
+        );
+        let level1Nodes;
+        level1Nodes = verteci.filter(
+            vertex => vertex.pidClass === 1
+        );
+        let level2Nodes;
+        level2Nodes = verteci.filter(
+            vertex => vertex.pidClass === 2
+        );
+        let level3Nodes;
+        level3Nodes = verteci.filter(
+            vertex => vertex.pidClass === 3
+        );
+        let level4Nodes;
+        level4Nodes = verteci.filter(
+            vertex => vertex.pidClass === 4
+        );
+
+        // FIXME: How many levels in total? fix number?
+        let nodesCount = [];
+        for (level in range(hierarchyLevels)) {
+            nodesCount[level] = nodesCount[level].length;
+        }
+
+        forEach
+
+        console.log(`level0Nodes: ${level0Nodes.length}`);
+        console.log(`level1Nodes: ${level1Nodes.length}`);
+        console.log(`level2Nodes: ${level2Nodes.length}`);
+        console.log(`level3Nodes: ${level3Nodes .length}`);
+        console.log(`level4Nodes: ${level4Nodes.length}`);
+
+        verteci.forEach((vertex) => {
+            switch (vertex.node_level) {
+                case 0:
+
+                case 1:
+
+                case 2:
+
+                case 3:
+
+                case 4:
+
+                case 5:
+
+                case 6:
+
+            }
+
+        });
     }
 
 
@@ -371,9 +477,9 @@ window.addEventListener('load', () => {
         }
     }
     downloadJsonButton.addEventListener("click", () => {
-        downloadFile('pid-data.json', verteciString);
+        downloadFile('pid-data.json', pidJsonString);
     });
-    downloadPidButton.addEventListener("click", () => {
+    downloadXmlButton.addEventListener("click", () => {
         downloadFile('pid-visualization.xml', pidXmlString);
     });
 
