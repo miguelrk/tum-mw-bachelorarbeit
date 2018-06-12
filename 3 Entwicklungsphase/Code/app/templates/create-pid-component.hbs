@@ -4,7 +4,7 @@
     {{json-load-component
     id=(concat 'json-load-' elementId)
     typeAccept = '.json'
-    onLoadSuccess=(action 'loadSuccess' 'pidShapesLibraryObject')
+    onLoadSuccess=(action 'loadSuccess' 'pidShapesLibrary')
     onLoadError=(action 'loadError')}}
   </div>
   <br />
@@ -15,8 +15,11 @@
   <div id="xml-viewer-div" style="margin-bottom:8pt;width:100%;height:600px;float:right;overflow:scroll;font-family: sans-serif;">
   </div>
   <br />
-  <div id="download-pid-button" class="button button-success disabled" style="margin-bottom:8pt;width:100%">
-    <span class="icon-download button-text"> Download P&amp;ID Visualization</span>
+  <div id="download-json-button" class="button disabled" style="margin-bottom:8pt;margin-right:2pt;width:49.5%;display:inline-block;float:left;">
+    <span class="icon-download button-text"> Download P&amp;ID as JSON</span>
+  </div>
+    <div id="download-xml-button" class="button disabled" style="margin-bottom:8pt;margin-left:2pt;width:49.5%;display:inline-block;float:right">
+    <span class="icon-download button-text"> Download P&amp;ID as XML</span>
   </div>
     <br />
   <div id="upload-pid-button" class="button button-success disabled" style="margin-bottom:8pt;width:100%">

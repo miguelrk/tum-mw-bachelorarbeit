@@ -113,6 +113,7 @@ window.addEventListener('load', () => {
 
         // Add verteci to pidJson
         pidVerteci = mapNodesToShapes(pidShapesLibrary, pidNodes);
+
         // Add edges to pidJson
         pidEdges = mapConnectionsToShapes(pidShapesLibrary, pidConnections);
         // Add database bindings to pidJson 
@@ -237,6 +238,9 @@ window.addEventListener('load', () => {
         console.log(`pidGroups: ${pidGroups.length}`);
         console.log(`pidLines: ${pidLines.length}`);
 
+        // Create node hierarchy out of parent relations (filter nodes only from pidJson)
+        let pidNodeTree = buildHierarchy(pidJson);
+
         // Grid layout algorithm to set _x and _y attributes of pidNodes
         console.log("Grid layout algorithm started...");
         //pidLayoutAlgorithm(pidVerteci, pidEdges);
@@ -331,75 +335,36 @@ window.addEventListener('load', () => {
     }
 
 
-    function pidLayoutAlgorithm(verteci, edges) {
-        // Layout settings and constraints
-        const groupPadding = 10;
-        const spacing = 10;
-
-        // const hierarchyLevels = 8;
-        // let nodesLevel = [];
-        // for (level in range(hierarchyLevels)) {
-        //   let nodesLevel[level];
-        //   nodesLevel[level] = verteci.filter(
-        //     vertex => vertex.node_level === level
-        // );
-        // }
-        let nodes0Level;
-        level0Nodes = verteci.filter(
-            vertex => vertex.node_level === 0
-        );
-        let level1Nodes;
-        level1Nodes = verteci.filter(
-            vertex => vertex.pidClass === 1
-        );
-        let level2Nodes;
-        level2Nodes = verteci.filter(
-            vertex => vertex.pidClass === 2
-        );
-        let level3Nodes;
-        level3Nodes = verteci.filter(
-            vertex => vertex.pidClass === 3
-        );
-        let level4Nodes;
-        level4Nodes = verteci.filter(
-            vertex => vertex.pidClass === 4
-        );
-
-        // FIXME: How many levels in total? fix number?
-        let nodesCount = [];
-        for (level in range(hierarchyLevels)) {
-            nodesCount[level] = nodesCount[level].length;
-        }
-
-        forEach
-
-        console.log(`level0Nodes: ${level0Nodes.length}`);
-        console.log(`level1Nodes: ${level1Nodes.length}`);
-        console.log(`level2Nodes: ${level2Nodes.length}`);
-        console.log(`level3Nodes: ${level3Nodes .length}`);
-        console.log(`level4Nodes: ${level4Nodes.length}`);
-
-        verteci.forEach((vertex) => {
-            switch (vertex.node_level) {
-                case 0:
-
-                case 1:
-
-                case 2:
-
-                case 3:
-
-                case 4:
-
-                case 5:
-
-                case 6:
-
-            }
-
+    function buildHierarchy(flatList) {
+        let treeList = [];
+        let lookup = [];
+        // Filter nodes from plant instances
+        let nodesList = flatList.filter((item) => item._vertex === "1");
+        console.log(nodesList);
+        // Build node instance hierarchy in treeList array
+        nodesList.forEach((item) => {
+            console.log(item);
+            itemId = item.id; // Select current item's id
+            console.log(`itemId: ${itemId}`);
+            lookup[itemId] = item; // Clone item to id key of lookup array 
+            console.log(lookup[itemId]);
+            item['children'] = []; // Add a children property (array type)
+            console.log(`item['children']: ${item['children']}`);
         });
-    }
-
+        flatList.forEach((item) => {
+            if (item['parent']) {
+                itemParent = item.parent;
+                lookup[itemParent].children.push(item);
+            } else {
+                treeList.push(item);
+            }
+        });
+        let treeString = JSON.stringify(treeList);
+        console.log(`treeString = \n${treeString}`);
+        console.log('tree = \n');
+        console.log(treeList);
+        return treeList;
+    };
 
     function concatenateStyles(styleObject) {
         console.log(styleObject);
