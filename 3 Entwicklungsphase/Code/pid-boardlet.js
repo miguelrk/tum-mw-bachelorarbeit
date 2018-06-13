@@ -339,28 +339,32 @@ window.addEventListener('load', () => {
         let treeList = [];
         let lookup = [];
         // Filter nodes from plant instances
-        let nodesList = flatList.filter((item) => item._vertex === "1");
+        let nodesList = flatList.filter((instance) => instance._vertex === "1");
+        // FIXME: nodesList si filtra bien y solo contiene nodos pero de alguna
+        // FIXME: manera se construye el tree tambien con pipe_lines
         console.log(nodesList);
         // Build node instance hierarchy in treeList array
-        nodesList.forEach((item) => {
-            console.log(item);
-            itemId = item.id; // Select current item's id
-            console.log(`itemId: ${itemId}`);
-            lookup[itemId] = item; // Clone item to id key of lookup array 
-            console.log(lookup[itemId]);
-            item['children'] = []; // Add a children property (array type)
-            console.log(`item['children']: ${item['children']}`);
+        nodesList.forEach((node) => {
+            console.log(node);
+            nodeId = node.id; // Select current node's id
+            console.log(`nodeId: ${nodeId}`);
+            lookup[nodeId] = node; // Clone node to id key of lookup array 
+            console.log(lookup[nodeId]);
+            node['children'] = []; // Add a children property (array type)
+            console.log('node[\'children\'] = \n');
+            console.log(node['children']);
         });
-        flatList.forEach((item) => {
-            if (item['parent']) {
-                itemParent = item.parent;
-                lookup[itemParent].children.push(item);
+        flatList.forEach((node) => {
+            if (node['parent']) {
+                nodeParent = node.parent;
+                lookup[nodeParent].children.push(node);
             } else {
-                treeList.push(item);
+                treeList.push(node);
             }
         });
         let treeString = JSON.stringify(treeList);
-        console.log(`treeString = \n${treeString}`);
+        console.log('treeString = \n');
+        console.log(treeString);
         console.log('tree = \n');
         console.log(treeList);
         return treeList;
