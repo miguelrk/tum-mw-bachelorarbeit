@@ -32,7 +32,7 @@ window.addEventListener('load', () => {
     let pidDataBindings;
 
 
-    let pidVerteci;
+    let pidVertices;
     let pidEdges;
     let pidDatabaseBindings;
     let pidJson = [];
@@ -111,16 +111,16 @@ window.addEventListener('load', () => {
         generatePidButton.disabled = true;
         generatePidButton.className = 'disabled';
 
-        // Add verteci to pidJson
-        pidVerteci = mapNodesToShapes(pidShapesLibrary, pidNodes);
+        // Add vertices to pidJson
+        pidVertices = mapNodesToShapes(pidShapesLibrary, pidNodes);
 
         // Add edges to pidJson
         pidEdges = mapConnectionsToShapes(pidShapesLibrary, pidConnections);
         // Add database bindings to pidJson 
         //pidDatabaseBindings = mapDataBindingsToShapes(pidShapesLibrary, pidDataBindings);
         // Concatenate arrays to single array using ES6 Spread operator
-        // FIXME: Replace with: pidJson = [...pidVerteci, ...pidEdges, ...pidDatabaseBindings];
-        pidJson = [...pidVerteci, ...pidEdges];
+        // FIXME: Replace with: pidJson = [...pidVertices, ...pidEdges, ...pidDatabaseBindings];
+        pidJson = [...pidVertices, ...pidEdges];
         // Generate JSON string from JS-Object
         pidJsonString = JSON.stringify(pidJson);
 
@@ -142,7 +142,7 @@ window.addEventListener('load', () => {
     function mapNodesToShapes(pidShapesLibrary, pidNodes) {
         const pidShapesCount = pidShapesLibrary.length;
         const pidNodesCount = pidNodes.length;
-        let pidVerteci = [];
+        let pidVertices = [];
 
         pidNodes.forEach(pidNode => {
             let matchingShape = {};
@@ -151,16 +151,16 @@ window.addEventListener('load', () => {
             //console.log(matchingShape);
             // Clone all properties to NEW target object (which is returned)
             let pidVertex = Object.assign({}, pidNode, matchingShape);
-            pidVerteci.push(pidVertex);
+            pidVertices.push(pidVertex);
         });
 
         console.log(`Mapped ${pidNodesCount} node instances to vertex shapes from ${pidShapesCount} total shapes in library.`);
         console.log("pidNodes:");
         console.table(pidNodes);
-        console.log("pidVerteci:");
-        console.table(pidVerteci);
+        console.log("pidVertices:");
+        console.table(pidVertices);
 
-        return pidVerteci;
+        return pidVertices;
     }
 
 
@@ -243,29 +243,29 @@ window.addEventListener('load', () => {
 
         // Grid layout algorithm to set _x and _y attributes of pidNodes
         console.log("Grid layout algorithm started...");
-        //pidLayoutAlgorithm(pidVerteci, pidEdges);
+        //pidLayoutAlgorithm(pidVertices, pidEdges);
 
 
         console.log("XML String generation started...");
 
         const graphSettings = {
-            dx: "3952",
-            dy: "2849",
-            grid: "1",
-            gridSize: "10",
-            guides: "1",
-            tooltips: "1",
-            connect: "1",
-            arrows: "1",
-            fold: "1",
-            page: "1",
-            pageScale: "1",
-            pageWidth: "1654",
-            pageHeight: "1169",
+            dx: 0,
+            dy: 0,
+            grid: 1,
+            gridSize: 10,
+            guides: 1,
+            tooltips: 1,
+            connect: 1,
+            arrows: 1,
+            fold: 1,
+            page: 1,
+            pageScale: 1,
+            pageWidth: 1654,
+            pageHeight: 1169,
             background: "#ffffff",
-            math: "0",
-            shadow: "0"
-        }
+            math: 0,
+            shadow: 0
+        };
 
         // Add mxGraph and mxGraphModel boilerplate settings
         pidXmlString = `
@@ -274,14 +274,14 @@ window.addEventListener('load', () => {
     <mxCell id="0"/>
     <mxCell id="1" parent="0"/>`;
 
-        // Add verteci:
+        // Add vertices:
         pidEquipments.forEach((pidEquipment) => {
             const equipmentCount = pidEquipments.length;
             console.log(`Generating XML-tags for ${equipmentCount} equipment instances...`);
             // Conditional inside template literal to set either parent or default _parent
             // Values not preceeded with '_' are instance attributes (from database)
             pidXmlString += `
-    <mxCell id="${pidEquipment.id}" value="${pidEquipment._value}" style="${pidEquipment._style}" vertex="${pidEquipment._vertex}" parent="${pidEquipment.parent ? pidEquipment.parent : pidEquipment._parent}">
+    <mxCell id="${pidEquipment.id}" value="${pidEquipment._value}" style="${concatenateStyles(pidEquipment.styleObject)}" vertex="${pidEquipment._vertex}" parent="${pidEquipment.parent ? pidEquipment.parent : pidEquipment._parent}">
       <mxGeometry x="50" y="50" width="${pidEquipment.mxGeometry._width}" height="${pidEquipment.mxGeometry._height}" as="${pidEquipment.mxGeometry._as}"></mxGeometry>
     </mxCell>`;
         });
@@ -290,7 +290,7 @@ window.addEventListener('load', () => {
             const instrumentCount = pidInstruments.length;
             console.log(`Generating XML-tags for ${instrumentCount} instrument instances...`);
             pidXmlString += `
-    <mxCell id="${pidInstrument.id}" value="${pidInstrument._value}" style="${pidInstrument._style}" vertex="${pidInstrument._vertex}" parent="${pidInstrument.parent ? pidInstrument.parent : pidInstrument._parent}">
+    <mxCell id="${pidInstrument.id}" value="${pidInstrument._value}" style="${concatenateStyles(pidInstrument.styleObject)}" vertex="${pidInstrument._vertex}" parent="${pidInstrument.parent ? pidInstrument.parent : pidInstrument._parent}">
       <mxGeometry x="50" y="50" width="${pidInstrument.mxGeometry._width}" height="${pidInstrument.mxGeometry._height}" as="${pidInstrument.mxGeometry._as}"></mxGeometry>
     </mxCell>`;
         });
@@ -299,7 +299,7 @@ window.addEventListener('load', () => {
             const arrowCount = pidArrows.length;
             console.log(`Generating XML-tags for ${arrowCount} arrow instances...`);
             pidXmlString += `
-    <mxCell id="${pidArrow.id}" value="${pidArrow._value}" style="${pidArrow._style}" vertex="${pidArrow._vertex}" parent="${pidArrow.parent ? pidArrow.parent : pidArrow._parent}">
+    <mxCell id="${pidArrow.id}" value="${pidArrow._value}" style="${concatenateStyles(pidArrow.styleObject)}" vertex="${pidArrow._vertex}" parent="${pidArrow.parent ? pidArrow.parent : pidArrow._parent}">
       <mxGeometry x="50" y="50" width="${pidArrow.mxGeometry._width}" height="${pidArrow.mxGeometry._height}" as="${pidArrow.mxGeometry._as}"></mxGeometry>
     </mxCell>`;
         });
@@ -308,7 +308,7 @@ window.addEventListener('load', () => {
             const groupCount = pidGroups.length;
             console.log(`Generating XML-tags for ${groupCount} group instances...`);
             pidXmlString += `
-    <mxCell id="${pidGroup.id}" value="${pidGroup._value}" style="${pidGroup._style}" vertex="${pidGroup._vertex}" parent="${pidGroup.parent ? pidGroup.parent : pidGroup._parent}">
+    <mxCell id="${pidGroup.id}" value="${pidGroup._value}" style="${concatenateStyles(pidGroup.styleObject)}" vertex="${pidGroup._vertex}" parent="${pidGroup.parent ? pidGroup.parent : pidGroup._parent}">
       <mxGeometry x="50" y="50" width="${pidGroup.mxGeometry._width}" height="${pidGroup.mxGeometry._height}" as="${pidGroup.mxGeometry._as}"></mxGeometry>
     </mxCell>`;
         });
@@ -318,7 +318,7 @@ window.addEventListener('load', () => {
             const lineCount = pidLines.length;
             console.log(`Generating XML-tags for ${lineCount} line instances...`);
             pidXmlString += `
-    <mxCell id="${pidLine.id}" value="${pidLine._value}" style="${pidLine._style}" edge="${pidLine._edge}" source="${pidLine.node_0}" target="${pidLine.node_1}" parent="${pidLine._parent}">
+    <mxCell id="${pidLine.id}" value="${pidLine._value}" style="${concatenateStyles(pidLine.styleObject)}" edge="${pidLine._edge}" source="${pidLine.node_0}" target="${pidLine.node_1}" parent="${pidLine._parent}">
       <mxGeometry x="50" y="50" as="${pidLine.mxGeometry._as}"></mxGeometry>
     </mxCell>`;
         });
@@ -335,18 +335,16 @@ window.addEventListener('load', () => {
     }
 
 
-    function buildHierarchy(flatList) {
-        let treeList = [];
+    function buildHierarchy(flatArray) {
+        let treeArray = [];
         let lookup = [];
         // Filter nodes from plant instances
-        let nodesList = flatList.filter((instance) => instance._vertex === "1");
-        // FIXME: nodesList si filtra bien y solo contiene nodos pero de alguna
-        // FIXME: manera se construye el tree tambien con pipe_lines
-        console.log(nodesList);
-        // Build node instance hierarchy in treeList array
-        nodesList.forEach((node) => {
+        let nodesArray = flatArray.filter((instance) => instance._vertex === "1");
+        console.log('nodesArray = \n');
+        console.log(nodesArray); // Build node instance hierarchy in treeArray array
+        nodesArray.forEach((node) => {
             console.log(node);
-            nodeId = node.id; // Select current node's id
+            let nodeId = node.id; // Select current node's id
             console.log(`nodeId: ${nodeId}`);
             lookup[nodeId] = node; // Clone node to id key of lookup array 
             console.log(lookup[nodeId]);
@@ -354,33 +352,36 @@ window.addEventListener('load', () => {
             console.log('node[\'children\'] = \n');
             console.log(node['children']);
         });
-        flatList.forEach((node) => {
+        nodesArray.forEach((node) => {
             if (node['parent']) {
                 nodeParent = node.parent;
                 lookup[nodeParent].children.push(node);
             } else {
-                treeList.push(node);
+                treeArray.push(node);
             }
         });
-        let treeString = JSON.stringify(treeList);
+        let treeString = JSON.stringify(treeArray);
         console.log('treeString = \n');
         console.log(treeString);
         console.log('tree = \n');
-        console.log(treeList);
-        return treeList;
+        console.log(treeArray);
+        return treeArray;
     };
 
     function concatenateStyles(styleObject) {
-        console.log(styleObject);
         let styleString = "";
-        styleObject.forEach((style) => {
-            if (style === "") {
+        console.log(styleObject);
+        // Converts object to array to iterate through all entries with forEach
+        let valuesArray = Object.values(styleObject);
+        valuesArray.forEach((value) => {
+            if (value === "") {
                 // Skip empty attribute
             } else {
                 // Concatenate attribute
-                styleString += `${style};`;
+                styleString += value + ';';
             }
         });
+        console.log(styleString);
         return styleString;
     }
 
