@@ -339,6 +339,7 @@ window.addEventListener('load', () => {
         let treeList = [];
         let lookup = [];
         // Filter nodes from plant instances
+<<<<<<< HEAD
         let nodesList = flatList.filter((instance) => instance._vertex === "1");
         // FIXME: nodesList si filtra bien y solo contiene nodos pero de alguna
         // FIXME: manera se construye el tree tambien con pipe_lines
@@ -365,6 +366,30 @@ window.addEventListener('load', () => {
         let treeString = JSON.stringify(treeList);
         console.log('treeString = \n');
         console.log(treeString);
+=======
+        let nodesList = flatList.filter((item) => item._vertex === "1");
+        console.log(nodesList);
+        // Build node instance hierarchy in treeList array
+        nodesList.forEach((item) => {
+            console.log(item);
+            itemId = item.id; // Select current item's id
+            console.log(`itemId: ${itemId}`);
+            lookup[itemId] = item; // Clone item to id key of lookup array 
+            console.log(lookup[itemId]);
+            item['children'] = []; // Add a children property (array type)
+            console.log(`item['children']: ${item['children']}`);
+        });
+        flatList.forEach((item) => {
+            if (item['parent']) {
+                itemParent = item.parent;
+                lookup[itemParent].children.push(item);
+            } else {
+                treeList.push(item);
+            }
+        });
+        let treeString = JSON.stringify(treeList);
+        console.log(`treeString = \n${treeString}`);
+>>>>>>> b59a5e9645b09630e53adad3d9ebbcc15ea881bd
         console.log('tree = \n');
         console.log(treeList);
         return treeList;
