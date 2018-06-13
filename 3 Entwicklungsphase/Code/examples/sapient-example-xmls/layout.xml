@@ -1,0 +1,62 @@
+<mxGraphModel dx="1426" dy="744" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" background="#ffffff" math="0" shadow="0">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    <object label="" sapient-bind="{&#xa;  &quot;datasources&quot;: {&#xa;    &quot;text&quot;: {&#xa;      &quot;source&quot;: &quot;var&quot;,&#xa;      &quot;params&quot;: {&#xa;        &quot;sym&quot;: &quot;Stückzähler&quot;&#xa;      }&#xa;    },&#xa;    &quot;color&quot;: {&#xa;      &quot;source&quot;: &quot;var&quot;,&#xa;      &quot;params&quot;: {&#xa;        &quot;sym&quot;: &quot;ADTest1.V1&quot;&#xa;      }&#xa;    }&#xa;  },&#xa;  &quot;bindings&quot;: {&#xa;    &quot;text&quot;: {&#xa;      &quot;value&quot;: {&#xa;        &quot;source&quot;: &quot;dataref&quot;,&#xa;        &quot;params&quot;: {&#xa;          &quot;ref&quot;: &quot;text&quot;&#xa;        }&#xa;      },&#xa;      &quot;defaultValue&quot;: &quot;---&quot;,&#xa;      &quot;exceptionValue&quot;: &quot;Ex!&quot;&#xa;    },&#xa;    &quot;fillColor&quot;: {&#xa;      &quot;value&quot;: {&#xa;        &quot;source&quot;: &quot;function&quot;,&#xa;        &quot;defaultValue&quot;: &quot;white&quot;,&#xa;        &quot;params&quot;: {&#xa;          &quot;name&quot;: &quot;map&quot;,&#xa;          &quot;params&quot;: {&#xa;            &quot;input&quot;: {&#xa;              &quot;source&quot;: &quot;function&quot;,&#xa;              &quot;params&quot;: {&#xa;                &quot;name&quot;: &quot;sum&quot;,&#xa;                &quot;params&quot;: {&#xa;                  &quot;values&quot;: [&#xa;                    0,&#xa;                    {&#xa;                      &quot;source&quot;: &quot;dataref&quot;,&#xa;                      &quot;params&quot;: {&#xa;                        &quot;ref&quot;: &quot;color&quot;&#xa;                      }&#xa;                    }&#xa;                  ]&#xa;                }&#xa;              }&#xa;            },&#xa;            &quot;map&quot;: [&#xa;              [&#xa;                0,&#xa;                &quot;red&quot;&#xa;              ],&#xa;              [&#xa;                2,&#xa;                &quot;green&quot;&#xa;              ]&#xa;            ]&#xa;          }&#xa;        }&#xa;      }&#xa;    }&#xa;  }&#xa;}" id="3">
+      <mxCell style="whiteSpace=wrap;html=1;aspect=fixed;shadow=1;" parent="1" vertex="1">
+        <mxGeometry x="360" y="180" width="80" height="80" as="geometry"/>
+      </mxCell>
+    </object>
+    <object label="" sapient-bind="{&#xa;  &quot;datasources&quot;: {&#xa;    &quot;text&quot;: {&#xa;      &quot;source&quot;: &quot;var&quot;,&#xa;      &quot;params&quot;: {&#xa;        &quot;id&quot;: 1345&#xa;      }&#xa;    }&#xa;  },&#xa;  &quot;bindings&quot;: {&#xa;    &quot;text&quot;: {&#xa;      &quot;value&quot;: {&#xa;        &quot;source&quot;: &quot;dataref&quot;,&#xa;        &quot;defaultValue&quot;: &quot;---&quot;,&#xa;        &quot;params&quot;: {&#xa;          &quot;ref&quot;: &quot;text&quot;&#xa;        }&#xa;      }&#xa;    }&#xa;  }&#xa;}" id="13">
+      <mxCell style="whiteSpace=wrap;html=1;aspect=fixed;shadow=1;" parent="1" vertex="1">
+        <mxGeometry x="640" y="180" width="80" height="80" as="geometry"/>
+      </mxCell>
+    </object>
+    <mxCell id="16" value="Node:&lt;br&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;shadow=0;" parent="1" vertex="1">
+      <mxGeometry x="290" y="40" width="40" height="20" as="geometry"/>
+    </mxCell>
+    <object label="/&lt;br&gt;" sapient-bind="{&#xa;  &quot;datasources&quot;: {&#xa;    &quot;node&quot;: {&#xa;      &quot;source&quot;: &quot;parameter&quot;,&#xa;      &quot;params&quot;: {&#xa;        &quot;path&quot;: &quot;node.value&quot;&#xa;      }&#xa;    }&#xa;  },&#xa;  &quot;bindings&quot;: {&#xa;    &quot;text&quot;: {&#xa;      &quot;value&quot;: {&#xa;        &quot;source&quot;: &quot;dataref&quot;,&#xa;        &quot;defaultValue&quot;: &quot;/&quot;,&#xa;        &quot;params&quot;: {&#xa;          &quot;ref&quot;: &quot;node&quot;&#xa;        }&#xa;      }&#xa;    }&#xa;  }&#xa;}" id="17">
+      <mxCell style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;shadow=0;" parent="1" vertex="1">
+        <mxGeometry x="329.5" y="40" width="40" height="20" as="geometry"/>
+      </mxCell>
+    </object>
+    <mxCell id="21" value="Time:&lt;br&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;shadow=0;" parent="1" vertex="1">
+      <mxGeometry x="440" y="40" width="40" height="20" as="geometry"/>
+    </mxCell>
+    <object label="/&lt;br&gt;" sapient-bind="{&#xa;  &quot;datasources&quot;: {&#xa;    &quot;node&quot;: {&#xa;      &quot;source&quot;: &quot;parameter&quot;,&#xa;      &quot;params&quot;: {&#xa;        &quot;path&quot;: &quot;timeFrame.value&quot;,&#xa;        &quot;trigger&quot;: &quot;changed&quot;,&#xa;        &quot;value&quot;: &quot;startTime&quot;&#xa;      }&#xa;    }&#xa;  },&#xa;  &quot;bindings&quot;: {&#xa;    &quot;text&quot;: {&#xa;      &quot;value&quot;: {&#xa;        &quot;source&quot;: &quot;dataref&quot;,&#xa;        &quot;defaultValue&quot;: &quot;/&quot;,&#xa;        &quot;params&quot;: {&#xa;          &quot;ref&quot;: &quot;node&quot;&#xa;        }&#xa;      }&#xa;    }&#xa;  }&#xa;}" id="22">
+      <mxCell style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;shadow=0;" parent="1" vertex="1">
+        <mxGeometry x="479.5" y="40" width="40" height="20" as="geometry"/>
+      </mxCell>
+    </object>
+    <mxCell id="23" value="NodeVar:&lt;br&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;shadow=0;" parent="1" vertex="1">
+      <mxGeometry x="140" y="40" width="40" height="20" as="geometry"/>
+    </mxCell>
+    <object label="/&lt;br&gt;" sapient-bind="{&#xa;  &quot;datasources&quot;: {&#xa;    &quot;nodeVar&quot;: {&#xa;      &quot;source&quot;: &quot;var&quot;,&#xa;      &quot;params&quot;: {&#xa;        &quot;valueType&quot;: 2,&#xa;        &quot;nodeId&quot;: {&#xa;          &quot;source&quot;: &quot;parameter&quot;,&#xa;          &quot;params&quot;: {&#xa;            &quot;path&quot;: &quot;node.value&quot;&#xa;          }&#xa;        }&#xa;      }&#xa;    }&#xa;  },&#xa;  &quot;bindings&quot;: {&#xa;    &quot;text&quot;: {&#xa;      &quot;value&quot;: {&#xa;        &quot;source&quot;: &quot;dataref&quot;,&#xa;        &quot;defaultValue&quot;: &quot;/&quot;,&#xa;        &quot;params&quot;: {&#xa;          &quot;ref&quot;: &quot;nodeVar&quot;&#xa;        }&#xa;      }&#xa;    }&#xa;  }&#xa;}" id="24">
+      <mxCell style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;shadow=0;" parent="1" vertex="1">
+        <mxGeometry x="190" y="40" width="40" height="20" as="geometry"/>
+      </mxCell>
+    </object>
+    <mxCell id="25" value="Function:&lt;br&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;shadow=0;" parent="1" vertex="1">
+      <mxGeometry x="580" y="40" width="40" height="20" as="geometry"/>
+    </mxCell>
+    <object label="/&lt;br&gt;" sapient-bind="{&#xa;  &quot;datasources&quot;: {&#xa;    &quot;nodeVar&quot;: {&#xa;      &quot;source&quot;: &quot;function&quot;,&#xa;      &quot;params&quot;: {&#xa;        &quot;name&quot;: &quot;sum&quot;,&#xa;        &quot;params&quot;: {&#xa;          &quot;values&quot;: [&#xa;            1,&#xa;            {&#xa;              &quot;source&quot;: &quot;parameter&quot;,&#xa;              &quot;params&quot;: {&#xa;                &quot;path&quot;: &quot;node.value&quot;&#xa;              }&#xa;            }&#xa;          ]&#xa;        }&#xa;      }&#xa;    }&#xa;  },&#xa;  &quot;bindings&quot;: {&#xa;    &quot;text&quot;: {&#xa;      &quot;value&quot;: {&#xa;        &quot;source&quot;: &quot;dataref&quot;,&#xa;        &quot;defaultValue&quot;: &quot;/&quot;,&#xa;        &quot;params&quot;: {&#xa;          &quot;ref&quot;: &quot;nodeVar&quot;&#xa;        }&#xa;      }&#xa;    }&#xa;  }&#xa;}" id="26">
+      <mxCell style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;shadow=0;" parent="1" vertex="1">
+        <mxGeometry x="630" y="40" width="40" height="20" as="geometry"/>
+      </mxCell>
+    </object>
+    <object label="" sapient-bind="{&#xa;  &quot;datasources&quot;: {&#xa;    &quot;nodestate&quot;: {&#xa;      &quot;source&quot;: &quot;nodestate&quot;,&#xa;      &quot;params&quot;: {&#xa;        &quot;node&quot;: {&#xa;          &quot;source&quot;: &quot;parameter&quot;,&#xa;          &quot;params&quot;: {&#xa;            &quot;path&quot;: &quot;node.value&quot;&#xa;          }&#xa;        }&#xa;      }&#xa;    }&#xa;  },&#xa;  &quot;bindings&quot;: {&#xa;    &quot;text&quot;: {&#xa;      &quot;value&quot;: {&#xa;        &quot;source&quot;: &quot;dataref&quot;,&#xa;        &quot;defaultValue&quot;: &quot;/&quot;,&#xa;        &quot;params&quot;: {&#xa;          &quot;ref&quot;: &quot;nodestate&quot;&#xa;        }&#xa;      }&#xa;    },&#xa;    &quot;fillColor&quot;: {&#xa;      &quot;value&quot;: {&#xa;        &quot;source&quot;: &quot;dataref&quot;,&#xa;        &quot;params&quot;: {&#xa;          &quot;ref&quot;: &quot;nodestate&quot;,&#xa;          &quot;path&quot;: &quot;color&quot;&#xa;        }&#xa;      }&#xa;    }&#xa;  }&#xa;}" id="27">
+      <mxCell style="whiteSpace=wrap;html=1;aspect=fixed;shadow=1;strokeColor=#000000;fillColor=#ffffff;" parent="1" vertex="1">
+        <mxGeometry x="80" y="180" width="80" height="80" as="geometry"/>
+      </mxCell>
+    </object>
+    <mxCell id="28" value="NodeState" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;shadow=1;" parent="1" vertex="1">
+      <mxGeometry x="100" y="140" width="40" height="20" as="geometry"/>
+    </mxCell>
+    <mxCell id="29" value="Map Color" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;shadow=1;" parent="1" vertex="1">
+      <mxGeometry x="370" y="140" width="60" height="20" as="geometry"/>
+    </mxCell>
+    <mxCell id="30" value="Var Text" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;shadow=1;" parent="1" vertex="1">
+      <mxGeometry x="655" y="140" width="50" height="20" as="geometry"/>
+    </mxCell>
+  </root>
+</mxGraphModel>

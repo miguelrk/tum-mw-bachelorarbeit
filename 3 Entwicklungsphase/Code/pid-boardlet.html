@@ -2,7 +2,7 @@
 <html lang="eng">
 
 <head>
-    <title>P&amp;ID Boardlet</title>
+    <title>P&amp;ID Creator</title>
     <meta charset="utf-8">
     <link rel="stylesheet" href="pid-boardlet.css">
     <!-- Include Enriqueta google font -->
@@ -18,18 +18,26 @@
     <script type="text/javascript" src="http://oss.sheetjs.com/js-xlsx/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.5/jspdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/2.3.2/jspdf.plugin.autotable.js"></script>
+    <!-- Sets the basepath for the library if not in same directory -->
+    <!-- <script type="text/javascript">
+        mxBasePath = 'node_modules/mxgraph/javascript';
+    </script>
+    <!-- Loads and initializes the library
+    <script type="text/javascript" src="node_modules/mxgraph/javascript/mxClient.js"></script> -->
 </head>
 
 <body>
     <header id="header">
-        <h1>P&amp;ID Boardlet</h1>
+        <h1>P&amp;ID Creator</h1>
     </header>
 
     <div id="create-pid-div">
         <table>
             <tr>
                 <td align="right">
-                    <label for="pid-shapes-library">P&amp;ID Shape Library: </label>
+                    <label for="pid-shapes-library">
+            <span style="font-weight:bold;">P&amp;ID Shape Library: </span>
+          </label>
                 </td>
                 <td>
                     <input id="pid-shapes-library" type="file" name="json-file" accept=".json, .text" required="required" />
@@ -38,34 +46,57 @@
             </tr>
             <tr>
                 <td align="right">
-                    <label for="pid-instances">Plant Model Instances: </label>
+                    <label for="pid-nodes">
+            <span style="font-weight:bold;">Plant Nodes: </span>
+          </label>
                 </td>
                 <td>
-                    <input id="pid-instances" type="file" name="json-file" accept=".json, .text" required="required" />
+                    <input id="pid-nodes" type="file" name="json-file" accept=".json, .text" required="required" />
+                </td>
+                <td></td>
+            </tr>
+            <tr>
+                <td align="right">
+                    <label for="pid-connections">
+            <span style="font-weight:bold;">Plant Connections: </span>
+          </label>
+                </td>
+                <td>
+                    <input id="pid-connections" type="file" name="json-file" accept=".json, .text" required="required" />
+                </td>
+                <td></td>
+            </tr>
+            <tr>
+                <td align="right">
+                    <label for="pid-data-bindings">
+            <span style="font-weight:bold;">Plant Data Bindings: </span>
+          </label>
+                </td>
+                <td>
+                    <input id="pid-data-bindings" type="file" name="json-file" accept=".json, .text" required="required" />
                 </td>
                 <td></td>
             </tr>
             <tr>
                 <td colspan="3">
-                    <button id="generate-pid-button" type="submit" disabled="true">Generate P&amp;ID XML</button>
+                    <button id="generate-pid-button" class="disabled" type="submit" disabled="true">Generate P&amp;ID XML</button>
                 </td>
             </tr>
         </table>
     </div>
 
     <div id="view-pid-div">
-        <h3 id="table-title">P&amp;ID XML File Viewer:</h3>
+        <h3 id="xml-container-header">P&amp;ID XML File Viewer:</h3>
         <p id="total-counter"></p>
         <div id="xml-container-div">
         </div>
     </div>
 
     <div id="download-pid-div">
-        <button id="download-json-button" type="submit" disabled="true" disabled="true">Download JSON</button>
-        <button id="download-pid-button" type="submit" disabled="true">Download P&amp;ID</button>
+        <button id="download-json-button" class="disabled" type="submit" disabled="true" disabled="true">Download JSON</button>
+        <button id="download-xml-button" class="disabled" type="submit" disabled="true">Download P&amp;ID</button>
     </div>
 
-    <script type="text/javascript" src="https://www.draw.io/js/viewer.min.js"></script>
     <script src="pid-boardlet.js"></script>
 
 </body>

@@ -5,6 +5,7 @@
     <div class="button button-success" style="margin-bottom:8pt;width:100%;display:block" onClick={{action 'startUpload' true}} id={{concat "btn-upload-" elementId}}>
         <span class="icon-upload button-text" >Modell importieren unter</span>
     </div>
+    {{#if showProgressBar}}{{progress-bar current=currentProgressVal max=maxProgressVal}}{{/if}}
     <div class="text-box" id={{concat "output-box-" elementId}} name="outputText" style="white-space:pre-wrap;">{{archiveLog}}{{activeLog0}}{{activeLog1}}
 <span style='color:red'>{{errorLog}}</span>
 </div>

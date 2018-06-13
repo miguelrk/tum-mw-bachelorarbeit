@@ -23,15 +23,13 @@ var boardlet = BoardletBase.extend(Evented,{
         },
         actions:{
             onModelLoad: function(objHash,response){
-                console.log("Response added to obj...");
                 this.set(objHash,response);
-                console.log(objHash + ": " + this.get(objHash));
-                if (response.nodes && response.nodes.length) this.set('parameters.modelRootId.value',response.nodes[0].modelId);
+                if (response && response.nodes && response.nodes.length) this.set('parameters.modelRootId.value',response.nodes[0].modelId);
                 else this.set('parameters.modelRootId.value',"");
             },
             valueChanged(name, oldValue, newValue){
                 this.set('parameters.gateway.value',newValue);
-                console.log("Chosen Gateway: "+ newValue);
+                console.log("Gateway chosen: "+ newValue);
             }
         }
     });

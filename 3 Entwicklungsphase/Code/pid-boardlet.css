@@ -22,6 +22,7 @@ input:hover {
 button {
     border: none;
     color: white;
+    background-color: #00796b;
     padding: 5px 15px;
     text-align: center;
     text-decoration: none;
@@ -30,10 +31,27 @@ button {
     cursor: pointer;
 }
 
+button.disabled {
+    color: #88959c;
+}
+
+button.enabled {
+    color: white;
+}
+
 #generate-pid-button {
-    background-color: #00796b;
     float: right;
     margin: 15px;
+}
+
+#download-json-button {
+    background-color: #4c5b63;
+    float: left;
+}
+
+#download-xml-button {
+    display: block;
+    float: right;
 }
 
 #total-counter {
@@ -43,18 +61,14 @@ button {
     color: #37474f;
 }
 
-#table-title {
+#xml-container-header {
     color: #37474f;
 }
 
 #xml-container-div {
-    height: 230px;
+    height: 430px;
     overflow: scroll;
     border: 1px solid #ccc;
     font-family: sans-serif;
-}
-
-#download-pid-button {
-    background-color: #00796b;
-    float: right;
+    font-size: 10pt;
 }

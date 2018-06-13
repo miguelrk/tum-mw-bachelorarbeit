@@ -1,4 +1,4 @@
-pid - shapes - library "use strict"; // Prohibit use of undeclared variables
+"use strict"; // Prohibit use of undeclared variables
 
 window.addEventListener('load', () => {
 
@@ -14,7 +14,6 @@ window.addEventListener('load', () => {
     let pidXmlString;
     let pidHtmlString;
     let pidXml;
-    let xhr = new XMLHttpRequest;
 
 
     // async function fetchJson() {
@@ -23,6 +22,7 @@ window.addEventListener('load', () => {
     //     console.log(json);
     //   };
 
+    // let xhr = new XMLHttpRequest;
 
     // function fetchJson(event) {
     //   xhr.onload = (() => {
@@ -101,23 +101,6 @@ window.addEventListener('load', () => {
   <root>
     <mxCell id="0"/>
     <mxCell id="1" parent="0"/>`;
-
-        // Sets cModule attributes
-
-        //QUITAR ESTOS COMMENTS PARA IMPLEMENTAR USEROBJECTS COMO EN EL EXAMPLE DONDE LOS ATRIBUTOS EXTRA VAN FUERA DE MXCELL Y PUEDES UTILIZARLOS PARA TOOLTIPS POR EJEMPLO
-        // Sets shape attributes
-        // verteci.forEach((vertex) => {
-        //   pidXmlString += `
-        //   <${vertex._id}>
-        //   <mxCell id=\"${vertex._id}\" value=\"${vertex._value}\" style=\"${vertex._style}\" vertex=\"${vertex._vertex}\" parent=\"${vertex._parent}\">
-        //   <mxGeometry x="${vertex._x}\" y="${vertex._y}\" width="${vertex._width}\" height="${vertex._height}\" as="${vertex._as}\"></mxGeometry>
-        //   </mxCell>
-        //   </${vertex._id}>`;
-        // });
-
-
-        // Template-string tag definitions
-
 
         // Create an HTML compatible XML String (encode HTML unsafe characters: ', ", <, >, and &)
         verteci.forEach((vertex) => {

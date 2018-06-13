@@ -1,0 +1,22 @@
+{{!-- {{input type="file" id=(concat 'file-upload-' elementId) class="input-file" multiple=multipleFiles
+        accept="image/png,image/jpeg,application/pdf"}} --}}
+
+<button id="upload-pid-button" class="button-info" {{action 'uploadFiles'}}>
+    <span class="button-text icon-upload" for={{concat 'file-upload-' elementId}}>
+        {{#if files.length}}
+            {{t 'common.upload.files-selected'}}
+            <span class="badge">
+                {{files.length}}
+            </span>
+        {{else}}
+            {{t 'common.upload.choose-file'}}
+        {{/if}}
+    </span>
+</button>
+
+<div class="name-box">
+  <span>
+      {{fileNames}}
+  </span>
+</div>
+
