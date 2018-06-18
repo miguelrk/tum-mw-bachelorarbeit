@@ -5466,13 +5466,14 @@ function postorderDFS(pidNodeTree) {
     while (stack) {
         console.log(stack);
         // Pop next v from top of stack
-        v = stack.pop(v);
+        v = stack.pop();
         console.log(v);
         //if v is not labeled as visited:
         if (!visited.find((v) => visited.id === v.id)) {
             // label v as visited
             visited[v] = v
             let siblings = v.children;
+            console.log(siblings);
             siblings.forEach((child) => {
                 stack.push(child);
             });
@@ -5529,6 +5530,5 @@ procedure DFS-iterative(G,v):
 // https://www.redblobgames.com/pathfinding/grids/graphs.html
 
 
-console.log(treeList);
 let path = postorderDFS(treeList);
 console.log(path);
