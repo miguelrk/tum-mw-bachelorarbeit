@@ -36126,7 +36126,7 @@
   {
     "_id": "",
     "pidClass": "group",
-    "shapeName": "cell_group",
+    "shapeName": "processCell_group",
     "shapeDomain": "",
     "shapeClass": "",
     "shapeCategory": "",
@@ -36278,7 +36278,7 @@
   {
     "_id" : "",
     "pidClass" : "group",
-    "shapeName" : "emodule_group",
+    "shapeName" : "eModule_group",
     "shapeDomain" : "",
     "shapeClass" : "",
     "shapeCategory" : "",
