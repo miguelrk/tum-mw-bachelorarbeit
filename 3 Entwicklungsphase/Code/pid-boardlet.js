@@ -128,9 +128,9 @@ window.addEventListener('load', () => {
     // Add database bindings to pidJson 
     //pidDatabaseBindings = mapDataBindingsToShapes(pidShapesLibrary, pidDataBindings);
 
-    // Grid layout algorithm to set _x and _y attributes of pidNodes
-    //pidLayoutAlgorithm(pidVerticesInOrder, pidEdges);
-
+    // Grid layout algorithm to set _x and _y attributes of vertices
+    //placeVertices(pidVertices, pidEdges);
+    
     // Concatenate arrays to single array using ES6 Spread operator
     // FIXME: Replace with: pidJson = [...pidVertices, ...pidEdges, ...pidDatabaseBindings];
     pidJson = [...pidVertices, ...pidEdges];
@@ -185,7 +185,7 @@ window.addEventListener('load', () => {
     console.log(treeArray);
     console.groupEnd();
     return treeArray;
-  };
+  }
 
 
   function pathfinder(treeArray) {
@@ -403,8 +403,6 @@ window.addEventListener('load', () => {
     console.log(`pidGroups: ${pidGroups.length}`);
     console.log(`pidLines: ${pidLines.length}`);
 
-    console.groupCollapsed("XML String generation started...");
-
     const graphSettings = {
       dx: 0,
       dy: 0,
@@ -424,6 +422,10 @@ window.addEventListener('load', () => {
       shadow: 0
     };
 
+    console.groupCollapsed("XML String generation started...");
+
+    const htmlLabel = '&lt;b&gt;%pid-label%&lt;br&gt;&lt;span style=&quot;background-color: rgb(0 , 0 , 255)&quot;&gt;&lt;font color=&quot;#ffffff&quot;&gt;&amp;nbsp;4000 m3/s&amp;nbsp;&lt;/font&gt;&lt;/span&gt;&lt;/b&gt;&lt;br&gt;';
+
     // Add mxGraph and mxGraphModel boilerplate settings
     pidXmlString = `
 <mxGraphModel dx="${graphSettings.dx}" dy="${graphSettings.dy}" grid="${graphSettings.grid}" gridSize="${graphSettings.gridSize}" guides="${graphSettings.guides}" tooltips="${graphSettings.tooltips}" connect="${graphSettings.connect}" arrows="${graphSettings.arrows}" fold="${graphSettings.fold}" page="${graphSettings.page}" pageScale="${graphSettings.pageScale}" pageWidth="${graphSettings.pageWidth}" pageHeight="${graphSettings.pageHeight}" background="${graphSettings.background}" math="${graphSettings.math}" shadow="${graphSettings.shadow}">
@@ -439,8 +441,8 @@ window.addEventListener('load', () => {
       // Values not preceeded with '_' are instance attributes (from database)
       // FIXME: Remove id attribute in mxCell and leave it only in object?
       pidXmlString += `
-    <object id="${pidEquipment.id}" label="" pid-label="${pidEquipment.pidLabel}" pid-hierarchy="${pidEquipment.pidHierarchy}" sapient-bind="">
-        <mxCell id="${pidEquipment.id}" value="${pidEquipment._value}" style="${concatenateStyles(pidEquipment.styleObject)}" vertex="${pidEquipment._vertex}" parent="${pidEquipment.parent ? pidEquipment.parent : pidEquipment._parent}">
+    <object id="${pidEquipment.id}" label="${htmlLabel}" pid-label="${pidEquipment.pidLabel}" pid-hierarchy="${pidEquipment.pidHierarchy}" sapient-bind="">
+        <mxCell value="${pidEquipment._value}" style="${concatenateStyles(pidEquipment.styleObject)}" vertex="${pidEquipment._vertex}" parent="${pidEquipment.parent ? pidEquipment.parent : pidEquipment._parent}">
           <mxGeometry x="50" y="50" width="${pidEquipment.mxGeometry._width}" height="${pidEquipment.mxGeometry._height}" as="${pidEquipment.mxGeometry._as}"></mxGeometry>
         </mxCell>
     </object>`;
@@ -450,8 +452,8 @@ window.addEventListener('load', () => {
     console.log(`Generating XML-tags for ${instrumentCount} instrument instances...`);
     pidInstruments.forEach((pidInstrument) => {
       pidXmlString += `
-    <object id="${pidInstrument.id}" label="" sapient-bind="">
-      <mxCell id="${pidInstrument.id}" value="${pidInstrument._value}" style="${concatenateStyles(pidInstrument.styleObject)}" vertex="${pidInstrument._vertex}" parent="${pidInstrument.parent ? pidInstrument.parent : pidInstrument._parent}">
+    <object id="${pidInstrument.id}" label="${htmlLabel}" pid-label="${pidInstrument.pidLabel}" pid-hierarchy="${pidInstrument.pidHierarchy}" sapient-bind="">
+      <mxCell value="${pidInstrument._value}" style="${concatenateStyles(pidInstrument.styleObject)}" vertex="${pidInstrument._vertex}" parent="${pidInstrument.parent ? pidInstrument.parent : pidInstrument._parent}">
         <mxGeometry x="50" y="50" width="${pidInstrument.mxGeometry._width}" height="${pidInstrument.mxGeometry._height}" as="${pidInstrument.mxGeometry._as}"></mxGeometry>
       </mxCell>
     </object>`;
@@ -461,8 +463,8 @@ window.addEventListener('load', () => {
     console.log(`Generating XML-tags for ${arrowCount} arrow instances...`);
     pidArrows.forEach((pidArrow) => {
       pidXmlString += `
-    <object id="${pidArrow.id}" label="" sapient-bind="">
-      <mxCell id="${pidArrow.id}" value="${pidArrow._value}" style="${concatenateStyles(pidArrow.styleObject)}" vertex="${pidArrow._vertex}" parent="${pidArrow.parent ? pidArrow.parent : pidArrow._parent}">
+    <object id="${pidArrow.id}" label="${htmlLabel}" pid-label="${pidArrow.pidLabel}" pid-hierarchy="${pidArrow.pidHierarchy}" sapient-bind="">
+      <mxCell value="${pidArrow._value}" style="${concatenateStyles(pidArrow.styleObject)}" vertex="${pidArrow._vertex}" parent="${pidArrow.parent ? pidArrow.parent : pidArrow._parent}">
         <mxGeometry x="50" y="50" width="${pidArrow.mxGeometry._width}" height="${pidArrow.mxGeometry._height}" as="${pidArrow.mxGeometry._as}"></mxGeometry>
       </mxCell>
     </object>`;
@@ -472,8 +474,8 @@ window.addEventListener('load', () => {
     console.log(`Generating XML-tags for ${groupCount} group instances...`);
     pidGroups.forEach((pidGroup) => {
       pidXmlString += `
-    <object id="${pidGroup.id}" label="" sapient-bind="">
-      <mxCell id="${pidGroup.id}" value="${pidGroup._value}" style="${concatenateStyles(pidGroup.styleObject)}" vertex="${pidGroup._vertex}" parent="${pidGroup.parent ? pidGroup.parent : pidGroup._parent}">
+    <object id="${pidGroup.id}" label="${htmlLabel}" pid-label="${pidGroup.pidLabel}" pid-hierarchy="${pidGroup.pidHierarchy}" sapient-bind="">
+      <mxCell value="${pidGroup._value}" style="${concatenateStyles(pidGroup.styleObject)}" vertex="${pidGroup._vertex}" parent="${pidGroup.parent ? pidGroup.parent : pidGroup._parent}">
         <mxGeometry x="50" y="50" width="${pidGroup.mxGeometry._width}" height="${pidGroup.mxGeometry._height}" as="${pidGroup.mxGeometry._as}"></mxGeometry>
       </mxCell>
     </object>`;
@@ -484,8 +486,8 @@ window.addEventListener('load', () => {
     console.log(`Generating XML-tags for ${lineCount} line instances...`);
     pidLines.forEach((pidLine) => {
       pidXmlString += `
-    <object id="${pidLine.id}" label="" sapient-bind="">
-      <mxCell id="${pidLine.id}" value="${pidLine._value}" style="${concatenateStyles(pidLine.styleObject)}" edge="${pidLine._edge}" source="${pidLine.node_0}" target="${pidLine.node_1}" parent="${pidLine._parent}">
+    <object id="${pidLine.id}" label="${htmlLabel}" pid-label="${pidLine.pidLabel}" pid-hierarchy="${pidLine.pidHierarchy}" sapient-bind="">
+      <mxCell value="${pidLine._value}" style="${concatenateStyles(pidLine.styleObject)}" edge="${pidLine._edge}" source="${pidLine.node_0}" target="${pidLine.node_1}" parent="${pidLine._parent}">
         <mxGeometry x="50" y="50" as="${pidLine.mxGeometry._as}"></mxGeometry>
       </mxCell>
     </object>`;
@@ -546,7 +548,8 @@ window.addEventListener('load', () => {
   }
 
 
-  function formatXml(xml, tab) { // tab = optional indent value, default is tab (\t)
+  function formatXml(xml, tab) { 
+    // tab = optional indent value, default is tab (\t)
     var formatted = '',
       indent = '';
     tab = tab || '\t';
