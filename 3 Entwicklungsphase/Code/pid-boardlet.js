@@ -16,8 +16,6 @@ window.addEventListener('load', () => {
   const totalCounter = document.getElementById("total-counter");
   const xmlContainer = document.getElementById("xml-container-div");
 
-
-
   let file1Present = false;
   let file2Present = false;
   let file3Present = false;
@@ -130,7 +128,7 @@ window.addEventListener('load', () => {
 
     // Grid layout algorithm to set _x and _y attributes of vertices
     //placeVertices(pidVertices, pidEdges);
-    
+
     // Concatenate arrays to single array using ES6 Spread operator
     // FIXME: Replace with: pidJson = [...pidVertices, ...pidEdges, ...pidDatabaseBindings];
     pidJson = [...pidVertices, ...pidEdges];
@@ -548,7 +546,7 @@ window.addEventListener('load', () => {
   }
 
 
-  function formatXml(xml, tab) { 
+  function formatXml(xml, tab) {
     // tab = optional indent value, default is tab (\t)
     var formatted = '',
       indent = '';

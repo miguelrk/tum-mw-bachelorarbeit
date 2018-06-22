@@ -11,6 +11,7 @@ var boardlet = BoardletBase.extend(CompactBaseKPIMixin, {
 
     currentKPILabel: 'Einzug',
     currentKPIValue: null,
+    currentKPIChartValue: null,
     currentKPITrend1Label: 'Soll 85%',
     currentKPITrend1Value: null,
     currentKPITrend2Label: 'Soll 100%',
@@ -69,25 +70,29 @@ var boardlet = BoardletBase.extend(CompactBaseKPIMixin, {
     },
 
     nodeChangedObserver: observer('parameters.nodeList.value.[]', function() {
-        this.get('pieceCounterService').getKPIforNode(this.get('parameters.nodeList.value.0'))
+        this.get('pieceCounterService').getKPIforNode(this.get('parameters.nodeList.value.0'), 2) /** 2 is the fixed type for Iststueckzaehler **/
             .then(result => {
                 // a lot of required conventions to make this work -> TODO: solve it generally using the DB and DB-schema
 
-                const currentKPIs = result.content.filter((item) => { return item.value_type && item.value_type == 2 && item.name.includes('Abgabe'); });
-                if(currentKPIs && currentKPIs.length) {
+                const currentKPIs = result.content;
+                let mainKPIId = null;
+                if(currentKPIs && currentKPIs.length) {  // this is a bizarre logic (first value based on kpi sort_order)
                     this.set('currentKPIId', currentKPIs[0].id);
+                    mainKPIId = currentKPIs[0].id;
                 } else {
                     this.set('currentKPIId', null);
                 }
 
-                const currentKPI2s = result.content.filter((item) => { return item.value_type && item.value_type == 2 && item.name.includes('eingezogen'); });
+                const currentKPI2s = result.content.filter((item) => { 
+                    return item.parent == mainKPIId && item.sort_id == 2; 
+                });
                 if(currentKPI2s && currentKPI2s.length) {
                     this.set('currentKPI2Id', currentKPI2s[0].id);
                 } else {
                     this.set('currentKPI2Id', null);
                 }
 
-                const fisKPIs = result.content.filter((item) => { return item.name && item.name.includes('FIS'); });
+                const fisKPIs = result.content.filter((item) => { return item.parent == mainKPIId && item.sort_id == 3; });
                 if(fisKPIs && fisKPIs.length) {
                     this.set('currentFISId', fisKPIs[0].id);
                     this.set('totalKPILabel', fisKPIs[0].name);
@@ -96,7 +101,7 @@ var boardlet = BoardletBase.extend(CompactBaseKPIMixin, {
                     this.set('totalKPILabel', null);
                 }
 
-                const averageKPIs = result.content.filter((item) => { return item.name && item.name.includes('AVG15'); });
+                const averageKPIs = result.content.filter((item) => { return item.parent == mainKPIId && item.sort_id == 4; });
                 if(averageKPIs && averageKPIs.length) {
                     this.set('currentAVG15Id', averageKPIs[0].id);
                     this.set('graphicControlLabel', averageKPIs[0].name);
@@ -107,9 +112,9 @@ var boardlet = BoardletBase.extend(CompactBaseKPIMixin, {
             });
     }),
 
-    kpiTarget100Observer: observer('currentKPI2Id', 'flag', function() {
+    kpiTarget100Observer: observer('currentKPIId', 'flag', function() {
         // currentKPITrend2Value
-        this.get('pieceCounterService').getTargetsForKPI(this.get('currentKPI2Id')).then(result => {
+        this.get('pieceCounterService').getTargetsForKPI(this.get('currentKPIId')).then(result => {
             const value = result.objectAt(0);
 
             if (value !== undefined) {
@@ -183,6 +188,7 @@ var boardlet = BoardletBase.extend(CompactBaseKPIMixin, {
     chartDataObserver: observer('currentKPIId', 'flag', function() {
         let chartOptions = this.get('chartOptions');
         chartOptions.xAxis.plotBands = [];
+        this.set('currentKPIChartValue', null); // reset value
 
         this.get('pieceCounterService').getShiftInfoForNode(this.get('parameters.nodeList.value.0'))
             .then(shiftResult => {
@@ -216,27 +222,18 @@ var boardlet = BoardletBase.extend(CompactBaseKPIMixin, {
                 .then(archiveResult => {
                     chartOptions.series[0].data = [];
     
-                    if(archiveResult && archiveResult.objectAt(0)) {             
+                    if(archiveResult && archiveResult.objectAt(0)) {                           
+                        let data = chartOptions.series[0].data;    
+
                         archiveResult.map(value => 
-                            chartOptions.series[0].data.pushObject({
+                            data.pushObject({
                                 x: moment(value.get('time_stamp')).valueOf(), 
                                 y: value.get('value_num')
                             })
                         );
     
-                        let data = chartOptions.series[0].data;
-    
                         if(data && data.length) {
-                            data[data.length - 1] = { 
-                                x: data[data.length - 1].x,
-                                marker: {
-                                    enabled: true,
-                                    fillColor: '#00d5ff',
-                                    lineWidth: 3,
-                                    lineColor: "#00d5ff" // inherit from series
-                                },
-                                y: data[data.length - 1].y
-                            };
+                            this.set('currentKPIChartValue', data[data.length - 1].y)
                         }
                     }
     
@@ -274,6 +271,7 @@ boardlet.reopenClass({
 			context: ParameterContext.Local,
             category: 'settings',
             visible: false,
+            editable: false,
 			editor: {
 				component: 'input-component',
 				parameters: {

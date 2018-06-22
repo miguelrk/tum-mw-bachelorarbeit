@@ -37,95 +37,51 @@ var boardlet = BoardletBase.extend(Evented, {
 
 
 boardlet.reopenClass({
-    parameters: {
-        title: {
-            displayKey: 'parameters.title',
-            value: 'P&ID Visualization Creator',
-            parameterType: 'String',
-            context: ParameterContext.Local,
-            category: 'settings',
-            editor: {
-                component: 'input-component',
-                parameters: {
-                    placeholder: 'Add title...'
+        parameters: {
+            title: {
+                displayKey: 'parameters.title',
+                value: 'P&ID Creator',
+                parameterType: 'String',
+                context: ParameterContext.Local,
+                category: 'settings',
+                editor: {
+                    component: 'input-component',
+                    parameters: {
+                        placeholder: 'Add title...'
+                    }
                 }
-            }
-        },
+            },
 
-        node: {
-            displayKey: 'parameters.node-id',
-            value: null,
-            parameterType: 'Integer',
-            context: ParameterContext.InOut,
-            category: 'filters',
-            editor: {
-                component: 'input-component',
-                parameters: {
-                    placeholder: 'Add node ID...',
-                    hasIcon: true
+            node: {
+                displayKey: 'parameters.node-id',
+                value: null,
+                parameterType: 'Integer',
+                context: ParameterContext.InOut,
+                category: 'filters',
+                editor: {
+                    component: 'input-component',
+                    parameters: {
+                        placeholder: 'Add node ID...',
+                        hasIcon: true
+                    }
                 }
-            }
-        },
+            },
 
-        gateway: {
-            displayKey: 'parameters.gateway-id',
-            value: null,
-            parameterType: 'Integer',
-            context: ParameterContext.InOut,
-            category: 'filters',
-            editor: {
-                component: 'input-component',
-                parameters: {
-                    placeholder: 'Add gateway ID...',
-                    hasIcon: true
-                }
-            }
-        },
-
-        nodeList: {
-            displayKey: 'parameters.selected-nodes',
-            value: [],
-            parameterType: 'NumberArray',
-            context: ParameterContext.InOut,
-            category: 'filters',
-            editor: {
-                component: 'input-multi-component',
-                parameters: {
-                    placeholder: 'Add node IDs...',
-                    hasIcon: true
-                }
-            }
-        },
-
-        modelRootId: {
-            displayKey: 'parameters.model-root-id',
-            value: "",
-            parameterType: 'String',
-            context: ParameterContext.InOut,
-            category: 'filters',
-            editor: {
-                component: 'input-multi-component',
-                parameters: {
-                    placeholder: 'Add node IDs...',
-                    hasIcon: true
-                }
-            }
-        },
-
-        modelRootNum: {
-            displayKey: 'parameters.model-root-id',
-            value: 0,
-            parameterType: 'String',
-            context: ParameterContext.InOut,
-            category: 'filters',
-            editor: {
-                component: 'input-multi-component',
-                parameters: {
-                    placeholder: 'Add node IDs...',
-                    hasIcon: true
+            nodeList: {
+                displayKey: 'parameters.selected-nodes',
+                value: [],
+                parameterType: 'NumberArray',
+                context: ParameterContext.InOut,
+                category: 'filters',
+                editor: {
+                    component: 'input-multi-component',
+                    parameters: {
+                        placeholder: 'Add node IDs...',
+                        hasIcon: true
+                    }
                 }
             }
         }
-    }
-});
+    });
+    
 export default boardlet;

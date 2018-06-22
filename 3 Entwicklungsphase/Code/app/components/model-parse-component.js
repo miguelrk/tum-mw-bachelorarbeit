@@ -19,10 +19,9 @@ var component = SapientComponent.extend(Evented, {
     totalNumber: 0,
     parseQueue: null,
     propertyNumber: 0,
-    activeLog0: "",
-    activeLog1: "",
-    archiveLog: "",
-    errorLog: "",
+    activeLog0: null,
+    activeLog1: null,
+    archiveLog: [],
     currentProgressVal:0,
     maxProgressVal:100,
     showProgressBar:false,
@@ -65,10 +64,10 @@ var component = SapientComponent.extend(Evented, {
          * @param level 0 or 1, chooses the level of the logged text (1 logs into a second line and retains the first line)
          */
         if (!level) {
-            this.set('activeLog0', logText);
-            this.set('activeLog1', "");
+            this.set('activeLog0', {"text":logText,"type":"active"});
+            this.set('activeLog1', null);
         } else if (level == 1) {
-            this.set('activeLog1', "\n\t" + logText);
+            this.set('activeLog1', {"text":logText,"type":"active"});
         }
     },
     logArchive: function (logText) {
@@ -79,7 +78,8 @@ var component = SapientComponent.extend(Evented, {
          */
         this.set('activeLog0', "");
         this.set('activeLog1', "");
-        this.set('archiveLog', logText + "\n" + this.get('archiveLog'));
+        this.get('archiveLog').pushObject({"text":logText,"type":"archive"});
+        console.log(this.get('archiveLog'));
     },
     logError: function (logText) {
         /**
@@ -87,7 +87,7 @@ var component = SapientComponent.extend(Evented, {
          * Old Errors are retaines
          * @param logText Text to log.
          */
-        this.set('errorLog', this.get('errorLog') + logText + "\n");
+        this.get('archiveLog').pushObject({"text":logText,"type":"error"});
     },
     logProgress: function (part) {
         /**
@@ -118,10 +118,11 @@ var component = SapientComponent.extend(Evented, {
          * @param modelToTransform The json model to transform into the database.
          */
         var products = modelToTransform.products;
+
         var requestData = {
             id: 1,
             method: "/jsonrpc/template_from_model/createProducts",
-            params: { "products": products }
+            params: { "products": products, "create" : this.get('createNew') }
         };
         this.logArchive("Started parsing of model...");
         this.logActive("Creating/Updating products...");
@@ -143,19 +144,21 @@ var component = SapientComponent.extend(Evented, {
             this
         );
     },
-    addProductDbId: function (idObj) {
+    addProductDbId: function (idObjs) {
         /**
          * Function to return the product ids from the database and complement in all relations in the json object
          * @param idObj The json file returned from the sapient engine
          */
         let model = this.get('model');
-        model.nodes.filter(n => n.ports && n.ports.length).forEach(n => {
-            n.ports.filter(p => p.material && (p.material.modelId == idObj.model_id)).forEach(p => {
-                p.material.dbId = idObj.db_id;
+        idObjs.forEach(idObj => {
+            model.nodes.filter(n => n.ports && n.ports.length).forEach(n => {
+                n.ports.filter(p => p.material && (p.material.modelId == idObj.model_id)).forEach(p => {
+                    p.material.dbId = idObj.db_id;
+                });
             });
-        });
-        model.flows.filter(f => f.product.modelId == idObj.model_id).forEach(f => {
-            f.dbId = idObj.db_id;
+            model.flows.filter(f => f.material && (f.material.modelId == idObj.model_id)).forEach(f => {
+                f.material.dbId = idObj.db_id;
+            });
         });
     },
 
@@ -208,6 +211,7 @@ var component = SapientComponent.extend(Evented, {
          * Calls parseSUCs in callback. If the Request is succesful, appSUCDbId is called too to complement the database ids to each relation
          */
         let parseObj = this;
+        actSUC.create = this.get('createNew');
         var requestData = {
             id: 1,
             method: "/jsonrpc/template_from_model/createSUC",
@@ -291,7 +295,7 @@ var component = SapientComponent.extend(Evented, {
                             if (!sisters.find(s => (s.name == name))) isUnique = true;
                             else name = actNode.name + "_" + num++;
                         }
-                        actNode.name = name;
+                        actNode.copyName = name;
                     }
                     self.get('parseQueue').push(actNode);
                     self.parseNodes();
@@ -338,6 +342,8 @@ var component = SapientComponent.extend(Evented, {
          * Function to build the XMLHttpRequest for JSON-RPC.
          * Calls parseNodes in callback. If the Request is successful, addNodeDbId is called too to complement the database ids to each relation
          */
+        
+        actNode.create = this.get('createNew');
         var requestData = {
             id: 1,
             method: "/jsonrpc/template_from_model/createNode",
@@ -456,6 +462,10 @@ var component = SapientComponent.extend(Evented, {
                             parseObj.logError(response.result.error);
                             if (response.result.errorObj && response.result.errorObj.message) parseObj.logError(response.result.errorObj.message);
                         }
+                        else if (response.result.warning) {
+                            console.warn(response.result.warning);
+                            this.cbSuccess(response.result, parseObj);
+                        }
                         else this.cbSuccess(response.result, parseObj);
                     } else {
                         this.cbError(this.statusText, parseObj);
@@ -482,7 +492,7 @@ var component = SapientComponent.extend(Evented, {
         var requestData = {
             id: 1,
             method: "/jsonrpc/template_from_model/createFlows",
-            params: { "flows": flows }
+            params: { "flows": flows, "create" : this.get('createNew')}
         };
         this.logActive("Creating/Updating product flows...");
         this.startPOSTRequest(

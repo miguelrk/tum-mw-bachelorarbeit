@@ -15,16 +15,16 @@ var boardlet = BoardletBase.extend(CompactBaseKPIMixin, {
     currentFTSYSId: null,
     currentFTTOTId: null,
 
-    firstKPILabel: 'AVORG',
+    firstKPILabel: 'FTORG',
     firstKPIValue: null,
     firstKPIBoxValue: null,
-    secondKPILabel: 'AVTEC',
+    secondKPILabel: 'FTTEC',
     secondKPIBoxValue: null,
     secondKPIValue: null,
-    thirdKPILabel: 'AVSYS',
+    thirdKPILabel: 'FTSYS',
     thirdKPIValue: null,
     thirdKPIBoxValue: null,
-    totalKPILabel: 'Total',
+    totalKPILabel: 'Total (FTTOT)',
     totalKPIValue: null,
 
     flag: false,
@@ -33,26 +33,39 @@ var boardlet = BoardletBase.extend(CompactBaseKPIMixin, {
         this._super(...arguments);
 
         let chartOptions = this.get('chartOptions'); // get it from the base component
-        chartOptions.chart.type = 'bar';
+        chartOptions.chart.type = 'column';
 
         chartOptions.plotOptions.bar.dataLabels = {
-            color: '#dadada',
             enabled: true,
             shadow: false,
             style: {
-                fontSize: '3em',
-                textOutline: '0'
+                /** needed internally to let H-charts calculate the translate-transform for the correct positioning of the labels,
+                 *  the same value as in kpi_compact.scss
+                **/
             }
         };
 
         chartOptions.plotOptions.series = {
+            useHTML: true,
             animation: false,
+            pointPadding: 0.15,
+            groupPadding: 0,
+            pointPlacement: 'between',
+            borderWidth: 0,
             dataLabels: {
+                useHTML: true,
                 enabled: true,
-                align: "left",
-                formatter: function() { return this.key + ': '+ this.y + '%'; },
+                align: "center",
+                verticalAlign: "bottom",
+                formatter: function() { 
+                    return '<div style="color: #ffffff; font-size: 4.5em; text-align: center;">' + this.y + '%</div>'
+                    + '<div style="color: #ffffff; font-size: 1.5em; text-align: center; opacity: 0.48;">' + this.key + '</div>';
+                },
                 inside: true,
-                rotation: 0
+                rotation: 0,
+                style: {
+                    textOutline: '0'
+                }        
             }
         };
 
@@ -254,6 +267,7 @@ boardlet.reopenClass({
 			context: ParameterContext.Local,
             category: 'settings',
             visible: false,
+            editable: false,
 			editor: {
 				component: 'input-component',
 				parameters: {

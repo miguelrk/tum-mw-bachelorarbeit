@@ -39,7 +39,7 @@ var component = SapientComponent.extend(Evented,{
       method: 'GET',
       dataType: 'json'
     });
-    console.log("Uploader created...\n");
+    //console.log("Uploader created...\n");
     uploader.upload(this.get('jsonFile')).then(data => {
       this.get('onLoadSuccess') && this.get('onLoadSuccess')(data);
       dismissFunction(true);

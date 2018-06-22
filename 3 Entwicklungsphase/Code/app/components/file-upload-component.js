@@ -3,7 +3,7 @@ import Evented from '@ember/object/evented';
 import EmberUploader from 'ember-uploader';
 
 const uploader = EmberUploader.Uploader.create({
-    url: '/public/assets/detail-layout',
+    url: './research-sapient-app/public/assets/detail-layout',
     method: 'POST'
 });
 

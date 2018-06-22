@@ -1,4 +1,6 @@
-<h2 class="compact-kpi-headline">Stückzahlen</h2>
+<h2 class="compact-kpi-headline">{{t 'kpi-compact.piece-counter-title'}}</h2>
+
+
 <div class="chart-container"> 
 </div>
 
@@ -46,5 +48,13 @@
 </div>
 
 <div class="value-highlight">
-    {{currentKPIValue}}
+    {{currentKPIChartValue}}
 </div>
+<svg style="visibility:hidden; height: 0;">
+	<defs>
+        <linearGradient id="gradient-0" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" />
+            <stop offset="1" />
+        </linearGradient>
+    </defs>
+</svg>
