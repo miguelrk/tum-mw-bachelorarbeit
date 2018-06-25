@@ -355,14 +355,14 @@ let component = SapientComponent.extend(Evented, {
         let lookup = [];
 
         array.forEach((node) => {
-        //console.log(node);
-        let nodeId = node.id; // Select current node's id
-        //console.log(`nodeId: ${nodeId}`);
-        lookup[nodeId] = node; // Clone node to id key of lookup array 
-        //console.log(lookup[nodeId]);
-        node.children = []; // Add a children property (array type)
-        //console.log('node[\'children\'] = \n');
-        //console.log(node['children']);
+            //console.log(node);
+            let nodeId = node.id; // Select current node's id
+            //console.log(`nodeId: ${nodeId}`);
+            lookup[nodeId] = node; // Clone node to id key of lookup array 
+            //console.log(lookup[nodeId]);
+            node.children = []; // Add a children property (array type)
+            //console.log('node[\'children\'] = \n');
+            //console.log(node['children']);
         });
         array.forEach((node) => {
         if (node.parent) {

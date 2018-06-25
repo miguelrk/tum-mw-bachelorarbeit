@@ -153,37 +153,38 @@ window.addEventListener('load', () => {
 
 
   function buildHierarchy(flatArray) {
-    console.groupCollapsed("Building hierarchy (pidNodeTree) from pidNodes...");
-    console.log(flatArray);
-    let treeArray = [];
-    let lookup = [];
+        console.group("Building hierarchy (pidNodeTree) from pidNodes...");
+        let array = flatArray;
+        console.log(array);
+        let treeArray = [];
+        let lookup = [];
 
-    flatArray.forEach((node) => {
-      //console.log(node);
-      let nodeId = node.id; // Select current node's id
-      //console.log(`nodeId: ${nodeId}`);
-      lookup[nodeId] = node; // Clone node to id key of lookup array 
-      //console.log(lookup[nodeId]);
-      node.children = []; // Add a children property (array type)
-      //console.log('node[\'children\'] = \n');
-      //console.log(node['children']);
-    });
-    flatArray.forEach((node) => {
-      if (node.parent) {
-        let nodeParent = node.parent;
-        lookup[nodeParent].children.push(node);
-      } else {
-        treeArray.push(node);
-      }
-    });
-    let treeString = JSON.stringify(treeArray);
-    console.log('treeString = \n');
-    console.log(treeString);
-    console.log('tree = \n');
-    console.log(treeArray);
-    console.groupEnd();
-    return treeArray;
-  }
+        array.forEach((node) => {
+            //console.log(node);
+            let nodeId = node.id; // Select current node's id
+            //console.log(`nodeId: ${nodeId}`);
+            lookup[nodeId] = node; // Clone node to id key of lookup array 
+            //console.log(lookup[nodeId]);
+            node.children = []; // Add a children property (array type)
+            //console.log('node[\'children\'] = \n');
+            //console.log(node['children']);
+        });
+        array.forEach((node) => {
+          if (node.parent) {
+              let nodeParent = node.parent;
+              lookup[nodeParent].children.push(node);
+          } else {
+              treeArray.push(node);
+          }
+        });
+        let treeString = JSON.stringify(treeArray);
+        console.log('treeString = \n');
+        console.log(treeString);
+        console.log('tree = \n');
+        console.log(treeArray);
+        console.groupEnd();
+        return treeArray;
+    }
 
 
   function pathfinder(treeArray) {
