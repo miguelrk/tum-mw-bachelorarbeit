@@ -153,38 +153,38 @@ window.addEventListener('load', () => {
 
 
   function buildHierarchy(flatArray) {
-        console.group("Building hierarchy (pidNodeTree) from pidNodes...");
-        let array = flatArray;
-        console.log(array);
-        let treeArray = [];
-        let lookup = [];
+    console.group("Building hierarchy (pidNodeTree) from pidNodes...");
+    let array = flatArray;
+    console.log(array);
+    let treeArray = [];
+    let lookup = [];
 
-        array.forEach((node) => {
-            //console.log(node);
-            let nodeId = node.id; // Select current node's id
-            //console.log(`nodeId: ${nodeId}`);
-            lookup[nodeId] = node; // Clone node to id key of lookup array 
-            //console.log(lookup[nodeId]);
-            node.children = []; // Add a children property (array type)
-            //console.log('node[\'children\'] = \n');
-            //console.log(node['children']);
-        });
-        array.forEach((node) => {
-          if (node.parent) {
-              let nodeParent = node.parent;
-              lookup[nodeParent].children.push(node);
-          } else {
-              treeArray.push(node);
-          }
-        });
-        let treeString = JSON.stringify(treeArray);
-        console.log('treeString = \n');
-        console.log(treeString);
-        console.log('tree = \n');
-        console.log(treeArray);
-        console.groupEnd();
-        return treeArray;
-    }
+    array.forEach((node) => {
+        //console.log(node);
+        let nodeId = node.id; // Select current node's id
+        //console.log(`nodeId: ${nodeId}`);
+        lookup[nodeId] = node; // Clone node to id key of lookup array 
+        //console.log(lookup[nodeId]);
+        node.children = []; // Add a children property (array type)
+        //console.log('node[\'children\'] = \n');
+        //console.log(node['children']);
+    });
+    array.forEach((node) => {
+      if (node.parent) {
+          let nodeParent = node.parent;
+          lookup[nodeParent].children.push(node);
+      } else {
+          treeArray.push(node);
+      }
+    });
+    let treeString = JSON.stringify(treeArray);
+    console.log('treeString = \n');
+    console.log(treeString);
+    console.log('tree = \n');
+    console.log(treeArray);
+    console.groupEnd();
+    return treeArray;
+  }
 
 
   function pathfinder(treeArray) {
@@ -440,9 +440,9 @@ window.addEventListener('load', () => {
       // Values not preceeded with '_' are instance attributes (from database)
       // FIXME: Remove id attribute in mxCell and leave it only in object?
       pidXmlString += `
-    <object id="${pidEquipment.id}" label="${htmlLabel}" pid-label="${pidEquipment.pidLabel}" pid-hierarchy="${pidEquipment.pidHierarchy}" sapient-bind="">
-        <mxCell value="${pidEquipment._value}" style="${concatenateStyles(pidEquipment.styleObject)}" vertex="${pidEquipment._vertex}" parent="${pidEquipment.parent ? pidEquipment.parent : pidEquipment._parent}">
-          <mxGeometry x="50" y="50" width="${pidEquipment.mxGeometry._width}" height="${pidEquipment.mxGeometry._height}" as="${pidEquipment.mxGeometry._as}"></mxGeometry>
+    <object id="${pidEquipment.id ? pidEquipment.id : pidEquipment._id}" label="${htmlLabel}" pid-label="${pidEquipment.pidLabel}" pid-hierarchy="${pidEquipment.pidHierarchy}" sapient-bind="">
+        <mxCell value="${pidEquipment._value}" style="${concatenateStyles(pidEquipment.styleObject)}" vertex="${pidEquipment._vertex}" parent="${pidEquipment.parentId ? pidEquipment.parentId : pidEquipment._parent}">
+          <mxGeometry x="${pidEquipment.mxGeometry._x ? pidEquipment.mxGeometry._x : 50}" y="${pidEquipment.mxGeometry._y ? pidEquipment.mxGeometry._y : 50}" width="${pidEquipment.mxGeometry._width}" height="${pidEquipment.mxGeometry._height}" as="${pidEquipment.mxGeometry._as}"></mxGeometry>
         </mxCell>
     </object>`;
     });
@@ -451,9 +451,9 @@ window.addEventListener('load', () => {
     console.log(`Generating XML-tags for ${instrumentCount} instrument instances...`);
     pidInstruments.forEach((pidInstrument) => {
       pidXmlString += `
-    <object id="${pidInstrument.id}" label="${htmlLabel}" pid-label="${pidInstrument.pidLabel}" pid-hierarchy="${pidInstrument.pidHierarchy}" sapient-bind="">
-      <mxCell value="${pidInstrument._value}" style="${concatenateStyles(pidInstrument.styleObject)}" vertex="${pidInstrument._vertex}" parent="${pidInstrument.parent ? pidInstrument.parent : pidInstrument._parent}">
-        <mxGeometry x="50" y="50" width="${pidInstrument.mxGeometry._width}" height="${pidInstrument.mxGeometry._height}" as="${pidInstrument.mxGeometry._as}"></mxGeometry>
+    <object id="${pidInstrument.id ? pidInstrument.id : pidInstrument._id}" label="${htmlLabel}" pid-label="${pidInstrument.pidLabel}" pid-hierarchy="${pidInstrument.pidHierarchy}" sapient-bind="">
+      <mxCell value="${pidInstrument._value}" style="${concatenateStyles(pidInstrument.styleObject)}" vertex="${pidInstrument._vertex}" parent="${pidInstrument.parentId ? pidInstrument.parentId : pidInstrument._parent}">
+        <mxGeometry x="${pidInstrument.mxGeometry._x ? pidInstrument.mxGeometry._x : 50}" y="${pidInstrument.mxGeometry._y ? pidInstrument.mxGeometry._y : 50}" width="${pidInstrument.mxGeometry._width}" height="${pidInstrument.mxGeometry._height}" as="${pidInstrument.mxGeometry._as}"></mxGeometry>
       </mxCell>
     </object>`;
     });
@@ -462,9 +462,9 @@ window.addEventListener('load', () => {
     console.log(`Generating XML-tags for ${arrowCount} arrow instances...`);
     pidArrows.forEach((pidArrow) => {
       pidXmlString += `
-    <object id="${pidArrow.id}" label="${htmlLabel}" pid-label="${pidArrow.pidLabel}" pid-hierarchy="${pidArrow.pidHierarchy}" sapient-bind="">
-      <mxCell value="${pidArrow._value}" style="${concatenateStyles(pidArrow.styleObject)}" vertex="${pidArrow._vertex}" parent="${pidArrow.parent ? pidArrow.parent : pidArrow._parent}">
-        <mxGeometry x="50" y="50" width="${pidArrow.mxGeometry._width}" height="${pidArrow.mxGeometry._height}" as="${pidArrow.mxGeometry._as}"></mxGeometry>
+    <object id="${pidArrow.id ? pidArrow.id : pidArrow._id}" label="${htmlLabel}" pid-label="${pidArrow.pidLabel}" pid-hierarchy="${pidArrow.pidHierarchy}" sapient-bind="">
+      <mxCell value="${pidArrow._value}" style="${concatenateStyles(pidArrow.styleObject)}" vertex="${pidArrow._vertex}" parent="${pidArrow.parentId ? pidArrow.parentId : pidArrow._parent}">
+        <mxGeometry x="${pidArrow.mxGeometry._x ? pidArrow.mxGeometry._x : 50}" y="${pidArrow.mxGeometry._y ? pidArrow.mxGeometry._y : 50}" width="${pidArrow.mxGeometry._width}" height="${pidArrow.mxGeometry._height}" as="${pidArrow.mxGeometry._as}"></mxGeometry>
       </mxCell>
     </object>`;
     });
@@ -473,9 +473,9 @@ window.addEventListener('load', () => {
     console.log(`Generating XML-tags for ${groupCount} group instances...`);
     pidGroups.forEach((pidGroup) => {
       pidXmlString += `
-    <object id="${pidGroup.id}" label="${htmlLabel}" pid-label="${pidGroup.pidLabel}" pid-hierarchy="${pidGroup.pidHierarchy}" sapient-bind="">
-      <mxCell value="${pidGroup._value}" style="${concatenateStyles(pidGroup.styleObject)}" vertex="${pidGroup._vertex}" parent="${pidGroup.parent ? pidGroup.parent : pidGroup._parent}">
-        <mxGeometry x="50" y="50" width="${pidGroup.mxGeometry._width}" height="${pidGroup.mxGeometry._height}" as="${pidGroup.mxGeometry._as}"></mxGeometry>
+    <object id="${pidGroup.id ? pidGroup.id : pidGroup._id}" label="${htmlLabel}" pid-label="${pidGroup.pidLabel}" pid-hierarchy="${pidGroup.pidHierarchy}" sapient-bind="">
+      <mxCell value="${pidGroup._value}" style="${concatenateStyles(pidGroup.styleObject)}" vertex="${pidGroup._vertex}" connectable="${pidGroup._connectable}" parent="${pidGroup.parentId ? pidGroup.parentId : pidGroup._parent}">
+        <mxGeometry x="${pidGroup.mxGeometry._x ? pidGroup.mxGeometry._x : 50}" y="${pidGroup.mxGeometry._y ? pidGroup.mxGeometry._y : 50}" width="${pidGroup.mxGeometry._width}" height="${pidGroup.mxGeometry._height}" as="${pidGroup.mxGeometry._as}"></mxGeometry>
       </mxCell>
     </object>`;
     });
@@ -484,12 +484,26 @@ window.addEventListener('load', () => {
     const lineCount = pidLines.length;
     console.log(`Generating XML-tags for ${lineCount} line instances...`);
     pidLines.forEach((pidLine) => {
+
+      // TODO: Filter pidLines based on source and target pair
+        let source = pidJson.find((vertex) => vertex.id === pidLine.sourceId);
+        let target = pidJson.find((vertex) => vertex.id === pidLine.targetId);
+
+        if (source.pidClass !== 'group' && target.pidClass !== 'group') {
+
+            console.groupCollapsed(pidLine.id);
+            console.log(`${source.pidClass} -> ${target.pidClass}`);
+            console.log(`${source.shapeName} -> ${target.shapeName}`);
+            console.log(`${pidLine.sourceId} -> ${pidLine.targetId}`);
+            console.groupEnd();
+
       pidXmlString += `
-    <object id="${pidLine.id}" label="${htmlLabel}" pid-label="${pidLine.pidLabel}" pid-hierarchy="${pidLine.pidHierarchy}" sapient-bind="">
-      <mxCell value="${pidLine._value}" style="${concatenateStyles(pidLine.styleObject)}" edge="${pidLine._edge}" source="${pidLine.node_0}" target="${pidLine.node_1}" parent="${pidLine._parent}">
-        <mxGeometry x="50" y="50" as="${pidLine.mxGeometry._as}"></mxGeometry>
+    <object id="${pidLine.id ? pidLine.id : pidLine._id}" label="${htmlLabel}" pid-label="${pidLine.pidLabel}" pid-hierarchy="${pidLine.pidHierarchy}" sapient-bind="">
+      <mxCell value="${pidLine._value}" style="${concatenateStyles(pidLine.styleObject)}" edge="${pidLine._edge}" source="${pidLine.sourceId}" target="${pidLine.targetId}" parent="${pidLine.parentId ? pidLine.parentId : pidLine._parent}">
+        <mxGeometry relative="${pidLine.mxGeometry._relative ? pidLine.mxGeometry._relative : 1}" as="${pidLine.mxGeometry._as ? pidLine.mxGeometry._as : 'geometry'}"></mxGeometry>
       </mxCell>
     </object>`;
+        }
     });
 
     // Add database bindings
