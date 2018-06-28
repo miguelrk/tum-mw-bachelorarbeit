@@ -479,17 +479,42 @@ let component = SapientComponent.extend(Evented, {
         console.log(array);
         let treeArray = [];
         let lookup = [];
+        let root = flatArray[0];
+        let rootDetails = JSON.parse(root.details);
+        console.log(`rootDetails:`);
+        console.log(rootDetails);
+        let rootLevel = rootDetails.opcUALevel;
+        console.log(`rootLevel: ${rootLevel}`);
+        let atRootNodeLevel = true;
 
+        // Starting from selected root node at start of flatArray (becasue query: SELECT * WHERE id >= rootNodeId)
         array.forEach((node) => {
-            console.log(node);
-            let nodeId = node.id; // Select current node's id
-            console.log(`nodeId: ${nodeId}`);
-            lookup[nodeId] = node; // Clone node to id key of lookup array 
-            console.log(lookup[nodeId]);
-            node.children = []; // Add a children property (array type)
-            console.log('node[\'children\'] = \n');
-            console.log(node['children']);
+            let details = JSON.parse(node.details);
+            let currentLevel = details.opcUALevel;
+            // Continue until
+            
+            if (rootLevel === currentLevel) {
+                // Toggle when at root node level
+                console.log(`rootLevel : currentLevel - ${rootLevel} : ${currentLevel}`);
+                atRootNodeLevel = !atRootNodeLevel;
+            }
+            console.log(`rootLevel : currentLevel ${rootLevel} : ${currentLevel}`);
+            if (atRootNodeLevel === false) {
+                console.log(node);
+                let nodeId = node.id; // Select current node's id
+                console.log(`nodeId: ${nodeId}`);
+                lookup[nodeId] = node; // Clone node to id key of lookup array 
+                console.log(lookup[nodeId]);
+                node.children = []; // Add a children property (array type)
+                console.log('node[\'children\'] = \n');
+                console.log(node['children']);
+            }
+            else {
+                // Back at root node level, so do nothing until iterations 
+                // completed (exclude extended families of root node's family)
+            }
         });
+
         array.forEach((node) => {
             let nodeParentId = node.parentId;
             // ROOT NODE: If root node push to tree
@@ -537,52 +562,52 @@ let component = SapientComponent.extend(Evented, {
 
         // For each root vertex (works even if more than one root)
         tree.forEach((v) => {
-        // Set/reset pidLevel for roots (NOTE: skips enterprise level)
-        let level = 0;
-        v.pidLevel = level;
-        //console.log("Root = \n");
-        //console.log(v);
-        // Add root to stack
-        stack.push(v);
-
-        // While stack exists and not empty (vertices pending in stack)
-        while (stack && stack.length) {
-            //console.log("stack = \n");
-            //console.log(stack);
-            // Pop next vertex from top of stack
-            v = stack.pop();
-            //console.log("v = \n");
+            // Set/reset pidLevel for roots (NOTE: skips enterprise level)
+            let level = 0;
+            v.pidLevel = level;
+            //console.log("Root = \n");
             //console.log(v);
-            // If pidLevel of current vertex was set already during traversal
-            if (v.pidLevel !== "") {
-            // Resets level to level of current vertex
-            level = v.pidLevel;
+            // Add root to stack
+            stack.push(v);
+
+            // While stack exists and not empty (vertices pending in stack)
+            while (stack && stack.length) {
+                //console.log("stack = \n");
+                //console.log(stack);
+                // Pop next vertex from top of stack
+                v = stack.pop();
+                //console.log("v = \n");
+                //console.log(v);
+                // If pidLevel of current vertex was set already during traversal
+                if (v.pidLevel !== "") {
+                // Resets level to level of current vertex
+                level = v.pidLevel;
+                }
+                // If vertex exists and not already (not found) in path array:
+                if (v !== undefined && (!path.find((v) => path.id === v.id))) {
+                // Record vertex (all properties) in path array (flat)
+                path.push(v);
+                //console.log("path array = \n");
+                //console.log(path);
+                //console.log("path array length = \n");
+                //console.log(path.length);
+                // If vertex has children
+                if (v.children && v.children.length) {
+                    // Lower level by one (for all children)
+                    level += 1;
+                    // For all children of vertex
+                    v.children.forEach((child) => {
+                    child.pidLevel = level;
+                    // Push children (if any) to stack
+                    stack.push(child);
+                    });
+                    // Delete nested hierachy for given vertex (or clear with v.children = null;)
+                    delete v.children;
+                }
+                }
+                // Raise level by one (after adding all children to stack)
+                level -= 1;
             }
-            // If vertex exists and not already (not found) in path array:
-            if (v !== undefined && (!path.find((v) => path.id === v.id))) {
-            // Record vertex (all properties) in path array (flat)
-            path.push(v);
-            //console.log("path array = \n");
-            //console.log(path);
-            //console.log("path array length = \n");
-            //console.log(path.length);
-            // If vertex has children
-            if (v.children && v.children.length) {
-                // Lower level by one (for all children)
-                level += 1;
-                // For all children of vertex
-                v.children.forEach((child) => {
-                child.pidLevel = level;
-                // Push children (if any) to stack
-                stack.push(child);
-                });
-                // Delete nested hierachy for given vertex (or clear with v.children = null;)
-                delete v.children;
-            }
-            }
-            // Raise level by one (after adding all children to stack)
-            level -= 1;
-        }
         });
         //console.log('pathString = \n')
         //console.log(JSON.stringify(path));
@@ -607,7 +632,7 @@ let component = SapientComponent.extend(Evented, {
         let pidVertices = [];
  
         // TODO: pidNodes = (FETCH FROM PRJ_PRC_VISU_VERTECI)
-        this.get('pidNodesInOrder').forEach(pidNode => {
+        this.get('pidNodesInOrder').forEach((pidNode) => {
             let matchingShape = {};
             let details = JSON.parse(pidNode.details);
             pidNode.pidHierarchy = details.isaLevel;
@@ -685,14 +710,31 @@ let component = SapientComponent.extend(Evented, {
         this.updateProgressBar(80);
         console.groupCollapsed("Mapping connections to line shapes...");
         const pidShapesCount = this.get('pidShapesLibrary').length;
-        const pidConnectionsCount = this.get('pidConnections').length;
+        let pidConnections = [];
         let pidEdges = [];
 
-        this.get('pidConnections').forEach(pidConnection => {
-            // Find corresponding source and target vertices from pidVertices
-            const source = this.get('pidVertices').find((vertex) => vertex.id === pidConnection.sourceId);
-            const target = this.get('pidVertices').find((vertex) => vertex.id === pidConnection.targetId);
+        console.log(this.get('pidConnections').length);
+        console.log(this.get('pidConnections'));
 
+        this.get('pidConnections').forEach((connection) => {
+            // Find corresponding source and target vertices from pidVertices
+            let source = this.get('pidVertices').find((vertex) => vertex.id === connection.sourceId);
+            let target = this.get('pidVertices').find((vertex) => vertex.id === connection.targetId);
+
+            // TODO: Filter out connections between vertices not present in 
+            // pidVertices (all connections fetched from database, but root node
+            // selection might filter out certain vertices, thus remove those
+            // connections or mxGraph crashes)
+            if ((source !== null || source !== undefined) && (target !== null || target !== undefined)) {
+                pidConnections.push(connection);
+                console.log(connection);
+            }
+        });
+
+        pidConnections.forEach((pidConnection) => {
+            // Find corresponding source and target vertices from pidVertices
+            let source = this.get('pidVertices').find((vertex) => vertex.id === pidConnection.sourceId);
+            let target = this.get('pidVertices').find((vertex) => vertex.id === pidConnection.targetId);
             /* PID RULES
                 Set shapeName to pidConnection based on flowType attribute in 
                 database or based on logical PID rules.
@@ -754,8 +796,9 @@ let component = SapientComponent.extend(Evented, {
             let pidEdge = Object.assign({}, pidConnection, matchingShape);
             pidEdges.push(pidEdge);
         });
-
-        console.log(`Mapped ${pidConnectionsCount} connection instances to edge shapes from ${pidShapesCount} total shapes in library.`);
+        console.log(`Mapped ${pidConnections.length} connection instances to edge shapes from ${pidShapesCount} total shapes in library.`);
+        console.log('pidConnections:');
+        console.log(pidConnections);
         console.log('pidEdges:');
         console.table(pidEdges);
         console.groupEnd();
@@ -769,8 +812,14 @@ let component = SapientComponent.extend(Evented, {
 
 
     vertexPlacement: function() {
+        console.groupCollapsed("Positioning vertices in graph...");
         let vertices = this.get('pidVertices').reverse();
         let edges = this.get('pidEdges');
+        console.table(this.get('pidJson'));
+        //console.log('pidVertices');
+        //console.log(JSON.stringify(vertices));
+        //console.log('pidEdges');
+        //console.log(JSON.stringify(edges));
         vertices.forEach((v) => {
             // Skip Legato and enterprise nodes
             if (v.shapeName) {
@@ -786,7 +835,8 @@ let component = SapientComponent.extend(Evented, {
                 console.log(`y: ${y}`);
                 console.log(`w: ${w}`);
                 console.log(`h: ${h}`);
-                console.log(`siblings: ${siblings}`);
+                console.log(`siblings: `);
+                console.log(siblings);
                 console.log(`siblingsCount: `);
                 console.log(siblingsCount);
 
@@ -807,8 +857,7 @@ let component = SapientComponent.extend(Evented, {
         }
         })
 
-
-
+        console.groupEnd();
     },
 
 
@@ -873,8 +922,10 @@ let component = SapientComponent.extend(Evented, {
 
         console.groupCollapsed("XML String generation started...");
 
-        const htmlLabel = '&lt;b&gt;%pid-label%&lt;br&gt;&lt;span style=&quot;background-color: rgb(0 , 0 , 255)&quot;&gt;&lt;font color=&quot;#ffffff&quot;&gt;&amp;nbsp;4000 m3/s&amp;nbsp;&lt;/font&gt;&lt;/span&gt;&lt;/b&gt;&lt;br&gt;';
-
+        // FIXME: Fix pid-current-value in xml-string-templates which is currently set to the ID
+        const htmlLabel = '&lt;b&gt;%pid-label%&lt;br&gt;&lt;span style=&quot;background-color: rgb(0 , 0 , 255)&quot;&gt;&lt;font color=&quot;#ffffff&quot;&gt;&amp;nbsp;%pid-current-value%&amp;nbsp;&lt;/font&gt;&lt;/span&gt;&lt;/b&gt;&lt;br&gt;';
+        const htmlLabelInstrument = '&lt;table cellpadding=&quot;4&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;font-size:1em;width:100%;height:100%;&quot;&gt;&lt;tr&gt;&lt;td&gt;%pid-function%&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%pid-number%&lt;/td&gt;&lt;/table&gt; ';
+        const htmlLabelGroup = '%pid-class%: %pid-label%';
         // Add mxGraph and mxGraphModel boilerplate settings
         let xmlString = `
 <mxGraphModel dx="${graphSettings.dx}" dy="${graphSettings.dy}" grid="${graphSettings.grid}" gridSize="${graphSettings.gridSize}" guides="${graphSettings.guides}" tooltips="${graphSettings.tooltips}" connect="${graphSettings.connect}" arrows="${graphSettings.arrows}" fold="${graphSettings.fold}" page="${graphSettings.page}" pageScale="${graphSettings.pageScale}" pageWidth="${graphSettings.pageWidth}" pageHeight="${graphSettings.pageHeight}" background="${graphSettings.background}" math="${graphSettings.math}" shadow="${graphSettings.shadow}">
@@ -890,9 +941,9 @@ let component = SapientComponent.extend(Evented, {
       // Values not preceeded with '_' are instance attributes (from database)
       // FIXME: Remove id attribute in mxCell and leave it only in object?
       xmlString += `
-    <object id="${pidEquipment.id ? pidEquipment.id : pidEquipment._id}" label="${htmlLabel}" pid-label="${pidEquipment.pidLabel}" pid-hierarchy="${pidEquipment.pidHierarchy}" sapient-bind="">
-        <mxCell value="${pidEquipment._value}" style="${this.concatenateStyles(pidEquipment.styleObject)}" vertex="${pidEquipment._vertex}" parent="${pidEquipment.parentId ? pidEquipment.parentId : pidEquipment._parent}">
-          <mxGeometry x="50" y="50" width="${pidEquipment.mxGeometry._width}" height="${pidEquipment.mxGeometry._height}" as="${pidEquipment.mxGeometry._as}"></mxGeometry>
+    <object id="${pidEquipment.id ? pidEquipment.id : pidEquipment._id}" label="${htmlLabel}" placeholders="1" pid-label="${pidEquipment.pidLabel ? pidEquipment.pidLabel : pidEquipment.shortName ? pidEquipment.shortName : pidEquipment.germanName ? pidEquipment.germanName : pidEquipment.englishName}" pid-current-value="${pidEquipment.id}" pid-function="${pidEquipment.pidFunction}" pid-number="${pidEquipment.pidNumber}" sapient-bind="">
+        <mxCell style="${this.concatenateStyles(pidEquipment.styleObject)}" vertex="${pidEquipment._vertex}" parent="${pidEquipment.parentId ? pidEquipment.parentId : pidEquipment._parent}">
+          <mxGeometry x="${pidEquipment.mxGeometry._x ? pidEquipment.mxGeometry._x : 50}" y="${pidEquipment.mxGeometry._y ? pidEquipment.mxGeometry._y : 50}" width="${pidEquipment.mxGeometry._width}" height="${pidEquipment.mxGeometry._height}" as="${pidEquipment.mxGeometry._as}"></mxGeometry>
         </mxCell>
     </object>`;
     });
@@ -901,9 +952,9 @@ let component = SapientComponent.extend(Evented, {
     console.log(`Generating XML-tags for ${instrumentCount} instrument instances...`);
     pidInstruments.forEach((pidInstrument) => {
       xmlString += `
-    <object id="${pidInstrument.id ? pidInstrument.id : pidInstrument._id}" label="${htmlLabel}" pid-label="${pidInstrument.pidLabel}" pid-hierarchy="${pidInstrument.pidHierarchy}" sapient-bind="">
-      <mxCell value="${pidInstrument._value}" style="${this.concatenateStyles(pidInstrument.styleObject)}" vertex="${pidInstrument._vertex}" parent="${pidInstrument.parentId ? pidInstrument.parentId : pidInstrument._parent}">
-        <mxGeometry x="50" y="50" width="${pidInstrument.mxGeometry._width}" height="${pidInstrument.mxGeometry._height}" as="${pidInstrument.mxGeometry._as}"></mxGeometry>
+    <object id="${pidInstrument.id ? pidInstrument.id : pidInstrument._id}" label="${htmlLabelInstrument}" placeholders="1" pid-label="${pidInstrument.pidLabel ? pidInstrument.pidLabel : pidInstrument.shortName ? pidInstrument.shortName : pidInstrument.germanName ? pidInstrument.germanName : pidInstrument.englishName}" pid-current-value="${pidInstrument.id}" pid-function="${pidInstrument.pidFunction}" pid-number="${pidInstrument.pidNumber}" sapient-bind="">
+      <mxCell style="${this.concatenateStyles(pidInstrument.styleObject)}" vertex="${pidInstrument._vertex}" parent="${pidInstrument.parentId ? pidInstrument.parentId : pidInstrument._parent}">
+        <mxGeometry x="${pidInstrument.mxGeometry._x ? pidInstrument.mxGeometry._x : 50}" y="${pidInstrument.mxGeometry._y ? pidInstrument.mxGeometry._y : 50}" width="${pidInstrument.mxGeometry._width}" height="${pidInstrument.mxGeometry._height}" as="${pidInstrument.mxGeometry._as}"></mxGeometry>
       </mxCell>
     </object>`;
     });
@@ -912,9 +963,9 @@ let component = SapientComponent.extend(Evented, {
     console.log(`Generating XML-tags for ${arrowCount} arrow instances...`);
     pidArrows.forEach((pidArrow) => {
       xmlString += `
-    <object id="${pidArrow.id ? pidArrow.id : pidArrow._id}" label="${htmlLabel}" pid-label="${pidArrow.pidLabel}" pid-hierarchy="${pidArrow.pidHierarchy}" sapient-bind="">
-      <mxCell value="${pidArrow._value}" style="${this.concatenateStyles(pidArrow.styleObject)}" vertex="${pidArrow._vertex}" parent="${pidArrow.parentId ? pidArrow.parentId : pidArrow._parent}">
-        <mxGeometry x="50" y="50" width="${pidArrow.mxGeometry._width}" height="${pidArrow.mxGeometry._height}" as="${pidArrow.mxGeometry._as}"></mxGeometry>
+    <object id="${pidArrow.id ? pidArrow.id : pidArrow._id}" label="${htmlLabel}" placeholders="1" pid-label="${pidArrow.pidLabel ? pidArrow.pidLabel : pidArrow.shortName ? pidArrow.shortName : pidArrow.germanName ? pidArrow.germanName : pidArrow.englishName}" pid-current-value="${pidArrow.id}" pid-function="${pidArrow.pidFunction}" pid-number="${pidArrow.pidNumber}" sapient-bind="">
+      <mxCell style="${this.concatenateStyles(pidArrow.styleObject)}" vertex="${pidArrow._vertex}" parent="${pidArrow.parentId ? pidArrow.parentId : pidArrow._parent}">
+        <mxGeometry x="${pidArrow.mxGeometry._x ? pidArrow.mxGeometry._x : 50}" y="${pidArrow.mxGeometry._y ? pidArrow.mxGeometry._y : 50}" width="${pidArrow.mxGeometry._width}" height="${pidArrow.mxGeometry._height}" as="${pidArrow.mxGeometry._as}"></mxGeometry>
       </mxCell>
     </object>`;
     });
@@ -923,9 +974,9 @@ let component = SapientComponent.extend(Evented, {
     console.log(`Generating XML-tags for ${groupCount} group instances...`);
     pidGroups.forEach((pidGroup) => {
       xmlString += `
-    <object id="${pidGroup.id ? pidGroup.id : pidGroup._id}" label="${htmlLabel}" pid-label="${pidGroup.pidLabel}" pid-hierarchy="${pidGroup.pidHierarchy}" sapient-bind="">
-      <mxCell value="${pidGroup._value}" style="${this.concatenateStyles(pidGroup.styleObject)}" vertex="${pidGroup._vertex}" connectable="${pidGroup._connectable}" parent="${pidGroup.parentId ? pidGroup.parentId : pidGroup._parent}">
-        <mxGeometry x="50" y="50" width="${pidGroup.mxGeometry._width}" height="${pidGroup.mxGeometry._height}" as="${pidGroup.mxGeometry._as}"></mxGeometry>
+    <object id="${pidGroup.id ? pidGroup.id : pidGroup._id}" label="${htmlLabelGroup}" placeholders="1" pid-label="${pidGroup.pidLabel ? pidGroup.pidLabel : pidGroup.shortName ? pidGroup.shortName : pidGroup.germanName ? pidGroup.germanName : pidGroup.englishName}" pid-class="${pidGroup.pidClass}" pid-current-value="${pidGroup.id}" pid-function="${pidGroup.pidFunction}" pid-number="${pidGroup.pidNumber}" sapient-bind="">
+      <mxCell style="${this.concatenateStyles(pidGroup.styleObject)}" vertex="${pidGroup._vertex}" connectable="${pidGroup._connectable}" parent="${pidGroup.parentId ? pidGroup.parentId : pidGroup._parent}">
+        <mxGeometry x="${pidGroup.mxGeometry._x ? pidGroup.mxGeometry._x : 50}" y="${pidGroup.mxGeometry._y ? pidGroup.mxGeometry._y : 50}" width="${pidGroup.mxGeometry._width}" height="${pidGroup.mxGeometry._height}" as="${pidGroup.mxGeometry._as}"></mxGeometry>
       </mxCell>
     </object>`;
     });
@@ -934,26 +985,12 @@ let component = SapientComponent.extend(Evented, {
     const lineCount = pidLines.length;
     console.log(`Generating XML-tags for ${lineCount} line instances...`);
     pidLines.forEach((pidLine) => {
-
-        // TODO: Filter pidLines based on source and target pair
-        let source = pidJson.find((vertex) => vertex.id === pidLine.sourceId);
-        let target = pidJson.find((vertex) => vertex.id === pidLine.targetId);
-
-    if (source.pidClass !== 'group' && target.pidClass !== 'group') {
-
-        console.groupCollapsed(pidLine.id);
-        console.log(`${source.pidClass} -> ${target.pidClass}`);
-        console.log(`${source.shapeName} -> ${target.shapeName}`);
-        console.log(`${pidLine.sourceId} -> ${pidLine.targetId}`);
-        console.groupEnd();
-
       xmlString += `
-    <object id="${pidLine.id ? pidLine.id : pidLine._id}" label="${htmlLabel}" pid-label="${pidLine.pidLabel}" pid-hierarchy="${pidLine.pidHierarchy}" sapient-bind="">
-      <mxCell value="${pidLine._value}" style="${this.concatenateStyles(pidLine.styleObject)}" edge="${pidLine._edge}" source="${pidLine.sourceId}" target="${pidLine.targetId}" parent="${pidLine.parentId ? pidLine.parentId : pidLine._parent}">
+    <object id="${pidLine.id ? pidLine.id : pidLine._id}" label="${htmlLabel}" placeholders="1" pid-label="${pidLine.pidLabel ? pidLine.pidLabel : pidLine.shortName ? pidLine.shortName : pidLine.germanName ? pidLine.germanName : pidLine.englishName}" pid-current-value="${pidLine.id}" pid-function="${pidLine.pidFunction}" pid-number="${pidLine.pidNumber}" sapient-bind="">
+      <mxCell style="${this.concatenateStyles(pidLine.styleObject)}" edge="${pidLine._edge}" source="${pidLine.sourceId}" target="${pidLine.targetId}" parent="${pidLine.parentId ? pidLine.parentId : pidLine._parent}">
         <mxGeometry relative="${pidLine.mxGeometry._relative ? pidLine.mxGeometry._relative : 1}" as="${pidLine.mxGeometry._as ? pidLine.mxGeometry._as : 'geometry'}"></mxGeometry>
       </mxCell>
     </object>`;
-    }
     });
 
 
