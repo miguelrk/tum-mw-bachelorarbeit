@@ -44,6 +44,7 @@ let component = SapientComponent.extend(Evented, {
     pidJsonString: '',
     pidXmlString: '',
     pidHtmlString: '',
+    loading: false,
     // For database query:
     server: service,
     subscription: undefined,
@@ -89,6 +90,10 @@ let component = SapientComponent.extend(Evented, {
         if (value === null || value === undefined) { 
             this.set('rootNode', false);
             return
+        } else if (value === 1) {
+            alert('Please select a node under the Legato root node.');
+            document.getElementById('root-node-selection').value = 'Please select a node under the Legato root node.';
+            document.getElementById('selection-field').style.color = 'red';
         } else {
             this.set('pidRootNodeId', value);
             this.getData('pidRootNode');            
@@ -134,9 +139,10 @@ let component = SapientComponent.extend(Evented, {
          * NOT IMPLEMENTED YET
          * @param progress  0<=progress<=maxProgressVal, defines the value of the progress bar.
          */
-        this.set('currentProgressValue', progress);
-        if (progress === 0) this.set('showProgressBar',true);
-        else if (0 > progress && progress < this.get('maxProgressValue'));
+        if (0 >= progress && progress < this.get('maxProgressValue')) {
+            this.set('showProgressBar',true);
+            this.set("currentProgressValue", progress);
+        }
         else if (progress === 100) {
             // Reset and hide progress bar
             this.set('currentProgressValue', 0);
@@ -155,7 +161,7 @@ let component = SapientComponent.extend(Evented, {
         // TODO: Display a loader in xml-viewer-div
         // document.getElementById('xml-viewer-div').innerHTML =
         //     'Generating XML of P&ID Visualization...';
-        this.set('loading', true); // FIXME: check if sapient loading works or out of scope
+        this.set('loading', true);
 
         // 1) TODO: Generate JSON Object of P&ID (pidJson) FROM DATABASE QUERIES
         console.groupCollapsed(`Querying database...`);
@@ -211,6 +217,7 @@ let component = SapientComponent.extend(Evented, {
             else { name = 'Invalid root node for visualization. Select another one.' } 
             //console.log(name);
             document.getElementById('root-node-selection').value = name;
+            document.getElementById('selection-field').style.borderColor = 'green';
             document.getElementById('input-icon').className = 'icon-check';
             this.set('rootNode', true);
             this.checkToEnableButton(this.get('firstCheck'));
@@ -258,6 +265,7 @@ let component = SapientComponent.extend(Evented, {
         let resource;
         let filter;
         let rootId = this.get('pidRootNodeId');
+        let rootLevel = this.get('pidRootNode').nodeLevel;
         let nameMappings = [];
 
         // Build query parameters dynamically depending on data request
@@ -271,6 +279,7 @@ let component = SapientComponent.extend(Evented, {
             }];
             nameMappings = [
                 { id: 'id' },
+                { nodeLevel: 'node_level' },
                 { parentId: 'parent' },
                 { shortName: 'short_name' },
                 { germanName: 'name_0' },
@@ -285,7 +294,7 @@ let component = SapientComponent.extend(Evented, {
                     SELECT * FROM sapient_owner.l_nodes 
                     LEFT JOIN sapient_owner.prj_prc_visu_vertices 
                     ON node = parent
-                    WHERE sapient_owner.l_nodes.id >= 21691;
+                    WHERE sapient_owner.l_nodes.id >= rootNodeId;
 
                 resource = "l_nodes";
                 alias = { "n":"l_nodes", "v":"prj_prc_visu_vertices" };
@@ -330,13 +339,14 @@ let component = SapientComponent.extend(Evented, {
             }];
             nameMappings = [
                 { id: 'id' },
+                { nodeLevel: 'node_level' },
                 { parentId: 'parent' },
                 { shortName: 'short_name' },
                 { germanName: 'name_0' },
                 { englishName: 'name_1' },
                 { details: 'attr_jsonb' },
             ];
-        }                                                                                      
+        }
         if (data === "visuVertices") {
             resource = 'prj_prc_visu_vertices';
             filter = [{ field: 'id', op: 'nn' }];
@@ -418,7 +428,7 @@ let component = SapientComponent.extend(Evented, {
         this.set('pidNodesTree', this.buildHierarchy(this.get('pidNodes')));
 
         // Traverse node hierarchy (post-order DFS) and return path (vertices array in order)
-        this.set('pidNodesInOrder', this.pathfinderDFS(this.get('pidNodesTree')));
+        this.set('pidNodesInOrder', this.traverseAndSort(this.get('pidNodesTree')));
     
         // Add vertices to pidJson
         this.set('pidVertices', this.mapNodesToShapes());
@@ -448,9 +458,9 @@ let component = SapientComponent.extend(Evented, {
         //let pidXml = parseXml(pidXmlString); // Delete: downloadFile() requires xml string not xml file
 
         // 3) Render XML as Text in xml-viewer-div of boardlet
+        this.set('loading', false);
         this.renderXml(this.get('pidXmlString'));
         console.log('generatePid() done after:');
-        this.set('loading', false); // FIXME: check if sapient loading works or out of scope
 
         // 4) Remove sapient disabled class for success-button and adds event listener
         document.getElementById('download-json-button').className = 'button';
@@ -473,58 +483,69 @@ let component = SapientComponent.extend(Evented, {
 
 
     buildHierarchy: function(flatArray) {
+        /**
+        * Filters the queried nodes array to include only descendandts of 
+        * selected root node and builds hierarchical/nested json object of the
+        * instance hierarchy from a flat array via the parent attribute.
+        */
         this.updateProgressBar(30);
         console.groupCollapsed("Building hierarchy (pidNodeTree) from pidNodes...");
-        let array = flatArray;
-        console.log(array);
+        let queriedArray = flatArray;
+        let filteredArray = [];
         let treeArray = [];
         let lookup = [];
-        let root = flatArray[0];
-        let rootDetails = JSON.parse(root.details);
-        console.log(`rootDetails:`);
-        console.log(rootDetails);
-        let rootLevel = rootDetails.opcUALevel;
-        console.log(`rootLevel: ${rootLevel}`);
-        let atRootNodeLevel = true;
+        let root = queriedArray[0];
 
-        // Starting from selected root node at start of flatArray (becasue query: SELECT * WHERE id >= rootNodeId)
-        array.forEach((node) => {
+        // Starting from selected root node at start of flatArray 
+        // (becasue query: SELECT * WHERE id >= rootNodeId)
+        console.groupCollapsed('1. Filtering out non descendants of selected root node.');
+        queriedArray.forEach((node) => {
             let details = JSON.parse(node.details);
-            let currentLevel = details.opcUALevel;
-            // Continue until
-            
-            if (rootLevel === currentLevel) {
-                // Toggle when at root node level
-                console.log(`rootLevel : currentLevel - ${rootLevel} : ${currentLevel}`);
-                atRootNodeLevel = !atRootNodeLevel;
+
+            // Root node:
+            if (node.id === root.id) {
+                filteredArray.push(node)
+                console.log(`${node.shortName}\tis selected root node\t(${details.opcUALevel}: ${details.isaLevel})`);
             }
-            console.log(`rootLevel : currentLevel ${rootLevel} : ${currentLevel}`);
-            if (atRootNodeLevel === false) {
-                console.log(node);
+            // Descendants: If parent of current node found in descendants
+            else if (filteredArray.some((descendant) => descendant.id === node.parentId)) {
+                filteredArray.push(node);
+                console.log(`${node.shortName}\tis descendant\t(${details.opcUALevel}: ${details.isaLevel})`);
+            }
+            // Non-descendants: If parent of current node not found in descendants
+            else {
+                // Skip
+                console.log(`${node.shortName}\tis non-descendant\t(${details.opcUALevel}: ${details.isaLevel})`);
+            }
+        });
+        console.log(`Selected ${filteredArray.length} descendants of ${queriedArray.length} total queried nodes.`);
+        console.groupEnd();
+        
+        console.groupCollapsed('2. Extracting children of descendants via parent attributes.');
+        filteredArray.forEach((node) => {
                 let nodeId = node.id; // Select current node's id
-                console.log(`nodeId: ${nodeId}`);
+                console.groupCollapsed(`${nodeId}: ${node.shortName}`);
                 lookup[nodeId] = node; // Clone node to id key of lookup array 
                 console.log(lookup[nodeId]);
                 node.children = []; // Add a children property (array type)
                 console.log('node[\'children\'] = \n');
                 console.log(node['children']);
-            }
-            else {
-                // Back at root node level, so do nothing until iterations 
-                // completed (exclude extended families of root node's family)
-            }
+                console.groupEnd();
         });
+        console.groupEnd();
 
-        array.forEach((node) => {
+        console.groupCollapsed('3. Building hierarchy for root node and descendants.');
+        filteredArray.forEach((node) => {
             let nodeParentId = node.parentId;
-            // ROOT NODE: If root node push to tree
+            // ROOT NODE: If root node, skip lookup but push to tree
             if (lookup[nodeParentId] === undefined || node.parentId === 1) {
-                // FIXME: THIS SHOULD ONLY HAPPEN ONCE BECAUSE ONLY ONE ROOT NODE SELECTED, NOT ALL ITS SIBLINGS
-                // PROBLEM IS DATABASE QUERIES THAT FETCHES SIBLINGS ALONG WITH SELECTED ROOT NODE BECAUSE OF ROOTNODEID > SELECTEDID CONDITION
                 // Skip lookup for topmost node (because parent won't be found
                 // in the lookup array because hierarchy starts from this
                 // node and not his parent) and also skip nodes with 
                 // "Legato" node (id:1) as parent but do push them to tree
+                // Skip lookup for topmost node ('Legato' with id=1) but do push
+                // it to tree (because parent won't be found in the lookup array
+                // because hierarchy starts from this node and not his parent) 
                 console.log(`${node.shortName} is root node for the hierarchy and wasn't attributed a parent.`);
                 treeArray.push(node);
             } 
@@ -541,11 +562,12 @@ let component = SapientComponent.extend(Evented, {
         console.log('tree = \n');
         console.log(treeArray);
         console.groupEnd();
+        console.groupEnd();
         return treeArray;
     },
 
 
-    pathfinderDFS: function(treeArray) {
+    traverseAndSort: function(treeArray) {
         /**
         * Takes a tree (hierarchical JS-object with children array) and traverses
         * it (post-order DFS - depth-first search) to return the path of the
@@ -623,7 +645,7 @@ let component = SapientComponent.extend(Evented, {
         * Maps each pidNode to its corresponding vertex shape (E/I/G/A) and creates a pidVertex
         * instance with all pidNode and pidShape attributes. For pidNodes without 
         * a shapeName (shapeName === '') like groups, it determines the shapeName
-        * according to the pidLevel set in pathfinderDFS.
+        * according to the pidLevel set in traverseAndSort.
         */
         this.updateProgressBar(70);
         console.groupCollapsed("Mapping nodes to shapes (equipment, instruments, arrows, groups)...");
@@ -637,30 +659,31 @@ let component = SapientComponent.extend(Evented, {
             let details = JSON.parse(pidNode.details);
             pidNode.pidHierarchy = details.isaLevel;
             // Set shapeName Fallback: in case of no name (groups are modelled as nodes but not given a 
-            // shapeName so shapeName set based on pidLevel, determined in pathfinderDFS)
+            // shapeName so shapeName set based on pidLevel, determined in traverseAndSort)
             if (!pidNode.shapeName || pidNode.shapeName === "" || pidNode.shapeName === "undefined") {
-                if (pidNode.pidLevel === 0 || pidNode.pidHierarchy === 'Enterprise') {
+
+                if (pidNode.pidHierarchy === 'Enterprise') {
                     // Skip shapeName setting because no shape exists for Enterprise
                 }
-                else if (pidNode.pidLevel === 1 || pidNode.pidHierarchy === 'Site') {
+                else if (pidNode.pidHierarchy === 'Site') {
                     pidNode.shapeName = "site_group";
                 }
-                else if (pidNode.pidLevel === 2 || pidNode.pidHierarchy === 'Area') {
+                else if (pidNode.pidHierarchy === 'Area') {
                     pidNode.shapeName = "area_group";
                 }
-                else if (pidNode.pidLevel === 3 || pidNode.pidHierarchy === 'Cell') {
+                else if (pidNode.pidHierarchy === 'Cell') {
                     pidNode.shapeName = "processCell_group";
                 }
-                else if (pidNode.pidLevel === 4 || pidNode.pidHierarchy === 'Unit') {
+                else if (pidNode.pidHierarchy === 'Unit') {
                     pidNode.shapeName = "unit_group";
                 }
-                else if (pidNode.pidLevel >= 5 || pidNode.pidHierarchy === 'EModule') {
+                else if (pidNode.pidHierarchy === 'EModule') {
                     pidNode.shapeName = "eModule_group"; // EModule Groups
                 }
                 else {
                     // Skip legato system root node
                 }
-                console.group('DOES NOT HAVE SHAPE');
+                console.groupCollapsed(`${pidNode.id}: ${pidNode.shortName} shapeName was empty, now set to ${pidNode.shapeName}`);
                 console.log('id: ' + pidNode.id);
                 console.log('name:  ' + pidNode.shortName);
                 console.log('shapeName:  ' + pidNode.shapeName);
@@ -670,7 +693,7 @@ let component = SapientComponent.extend(Evented, {
                 console.groupEnd();
             }
             else {
-                console.groupCollapsed('HAS SHAPE');
+                console.groupCollapsed(`${pidNode.id}: ${pidNode.shortName} had shapeName`);
                 console.log('id:    ' + pidNode.id);
                 console.log('name:  ' + pidNode.shortName);
                 console.log('shapeName:  ' + pidNode.shapeName);
@@ -685,10 +708,7 @@ let component = SapientComponent.extend(Evented, {
             //console.log(pidNode);
             //console.log(matchingShape);
             // Clone all properties to NEW target object (which is returned) Alternatively: let pidVertex = Object.assign({}, pidNode, matchingShape);
-            let pidVertex = {
-                ...pidNode,
-                ...matchingShape
-            };
+            let pidVertex = { ...pidNode, ...matchingShape };
             pidVertices.push(pidVertex);
         });
 
@@ -812,14 +832,14 @@ let component = SapientComponent.extend(Evented, {
 
 
     vertexPlacement: function() {
-        console.groupCollapsed("Positioning vertices in graph...");
+        console.group("Positioning vertices in graph...");
         let vertices = this.get('pidVertices').reverse();
         let edges = this.get('pidEdges');
         console.table(this.get('pidJson'));
-        //console.log('pidVertices');
-        //console.log(JSON.stringify(vertices));
-        //console.log('pidEdges');
-        //console.log(JSON.stringify(edges));
+        console.log('pidVertices');
+        console.log(JSON.stringify(vertices));
+        console.log('pidEdges');
+        console.log(JSON.stringify(edges));
         vertices.forEach((v) => {
             // Skip Legato and enterprise nodes
             if (v.shapeName) {
@@ -828,7 +848,7 @@ let component = SapientComponent.extend(Evented, {
                 let y = v.mxGeometry._y;
                 let w = v.mxGeometry._width;
                 let h = v.mxGeometry._height;
-                let l = v.pidLevel;
+                let lvl = v.pidLevel;
                 let siblings = vertices.filter((sibling) => sibling.parentId === v.parentId);
                 let siblingsCount = siblings.length;
                 console.log(`x: ${x}`);
@@ -840,7 +860,7 @@ let component = SapientComponent.extend(Evented, {
                 console.log(`siblingsCount: `);
                 console.log(siblingsCount);
 
-                switch (v.pidClass) {
+                switch (v.pidCategory) {
                     case 'equipment':
                         break;
                     case 'instrument':
@@ -923,9 +943,9 @@ let component = SapientComponent.extend(Evented, {
         console.groupCollapsed("XML String generation started...");
 
         // FIXME: Fix pid-current-value in xml-string-templates which is currently set to the ID
-        const htmlLabel = '&lt;b&gt;%pid-label%&lt;br&gt;&lt;span style=&quot;background-color: rgb(0 , 0 , 255)&quot;&gt;&lt;font color=&quot;#ffffff&quot;&gt;&amp;nbsp;%pid-current-value%&amp;nbsp;&lt;/font&gt;&lt;/span&gt;&lt;/b&gt;&lt;br&gt;';
+        const htmlLabel = '&lt;b&gt;%pid-label%&lt;br&gt;&lt;span style=&quot;background-color: rgb(0 , 255 , 0)&quot;&gt;&lt;font color=&quot;#ffffff&quot;&gt;&amp;nbsp;%pid-current-value%&amp;nbsp;&lt;/font&gt;&lt;/span&gt;&lt;/b&gt;&lt;br&gt;';
         const htmlLabelInstrument = '&lt;table cellpadding=&quot;4&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;font-size:1em;width:100%;height:100%;&quot;&gt;&lt;tr&gt;&lt;td&gt;%pid-function%&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%pid-number%&lt;/td&gt;&lt;/table&gt; ';
-        const htmlLabelGroup = '%pid-class%: %pid-label%';
+        const htmlLabelGroup = '%pid-hierarchy%: %pid-label%';
         // Add mxGraph and mxGraphModel boilerplate settings
         let xmlString = `
 <mxGraphModel dx="${graphSettings.dx}" dy="${graphSettings.dy}" grid="${graphSettings.grid}" gridSize="${graphSettings.gridSize}" guides="${graphSettings.guides}" tooltips="${graphSettings.tooltips}" connect="${graphSettings.connect}" arrows="${graphSettings.arrows}" fold="${graphSettings.fold}" page="${graphSettings.page}" pageScale="${graphSettings.pageScale}" pageWidth="${graphSettings.pageWidth}" pageHeight="${graphSettings.pageHeight}" background="${graphSettings.background}" math="${graphSettings.math}" shadow="${graphSettings.shadow}">
@@ -974,7 +994,7 @@ let component = SapientComponent.extend(Evented, {
     console.log(`Generating XML-tags for ${groupCount} group instances...`);
     pidGroups.forEach((pidGroup) => {
       xmlString += `
-    <object id="${pidGroup.id ? pidGroup.id : pidGroup._id}" label="${htmlLabelGroup}" placeholders="1" pid-label="${pidGroup.pidLabel ? pidGroup.pidLabel : pidGroup.shortName ? pidGroup.shortName : pidGroup.germanName ? pidGroup.germanName : pidGroup.englishName}" pid-class="${pidGroup.pidClass}" pid-current-value="${pidGroup.id}" pid-function="${pidGroup.pidFunction}" pid-number="${pidGroup.pidNumber}" sapient-bind="">
+    <object id="${pidGroup.id ? pidGroup.id : pidGroup._id}" label="${htmlLabelGroup}" placeholders="1" pid-label="${pidGroup.pidLabel ? pidGroup.pidLabel : pidGroup.shortName ? pidGroup.shortName : pidGroup.germanName ? pidGroup.germanName : pidGroup.englishName}" pid-hierarchy="${pidGroup.pidHierarchy}" pid-current-value="${pidGroup.id}" pid-function="${pidGroup.pidFunction}" pid-number="${pidGroup.pidNumber}" sapient-bind="">
       <mxCell style="${this.concatenateStyles(pidGroup.styleObject)}" vertex="${pidGroup._vertex}" connectable="${pidGroup._connectable}" parent="${pidGroup.parentId ? pidGroup.parentId : pidGroup._parent}">
         <mxGeometry x="${pidGroup.mxGeometry._x ? pidGroup.mxGeometry._x : 50}" y="${pidGroup.mxGeometry._y ? pidGroup.mxGeometry._y : 50}" width="${pidGroup.mxGeometry._width}" height="${pidGroup.mxGeometry._height}" as="${pidGroup.mxGeometry._as}"></mxGeometry>
       </mxCell>
@@ -1001,8 +1021,9 @@ let component = SapientComponent.extend(Evented, {
   </root>
 </mxGraphModel>`;
 
-        console.groupEnd();
+        console.log('pidXmlString');
         console.log(xmlString);
+        console.groupEnd();
         console.groupEnd();
         this.updateProgressBar(100);
         return xmlString;
