@@ -1,9 +1,9 @@
-
 function vertexPlacement(pidJson) {
   console.group("Positioning vertices in graph...");
   let vertices = pidJson.filter(object => object._vertex === "1");
   let edges = pidJson.filter(object => object._edge === "1");
   //console.log(JSON.stringify(vertices));
+  console.log(JSON.stringify(vertices));
   console.table(vertices);
   //console.table(edges);
   //console.log(JSON.stringify(edges));
@@ -39,13 +39,15 @@ function vertexPlacement(pidJson) {
     console.table(stack[v.pidLevel]);
     // Frequently accessed variables pushed to memory object ('_' indicates mxGraph private variable)
     m = {
-      // Constants:
+      // Already there:
       name: v.shortName,
       lvl: v.pidLevel,
       pidClass: v.pidClass,
       id: v.id,
-      parent: vertices.find(vertex => vertex.id === v.parentId),
-      siblings: vertices.filter(sibling => sibling.parentId === v.parentId),
+      parent: vertices.find((vertex) => vertex.id === v.parentId),
+      siblings: vertices.filter((sibling) => sibling.parentId === v.parentId),
+      children: memory.filter((child) => child.parentId === v.id),
+      descendants: getAllDescendants(v.id, memory), // Can also get descendants with properties in vertices with getAllDescendants(v.id, vertices)
       // To be calculated:
       tags: [],
       x: parseInt(v.mxGeometry._x, 10),
@@ -58,6 +60,8 @@ function vertexPlacement(pidJson) {
       right: parseInt(v.mxGeometry._width, 10),
       bottom: parseInt(v.mxGeometry._height, 10)
     };
+    console.warn(m.children);
+    console.warn(m.descendants);
 
     if (v.shapeName && v.parentId) {
       /*************************************************************************
@@ -142,8 +146,7 @@ function vertexPlacement(pidJson) {
           } else if (m.tags.includes("funnel")) {
             // TODO: 
             m.x = 600;
-            m.y = 600
-;
+            m.y = 600;
           } else if (m.tags.includes("nucleusGroup")) {
             console.group(`#nucleusGroup`); // nucleusGroups of all pidLevels
             console.log(`nucleusGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
@@ -153,72 +156,16 @@ function vertexPlacement(pidJson) {
             console.warn('groupVertices:')
             console.warn(groupVertices);
 
-            // 1b) MEASURE: Calculate blockArea and then apply blockMargin to get groupArea (with blockWidth and height plus blockMargin on both sides)
-            function measureBlock(measure, group) {
-              if (measure === 'width') return Math.abs(getMin("left", group)) + getMax("right", group);
-              if (measure === 'height') return Math.abs(getMin("top", group)) + getMax("bottom", group);
-            }
-            const blockWidth = measureBlock('width', groupVertices);
-            const blockHeight = measureBlock('height', groupVertices);
-            const blockArea = blockWidth * blockHeight;
+            // 1b) MEASURE: Get all group descendandts (not only those in previous stack: stack[p.lvl]) and measure width and height from top-left to bottom-right corner of block
+            const blockWidth = measureBlock('width', m.descendants);
+            const blockHeight = measureBlock('height', m.descendants);
+            //const blockWidth = measureBlock('width', groupVertices);
+            //const blockHeight = measureBlock('height', groupVertices);
 
             // 2) SCALE: Update group dimensions (now with blockMargins)
-            function scaleGroup(blockWidth, blockHeight, blockMargin, group) {
-              let groupWidth = 2 * blockMargin + blockWidth;
-              let groupHeight = 2 * blockMargin + blockHeight;
-              let groupArea = (2 * blockMargin + blockWidth) * (2 * blockMargin + blockHeight);
-              console.log(`blockWidth = ${Math.abs(getMin("left", group))} + ${getMax("right", group)} = ${blockWidth}`);
-              console.log(`blockHeight = ${Math.abs(getMin("top", group))} + ${getMax("bottom", group)} = ${blockHeight}`);
-              console.log(`blockArea = ${blockWidth} + ${blockHeight} = ${blockArea}`);
-              console.log(`groupArea = (blockMargin + blockWidth + blockMargin) * (blockMargin + blockHeight + blockMargin) = groupArea`);
-              console.log(`groupArea = (${blockMargin}+${blockWidth}+${blockMargin}) * (${blockMargin}+${blockHeight}+${blockMargin}) = ${groupArea}`);
-              console.log(`sumOfCellAreas = ${totalSum("area", group)}  ->  blockArea = ${blockArea}  ->  groupArea = ${groupArea}`);
-              m.w = groupWidth;
-              m.h = groupHeight;
-              m.area = groupArea;
-            }
             scaleGroup(blockWidth, blockHeight, s.blockMargin, groupVertices);
 
             // 3) SHIFT: Offset x,y-coordinates (if first in stack then set at origin (0, 0), else space it from previous group) (Using conditional (ternary) Operator)
-            function shiftGroup(group) {
-              const groupLength = group.length;
-
-              // AGREGAR groupX y groupY para que
-              // para nucleus se tiene que actualizar el mxGeometry._y y ._y directamente desde aqui y no al final de la current iteration como
-              // todos los demas por que el x y y tiene que estar set a la esquina del bloque y no a la esquina del nucleo del bloque
-              const xOfGroupCorner = getMin("left", group);
-              const yOfGroupCorner = getMin("top", group);
-
-              // 3a) #nucleusGroup
-              if (groupLength === 0) {
-                // Case if nucleus is first innerGroup in stack of current level
-                console.log(`${groupLength + 1}st innerGroup (nucleus) in stack[${m.lvl}].`);
-                m.x = 0 - xOfGroupCorner; // Sets nucleus corner at origin - xOfGroupCorner so that nucleusGroup corner lands on origin (0, 0) (ex: if nucleusGroup at x=10, sets to 0-10 so that nucleus set to - 10 which leaves the nucleusGroup at origin)
-                m.y = 0 - yOfGroupCorner; // Like above
-                console.log(`nucleusGroup (innerGroup) is first of stack an thus positioned at (${m.x}, ${m.y})`);
-              } else if (groupLength >= 1) {
-                // Case if nucleus is second, third, ..., n-th innerGoup in stack
-                console.log(`nucleusGroup (innerGroup) number ${groupLength + 1} in stack[${m.lvl}].`);
-                const indexOfPrevious = groupLength - 1;
-                console.log(groupLength);
-                console.log(indexOfPrevious);
-                const xOfPrevious = group[indexOfPrevious].x;
-                const yOfPrevious = group[indexOfPrevious].y;
-                const wOfPrevious = group[indexOfPrevious].w;
-                const hOfPrevious = group[indexOfPrevious].h;
-                // Set x and y analog to #inline
-                m.x = - xOfGroupCorner + wOfPrevious + s.groupSpacing;
-                m.y = - yOfGroupCorner + (hOfPrevious / 2) - (m.h / 2);
-                //m.y = (yOfPrevious === undefined ? 0 : yOfPrevious + (bottomOfPrevious - hOfNucleusBlock) / 2);
-                console.log(`x-Coordinate = xOfPrevious + wOfPrevious + s.cellSpacing = ${xOfPrevious} - ${xOfGroupCorner} + ${wOfPrevious} + ${s.cellSpacing} = ${m.x}`);
-                console.log(`y-Coordinate = yOfPrevious - yOfGroupCorner + (hOfPrevious / 2) - (m.h / 2)) = ${yOfPrevious} - ${yOfGroupCorner} + (${hOfPrevious} - ${m.h}) / 2 = ${yOfPrevious - yOfGroupCorner} + ${hOfPrevious - m.h} / 2 = ${m.y}`);
-                console.log(`nucleusGroup shifted relative to previous in stack: (${xOfPrevious}, ${yOfPrevious})  -->  (${m.x}, ${m.y})`);
-              }
-
-              console.log(`Coordinates set to: (${m.x}, ${m.y})`);
-
-              console.groupEnd();
-            }
             shiftGroup(groupVertices);
 
             console.groupEnd();
@@ -276,113 +223,18 @@ function vertexPlacement(pidJson) {
             console.log(`outerGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
           }
 
-          // 1b) MEASURE: Calculate blockArea and then apply blockMargin to get groupArea (with blockWidth and height plus blockMargin on both sides)
-          function measureBlock(measure, stack) {
-            if (measure === 'width') return Math.abs(getMin("left", stack)) + getMax("right", stack);
-            if (measure === 'height') return Math.abs(getMin("top", stack)) + getMax("bottom", stack);
-          }
-          const blockWidth = measureBlock('width', stack[p.lvl]);
-          const blockHeight = measureBlock('height', stack[p.lvl]);
-          const blockArea = blockWidth * blockHeight;
+          // 1b) MEASURE: Get all group descendandts (not only those in previous stack: stack[p.lvl]) and measure width and height from top-left to bottom-right corner of block
+          const blockWidth = measureBlock('width', m.descendants);
+          const blockHeight = measureBlock('height', m.descendants);
 
           // 2) SCALE: Update group dimensions (now with blockMargins)
-          function scaleGroup(blockWidth, blockHeight, blockMargin, stack) {
-            let groupWidth = 2 * blockMargin + blockWidth;
-            let groupHeight = 2 * blockMargin + blockHeight;
-            let groupArea = (2 * blockMargin + blockWidth) * (2 * s.blockMargin + blockHeight);
-            console.log(`groupArea = (${blockMargin}+${blockWidth}+${blockMargin}) * (${blockMargin}+${blockHeight}+${blockMargin}) = ${groupArea}`);
-            console.log(`sumOfCellAreas = ${totalSum("area", stack)}  ->  blockArea = ${blockArea}  ->  groupArea = ${groupArea}`);
-            m.w = groupWidth;
-            m.h = groupHeight;
-            m.area = groupArea;
-          }
           scaleGroup(blockWidth, blockHeight, s.blockMargin, stack[p.lvl]);
 
           // 3) SHIFT: Offset x,y-coordinates (if first in stack then set at origin (0, 0), else space it from previous group) (Using conditional (ternary) Operator)
-          function shiftGroup(stack) {
-            const stackLength = stack.length;
-
-            // 3b) #innerGroup
-            if (m.tags.includes("innerGroup")) {
-              if (stackLength === 0) {
-                // Case for first innerGroup in stack of current level
-                console.log(`${stackLength + 1}st innerGroup in stack[${m.lvl}].`);
-                m.x = 0;
-                m.y = 0;
-                console.log(`innerGroup is first of stack an thus positioned at (${m.x}, ${m.y})`);
-              } else if (stackLength >= 1) {
-                // Case for second, third, ..., n innerGoup in stack
-                console.log(`innerGroup number ${stackLength + 1} in stack[${m.lvl}].`);
-                const indexOfPrevious = stackLength - 1;
-                console.log(stackLength);
-                console.log(indexOfPrevious);
-                const xOfPrevious = stack[indexOfPrevious].x;
-                const yOfPrevious = stack[indexOfPrevious].y;
-                const wOfPrevious = stack[indexOfPrevious].w;
-                const hOfPrevious = stack[indexOfPrevious].h;
-                console.log(xOfPrevious);
-                console.log(yOfPrevious);
-                // Set x and y analog to #inline
-                m.x = (xOfPrevious === undefined ? 0 : xOfPrevious + wOfPrevious + s.groupSpacing);
-                m.y = (yOfPrevious === undefined ? 0 : yOfPrevious + (hOfPrevious - m.h) / 2);
-                console.log(`x-Coordinate = xOfPrevious + wOfPrevious + s.cellSpacing = ${xOfPrevious} + ${wOfPrevious} + ${s.cellSpacing} = ${m.x}`);
-                console.log(`y-Coordinate = yOfPrevious + (hOfPrevious - m.h) / 2 = ${xOfPrevious} + (${hOfPrevious} - ${m.h}) / 2 = ${xOfPrevious} + ${hOfPrevious - m.h} / 2 = ${m.y}`);
-                console.log(`innerGroup shifted relative to previous in stack: (${xOfPrevious}, ${yOfPrevious})  -->  (${m.x}, ${m.y})`);
-              }
-            }
-
-            // 3c) #outerGroup
-            else if (m.tags.includes("outerGroup")) {
-              if (stackLength === 0) {
-                // Case for first outerGroup in stack of current level
-                console.log(`${stackLength + 1}st outerGroup in stack[${m.lvl}].`);
-                m.x = 0;
-                m.y = 0;
-                console.log(`outerGroup is first of stack an thus positioned at (${m.x}, ${m.y})`);
-              } else if (stackLength >= 1) {
-                // Case for second, third, ..., n innerGoup in stack
-                console.log(`outerGroup number ${stackLength + 1} in stack[${m.lvl}].`);
-                const indexOfPrevious = stackLength - 1;
-                console.log(stackLength);
-                console.log(indexOfPrevious);
-                const xOfPrevious = stack[indexOfPrevious].x;
-                const yOfPrevious = stack[indexOfPrevious].y;
-                const wOfPrevious = stack[indexOfPrevious].w;
-                const hOfPrevious = stack[indexOfPrevious].h;
-                console.log(xOfPrevious);
-                console.log(yOfPrevious);
-                // Set x and y analog to #inline
-                m.x = (xOfPrevious === undefined ? 0 : xOfPrevious + wOfPrevious + s.groupSpacing);
-                m.y = (yOfPrevious === undefined ? 0 : yOfPrevious + (hOfPrevious - m.h) / 2);
-                console.log(`x-Coordinate = xOfPrevious + wOfPrevious + s.cellSpacing = ${xOfPrevious} + ${wOfPrevious} + ${s.cellSpacing} = ${m.x}`);
-                console.log(`y-Coordinate = yOfPrevious + (hOfPrevious - m.h) / 2 = ${xOfPrevious} + (${hOfPrevious} - ${m.h}) / 2 = ${xOfPrevious} + ${hOfPrevious - m.h} / 2 = ${m.y}`);
-                console.log(`outerGroup shifted relative to previous in stack: (${xOfPrevious}, ${yOfPrevious})  -->  (${m.x}, ${m.y})`);
-              }
-            }
-
-            console.log(`Coordinates set to: (${m.x}, ${m.y})`);
-          }
           shiftGroup(stack[m.lvl]);
 
           // 4) CENTER: Center block inside group: offset all contained vertices within the group individually
-          function centerBlockElements(stack) {
-            stack.forEach((vertex) => {
-              if ("group" !== vertex.pidClass) {
-                // Case for non-group children
-                console.group(`Applying blockMargin offset of ${s.blockMargin} to ${vertex.name} for x and y.`);
-                applyOffset("x", s.blockMargin, vertex);
-                applyOffset("y", s.blockMargin, vertex);
-              } else if ("group" === vertex.pidClass) {
-                // Case for innerGroups that have other innerGroups as chidlren (for example units, and maybe emodules). groupMargin must be different
-                console.log(`Applying groupMargin offset of ${s.groupMargin} to ${vertex.name} for x and y.`);
-                applyOffset("x", s.groupMargin, vertex);
-                applyOffset("y", s.groupMargin, vertex);
-              }
-              if (m.id === vertex.id) console.warn(`WARNING: Group container not excluded from for each because ids match: ${m.id} === ${vertex.id} --> TRUE`);
-            });
-            console.groupEnd();
-          }
-          centerBlockElements(stack[p.lvl]);
+          centerBlockElements(blockWidth, blockHeight, stack[p.lvl]);
 
           // 5) CLEAR: Clear stack[p.lvl] of previousPidLevel after offsetting them relative to their parrent (currentPidLevel)
           stack[p.lvl].length = 0; // clears array and its references globally (areas = [] creates a new but might not delete previous, may lead to errors with references to previous array)
@@ -392,13 +244,12 @@ function vertexPlacement(pidJson) {
         }
 
         console.groupEnd();
+
       } else if (m.tags.includes('childOfNonGroup')) {
         console.group("#childOfNonGroup");
         // Shouldn't ever exist
         console.groupEnd();
       }
-
-
 
       console.groupEnd();
 
@@ -414,6 +265,7 @@ function vertexPlacement(pidJson) {
       console.log(`Sides updated for new coordinates: \nleft: ${m.left}\ntop: ${m.top}\nright: ${m.right}\nbottom: ${m.bottom}`);
 
       // 2) pidJson variables:
+      v._children = m.children.map((child) => child.id);
       v.mxGeometry._x = m.x;
       v.mxGeometry._y = m.y;
       if (!m.tags.includes('nucleusGroup')) {
@@ -444,6 +296,8 @@ function vertexPlacement(pidJson) {
         name: m.name,
         pidClass: m.pidClass,
         parentId: m.parent ? m.parent.id : 1, // catches vertices with no parent (Enterprise level) and sets parentId to 1 ('Legato' root node)
+        children: m.children,
+        descendants: m.descendants,
         tag0: m.tags[0],
         tag1: m.tags[1],
         tag2: m.tags[2],
@@ -486,19 +340,36 @@ function vertexPlacement(pidJson) {
 
   console.log('memory:');
   console.table(memory);
-  console.log('table:');
-  console.table(table);
+  console.log('data:');
+  console.table(data);
   console.log('pidJson:');
   console.table(pidJson);
 
   /*************************END OF VERTICES LOOP********************************/
 
+  function getChildren(id, array) {
+    return array.filter((child) => child.parentId === id);
+  }
+
+  function getAllDescendants(id, array) {
+    /**
+    * Flattens deeply nested arrays recursively with concat.
+    */
+    let descendants = [];
+    let children = array.filter((child) => child.parentId === id);
+    children.forEach((child) => {
+      descendants.push(child);
+      let grandchildren = getAllDescendants(child.id, array); // recursive
+      descendants = Array.isArray(grandchildren) ? descendants.concat(grandchildren) : descendants; // if grandchildren array is not empty, concatenate it, else, return existing
+    });
+    return descendants;
+  }
 
   function findMax(variable, array) {
     /**
-        * Receives a variable name(string) and an array, maps corresponding values from array
-          to an array and returns the maximum.
-        */
+    * Receives a variable name(string) and an array, maps corresponding values from array
+    * to an array and returns the maximum.
+    */
     return array.reduce((max, vertex) => (vertex[variable] > max ? vertex[variable] : max), array[0][variable]);
   }
 
@@ -538,13 +409,165 @@ function vertexPlacement(pidJson) {
     return array.reduce((max, vertex) => (vertex[variable] > max[variable] ? vertex : max), array[0]);
   }
 
+  function measureBlock(measure, stack) {
+    if (measure === 'width') return Math.abs(getMin("left", stack)) + getMax("right", stack);
+    if (measure === 'height') return Math.abs(getMin("top", stack)) + getMax("bottom", stack);
+  }
+
+  function scaleGroup(blockWidth, blockHeight, blockMargin, stack) {
+    const blockArea = blockWidth * blockHeight;
+    let groupWidth = 2 * blockMargin + blockWidth;
+    let groupHeight = 2 * blockMargin + blockHeight;
+    let groupArea = (2 * blockMargin + blockWidth) * (2 * s.blockMargin + blockHeight);
+    console.log(`blockWidth = ${Math.abs(getMin("left", stack))} + ${getMax("right", stack)} = ${blockWidth}`);
+    console.log(`blockHeight = ${Math.abs(getMin("top", stack))} + ${getMax("bottom", stack)} = ${blockHeight}`);
+    console.log(`blockArea = ${blockWidth} + ${blockHeight} = ${blockArea}`);
+    console.log(`groupArea = (blockMargin + blockWidth + blockMargin) * (blockMargin + blockHeight + blockMargin) = groupArea`);
+    console.log(`groupArea = (${blockMargin}+${blockWidth}+${blockMargin}) * (${blockMargin}+${blockHeight}+${blockMargin}) = ${groupArea}`);
+    console.log(`sumOfCellAreas = ${totalSum("area", stack)}  ->  blockArea = ${blockArea}  ->  groupArea = ${groupArea}`);
+    m.w = groupWidth;
+    m.h = groupHeight;
+    m.area = groupArea;
+  }
+
+  function shiftGroup(stack) {
+
+    if (m.tags.includes("nucleusGroup")) {
+      // 3a) #nucleusGroup
+
+      const group = stack;
+      const groupLength = group.length;
+
+      // AGREGAR groupX y groupY para que
+      // para nucleus se tiene que actualizar el mxGeometry._y y ._y directamente desde aqui y no al final de la current iteration como
+      // todos los demas por que el x y y tiene que estar set a la esquina del bloque y no a la esquina del nucleo del bloque
+      const xOfGroupCorner = getMin('left', group)
+      const yOfGroupCorner = getMin('top', group)
+
+      if (groupLength === 0) {
+        // Case if nucleus is first innerGroup in stack of current level
+        console.log(`${groupLength + 1}st innerGroup (nucleus) in stack[${m.lvl}].`);
+        m.x = 0 - xOfGroupCorner; // Sets nucleus corner at origin - xOfGroupCorner so that nucleusGroup corner lands on origin (0, 0) (ex: if nucleusGroup at x=10, sets to 0-10 so that nucleus set to - 10 which leaves the nucleusGroup at origin)
+        m.y = 0 - yOfGroupCorner; // Like above
+        console.log(`nucleusGroup (innerGroup) is first of stack an thus positioned at (${m.x}, ${m.y})`);
+      } else if (groupLength >= 1) {
+        // Case if nucleus is second, third, ..., n-th innerGoup in stack
+        console.log(`nucleusGroup (innerGroup) number ${groupLength + 1} in stack[${m.lvl}].`);
+        const indexOfPrevious = groupLength - 1;
+        console.log(groupLength);
+        console.log(indexOfPrevious);
+        const xOfPrevious = group[indexOfPrevious].x;
+        const yOfPrevious = group[indexOfPrevious].y;
+        const wOfPrevious = group[indexOfPrevious].w;
+        const hOfPrevious = group[indexOfPrevious].h;
+        // Set x and y analog to #inline
+        m.x = -xOfGroupCorner + wOfPrevious + s.groupSpacing;
+        m.y = -yOfGroupCorner + (hOfPrevious / 2) - (m.h / 2);
+        //m.y = (yOfPrevious === undefined ? 0 : yOfPrevious + (bottomOfPrevious - hOfNucleusBlock) / 2);
+        console.log(`x-Coordinate = xOfPrevious + wOfPrevious + s.cellSpacing = ${xOfPrevious} - ${xOfGroupCorner} + ${wOfPrevious} + ${s.cellSpacing} = ${m.x}`);
+        console.log(`y-Coordinate = yOfPrevious - yOfGroupCorner + (hOfPrevious / 2) - (m.h / 2)) = ${yOfPrevious} - ${yOfGroupCorner} + (${hOfPrevious} - ${m.h}) / 2 = ${yOfPrevious - yOfGroupCorner} + ${hOfPrevious - m.h} / 2 = ${m.y}`);
+        console.log(`nucleusGroup shifted relative to previous in stack: (${xOfPrevious}, ${yOfPrevious})  -->  (${m.x}, ${m.y})`);
+      }
+    } else if (m.tags.includes("innerGroup")) {
+      // 3b) #innerGroup
+
+      const stackLength = stack.length;
+
+      if (stackLength === 0) {
+        // Case for first innerGroup in stack of current level
+        console.log(`${stackLength + 1}st innerGroup in stack[${m.lvl}].`);
+        m.x = 0;
+        m.y = 0;
+        console.log(`innerGroup is first of stack an thus positioned at (${m.x}, ${m.y})`);
+      } else if (stackLength >= 1) {
+        // Case for second, third, ..., n innerGoup in stack
+        console.log(`innerGroup number ${stackLength + 1} in stack[${m.lvl}].`);
+        const indexOfPrevious = stackLength - 1;
+        console.log(stackLength);
+        console.log(indexOfPrevious);
+        const xOfPrevious = stack[indexOfPrevious].x;
+        const yOfPrevious = stack[indexOfPrevious].y;
+        const wOfPrevious = stack[indexOfPrevious].w;
+        const hOfPrevious = stack[indexOfPrevious].h;
+        console.log(xOfPrevious);
+        console.log(yOfPrevious);
+        // Set x and y analog to #inline
+        m.x = (xOfPrevious === undefined ? 0 : xOfPrevious + wOfPrevious + s.groupSpacing);
+        m.y = (yOfPrevious === undefined ? 0 : yOfPrevious + (hOfPrevious - m.h) / 2);
+        console.log(`x-Coordinate = xOfPrevious + wOfPrevious + s.cellSpacing = ${xOfPrevious} + ${wOfPrevious} + ${s.cellSpacing} = ${m.x}`);
+        console.log(`y-Coordinate = yOfPrevious + (hOfPrevious - m.h) / 2 = ${xOfPrevious} + (${hOfPrevious} - ${m.h}) / 2 = ${xOfPrevious} + ${hOfPrevious - m.h} / 2 = ${m.y}`);
+        console.log(`innerGroup shifted relative to previous in stack: (${xOfPrevious}, ${yOfPrevious})  -->  (${m.x}, ${m.y})`);
+      }
+    } else if (m.tags.includes("outerGroup")) {
+      // 3c) #outerGroup
+
+      const stackLength = stack.length;
+
+      if (stackLength === 0) {
+        // Case for first outerGroup in stack of current level
+        console.log(`${stackLength + 1}st outerGroup in stack[${m.lvl}].`);
+        m.x = 0;
+        m.y = 0;
+        console.log(`outerGroup is first of stack an thus positioned at (${m.x}, ${m.y})`);
+      } else if (stackLength >= 1) {
+        // Case for second, third, ..., n innerGoup in stack
+        console.log(`outerGroup number ${stackLength + 1} in stack[${m.lvl}].`);
+        const indexOfPrevious = stackLength - 1;
+        console.log(stackLength);
+        console.log(indexOfPrevious);
+        const xOfPrevious = stack[indexOfPrevious].x;
+        const yOfPrevious = stack[indexOfPrevious].y;
+        const wOfPrevious = stack[indexOfPrevious].w;
+        const hOfPrevious = stack[indexOfPrevious].h;
+        console.log(xOfPrevious);
+        console.log(yOfPrevious);
+        // Set x and y analog to #inline
+        m.x = (xOfPrevious === undefined ? 0 : xOfPrevious + wOfPrevious + s.groupSpacing);
+        m.y = (yOfPrevious === undefined ? 0 : yOfPrevious + (hOfPrevious - m.h) / 2);
+        console.log(`x-Coordinate = xOfPrevious + wOfPrevious + s.cellSpacing = ${xOfPrevious} + ${wOfPrevious} + ${s.cellSpacing} = ${m.x}`);
+        console.log(`y-Coordinate = yOfPrevious + (hOfPrevious - m.h) / 2 = ${xOfPrevious} + (${hOfPrevious} - ${m.h}) / 2 = ${xOfPrevious} + ${hOfPrevious - m.h} / 2 = ${m.y}`);
+        console.log(`outerGroup shifted relative to previous in stack: (${xOfPrevious}, ${yOfPrevious})  -->  (${m.x}, ${m.y})`);
+      }
+    }
+
+    console.log(`Coordinates set to: (${m.x}, ${m.y})`);
+  }
+
+  function centerBlockElements(blockWidth, blockHeight, stack) {
+    stack.forEach((vertex) => {
+      if ("group" !== vertex.pidClass) {
+        // Case for non-group children
+        console.group(`Applying blockMargin offset of ${s.blockMargin} to ${vertex.name} for x and y.`);
+        const xOffset = ((m.w / 2) - (blockWidth / 2));
+        const yOffset = ((m.h / 2) - (vertex.h / 2));
+        console.warn(`xOffset = ${m.w} / 2 - ${blockWidth} / 2 = ${xOffset}`);
+        console.warn(`yOffset = ${m.h} / 2 - ${vertex.h} / 2 = ${yOffset}`);
+        applyOffset("x", xOffset, vertex);
+        applyOffset("y", yOffset, vertex);
+        console.groupEnd();
+      } else if ("group" === vertex.pidClass) {
+        // Case for innerGroups that have other innerGroups as chidlren (for example units, and maybe emodules). groupMargin must be different
+        console.group(`Applying groupMargin offset of ${s.groupMargin} to ${vertex.name} for x and y.`);
+        const xOffset = ((m.w / 2) - (blockWidth / 2));
+        const yOffset = ((m.h / 2) - (vertex.h / 2));
+        console.warn(`xOffset = ${m.w} / 2 - ${blockWidth} / 2 = ${xOffset}`);
+        console.warn(`yOffset = ${m.h} / 2 - ${vertex.h} / 2 = ${yOffset}`);
+        applyOffset("x", xOffset, vertex);
+        applyOffset("y", yOffset, vertex);
+        console.groupEnd();
+      }
+      if (m.id === vertex.id) console.warn(`WARNING: Group container not excluded from for each because ids match: ${m.id} === ${vertex.id} --> TRUE`);
+    });
+
+  }
+
   function applyOffset(coordinate, offset, stackedVertex) {
-    console.log(`Shifting '${coordinate}'-coordinate by ${offset}`);
+
     if (coordinate === "x") {
       // Add x-offset to the mxGeometry._x property of the original vertex in vertices (and return value for setting to m.x)
       stackedVertex.x += offset;
       let originalVertex = vertices.find(v => v.id === stackedVertex.id);
-      console.log(`x-Coordinate: (${originalVertex.mxGeometry._x}) ->  (${stackedVertex.x})`);
+      console.log(`Offsetting x-Coordinate by ${offset}: (${originalVertex.mxGeometry._x}) ->  (${stackedVertex.x})`);
       originalVertex.mxGeometry._x = stackedVertex.x;
       m.left = m.x;
       m.top = m.y;
@@ -554,10 +577,11 @@ function vertexPlacement(pidJson) {
       // Add y-offset directly to the mxGeometry._y property of the original vertex in vertices (and return value for setting to m.x)
       stackedVertex.y += offset;
       let originalVertex = vertices.find(v => v.id === stackedVertex.id);
-      console.log(`y-Coordinate: (${originalVertex.mxGeometry._y}) ->  (${stackedVertex.y})`);
+      console.log(`Offsetting y-Coordinate by ${offset}: (${originalVertex.mxGeometry._y}) ->  (${stackedVertex.y})`);
       originalVertex.mxGeometry._y = stackedVertex.y;
     }
   }
+
   return pidJson;
 }
 
