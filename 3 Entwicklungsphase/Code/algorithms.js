@@ -1,4 +1,3 @@
-
 function vertexPlacement(pidJson) {
   console.group("Positioning vertices in graph...");
   let vertices = pidJson.filter(object => object._vertex === "1");
@@ -139,15 +138,11 @@ function vertexPlacement(pidJson) {
 
             console.log(m);
             console.groupEnd();
-          }
-          
-          else if (m.tags.includes("funnel")) {
+          } else if (m.tags.includes("funnel")) {
             // TODO: 
             m.x = 600;
             m.y = 600;
-          }
-          
-          else if (m.tags.includes("nucleusGroup")) {
+          } else if (m.tags.includes("nucleusGroup")) {
             console.group(`#nucleusGroup`); // nucleusGroups of all pidLevels
             console.log(`nucleusGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
 
@@ -170,9 +165,7 @@ function vertexPlacement(pidJson) {
           }
 
           console.groupEnd();
-        }
-        
-        else if (m.tags.includes('childOfNonGroup')) {
+        } else if (m.tags.includes('childOfNonGroup')) {
           console.group("#childOfNonGroup");
 
           if (m.tags.includes('centeredAboveParent')) {
@@ -184,9 +177,7 @@ function vertexPlacement(pidJson) {
             m.y = -m.h - s.cellSpacing;
 
             console.groupEnd();
-          }
-          
-          else if (m.tags.includes('aroundParent')) {
+          } else if (m.tags.includes('aroundParent')) {
             console.group("#aroundParent");
 
             // Set x,y-coordinates relative to previous childOfNonGroup
@@ -220,9 +211,7 @@ function vertexPlacement(pidJson) {
           if (m.tags.includes("innerGroup")) {
             console.group(`#innerGroup`);
             console.log(`innerGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
-          }
-          
-          else if (m.tags.includes("outerGroup")) {
+          } else if (m.tags.includes("outerGroup")) {
             console.group("#outerGroup");
             console.log(`outerGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
           }
@@ -249,9 +238,7 @@ function vertexPlacement(pidJson) {
 
         console.groupEnd();
 
-      }
-      
-      else if (m.tags.includes('childOfNonGroup')) {
+      } else if (m.tags.includes('childOfNonGroup')) {
         console.group("#childOfNonGroup");
         // Shouldn't ever exist
         console.groupEnd();
@@ -447,16 +434,14 @@ function vertexPlacement(pidJson) {
         const wOfPrevious = group[indexOfPrevious].w;
         const hOfPrevious = group[indexOfPrevious].h;
         // Set x and y analog to #inline
-        m.x = - xOfGroupCorner + wOfPrevious + s.groupSpacing;
-        m.y = - yOfGroupCorner + (hOfPrevious / 2) - (m.h / 2);
+        m.x = -xOfGroupCorner + wOfPrevious + s.groupSpacing;
+        m.y = -yOfGroupCorner + (hOfPrevious / 2) - (m.h / 2);
         //m.y = (yOfPrevious === undefined ? 0 : yOfPrevious + (bottomOfPrevious - hOfNucleusBlock) / 2);
         console.log(`x-Coordinate = xOfPrevious + wOfPrevious + s.cellSpacing = ${xOfPrevious} - ${xOfGroupCorner} + ${wOfPrevious} + ${s.cellSpacing} = ${m.x}`);
         console.log(`y-Coordinate = yOfPrevious - yOfGroupCorner + (hOfPrevious / 2) - (m.h / 2)) = ${yOfPrevious} - ${yOfGroupCorner} + (${hOfPrevious} - ${m.h}) / 2 = ${yOfPrevious - yOfGroupCorner} + ${hOfPrevious - m.h} / 2 = ${m.y}`);
         console.log(`nucleusGroup shifted relative to previous in stack: (${xOfPrevious}, ${yOfPrevious})  -->  (${m.x}, ${m.y})`);
       }
-    }
-    
-    else if (m.tags.includes("innerGroup")) {
+    } else if (m.tags.includes("innerGroup")) {
       // 3b) #innerGroup
 
       const stackLength = stack.length;
@@ -486,9 +471,7 @@ function vertexPlacement(pidJson) {
         console.log(`y-Coordinate = yOfPrevious + (hOfPrevious - m.h) / 2 = ${xOfPrevious} + (${hOfPrevious} - ${m.h}) / 2 = ${xOfPrevious} + ${hOfPrevious - m.h} / 2 = ${m.y}`);
         console.log(`innerGroup shifted relative to previous in stack: (${xOfPrevious}, ${yOfPrevious})  -->  (${m.x}, ${m.y})`);
       }
-    }
-          
-    else if (m.tags.includes("outerGroup")) {
+    } else if (m.tags.includes("outerGroup")) {
       // 3c) #outerGroup
 
       const stackLength = stack.length;
@@ -533,8 +516,7 @@ function vertexPlacement(pidJson) {
         applyOffset("x", xOffset, vertex);
         applyOffset("y", yOffset, vertex);
         console.groupEnd();
-      }
-      else if ("group" === vertex.pidClass) {
+      } else if ("group" === vertex.pidClass) {
         // Case for innerGroups that have other innerGroups as chidlren (for example units, and maybe emodules). groupMargin must be different
         console.group(`Applying groupMargin offset of ${s.groupMargin} to ${vertex.name} for x and y.`);
         const xOffset = (m.w - blockWidth) / 2;
@@ -547,7 +529,7 @@ function vertexPlacement(pidJson) {
     });
 
   }
-  
+
   function applyOffset(coordinate, offset, stackedVertex) {
 
     if (coordinate === "x") {
