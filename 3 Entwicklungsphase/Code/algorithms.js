@@ -5,8 +5,11 @@ function vertexPlacement(pidJson) {
   //console.log(JSON.stringify(vertices));
   console.log(JSON.stringify(vertices));
   console.table(vertices);
-  //console.table(edges);
+  console.table(edges);
   //console.log(JSON.stringify(edges));
+
+  // TODO:
+  let simplifiedEdges = simplifyConnections(vertices, edges);
 
   // s:settings, m:memory, i:index, p:previous, v:vertex
   // SET ONCE AND NEVER RESET
@@ -14,7 +17,7 @@ function vertexPlacement(pidJson) {
     cellSpacing: 100, // spacing between 2 shapeCells
     cellMargin: 25,
     blockMargin: 60, // Margin between parent group and the contained block (area from left-and-uppermost cell corner and right-and-lowermost cell corner (calculated with top-, right-, bottom- and left-boundaries))
-    groupSpacing: 100, // Spacing between 2 innerGroups
+    groupSpacing: 200, // Spacing between 2 innerGroups
     groupMargin: 60, // Margin between parent innerGroup and child innerGroup (between units, and maybe emodules)
     pageWidth: 1654,
     pageHeight: 1169,
@@ -44,10 +47,10 @@ function vertexPlacement(pidJson) {
       lvl: v.pidLevel,
       pidClass: v.pidClass,
       id: v.id,
-      parent: vertices.find((vertex) => vertex.id === v.parentId),
-      siblings: vertices.filter((sibling) => sibling.parentId === v.parentId),
-      children: memory.filter((child) => child.parentId === v.id),
-      descendants: getAllDescendants(v.id, memory), // Can also get descendants with properties in vertices with getAllDescendants(v.id, vertices)
+      parent: getParent(v.parentId, vertices),
+      siblings: getSiblings(v.parentId, memory),
+      children: getChildren(v.id, memory),
+      descendants: getDescendants(v.id, memory),
       // To be calculated:
       tags: [],
       x: parseInt(v.mxGeometry._x, 10),
@@ -151,24 +154,26 @@ function vertexPlacement(pidJson) {
             console.group(`#nucleusGroup`); // nucleusGroups of all pidLevels
             console.log(`nucleusGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
 
-            let groupVertices = memory.filter((child) => (child.parentId === m.id));
-            // Push root/parent vertex as well
-            groupVertices.push(m);
-            console.warn('groupVertices:')
-            console.warn(groupVertices);
+            let descendantsWithParent = memory.filter((child) => (child.parentId === m.id));
+            descendantsWithParent.push(m); // Push root/parent vertex as well
+            console.warn('descendantsWithParent:')
+            console.warn(descendantsWithParent);
 
             // 1b) MEASURE:
-            //const blockWidth = measureBlock('width', m.descendants);
-            //const blockHeight = measureBlock('height', m.descendants);
-            const blockWidth = measureBlock('width', groupVertices);
-            const blockHeight = measureBlock('height', groupVertices);
+            const blockWidth = measureBlock('width', descendantsWithParent);
+            const blockHeight = measureBlock('height', descendantsWithParent);
+            const blockX = getMin('left', descendantsWithParent);
+            const blockY = getMin('top', descendantsWithParent);
+            //const blockWidth = measureBlock('width', descendantsWithParent);
+            //const blockHeight = measureBlock('height', descendantsWithParent);
             // 2) SCALE:
-            scaleGroup(blockWidth, blockHeight, s.blockMargin, m.descendants);
+            scaleGroup(blockWidth, blockHeight, s.blockMargin, descendantsWithParent);
             // 3) SHIFT: needs to directly modify the v._mxGeometry._x and v._mxGeometry._y properties of all children
             // (and with that, its relatively positioned descendants of the children) so function must be 
-            // passed groupVertices and not m.descendants
+            // passed descendantsWithParent and not m.descendants
             //shiftNucleusGroup(m.descendants);
-            shiftNucleusGroup(groupVertices);
+
+            shiftNucleusGroup(blockX, blockY, stack[m.lvl]);
 
             console.groupEnd();
           }
@@ -225,7 +230,7 @@ function vertexPlacement(pidJson) {
             const blockWidth = measureBlock('width', m.descendants);
             const blockHeight = measureBlock('height', m.descendants);
             // 2) SCALE:
-            scaleGroup(blockWidth, blockHeight, s.blockMargin, m.children);
+            scaleGroup(blockWidth, blockHeight, s.blockMargin, m.descendants);
             // 3) SHIFT:
             shiftInnerGroup(stack[m.lvl]);
             // 4) CENTER:
@@ -240,7 +245,7 @@ function vertexPlacement(pidJson) {
             const blockWidth = measureBlock('width', m.descendants);
             const blockHeight = measureBlock('height', m.descendants);
             // 2) SCALE: 
-            scaleGroup(blockWidth, blockHeight, s.blockMargin, m.children);
+            scaleGroup(blockWidth, blockHeight, s.blockMargin, m.descendants);
             // 3) SHIFT:
             shiftOuterGroup(stack[m.lvl]);
             // 4) CENTER:
@@ -358,11 +363,23 @@ function vertexPlacement(pidJson) {
 
   /*************************END OF VERTICES LOOP********************************/
 
+  function getVertexById(id, array) {
+    return array.find((vertex) => vertex.id === id);
+  }
+
+  function getParent(parentId, array) {
+    return vertices.find((vertex) => vertex.id === parentId);
+  }
+
+  function getSiblings(parentId, array) {
+    return memory.filter((sibling) => sibling.parentId === parentId);
+  }
+
   function getChildren(id, array) {
     return array.filter((child) => child.parentId === id);
   }
 
-  function getAllDescendants(id, array) {
+  function getDescendants(id, array) {
     /**
      * Flattens deeply nested arrays recursively with concat.
      */
@@ -374,7 +391,7 @@ function vertexPlacement(pidJson) {
     let children = array.filter((child) => child.parentId === id);
     children.forEach((child) => {
       descendants.push(child);
-      let grandchildren = getAllDescendants(child.id, array); // recursive
+      let grandchildren = getDescendants(child.id, array); // recursive
       descendants = Array.isArray(grandchildren) ? descendants.concat(grandchildren) : descendants; // if grandchildren array is not empty, concatenate it, else, return existing
     });
     return descendants;
@@ -453,38 +470,51 @@ function vertexPlacement(pidJson) {
   }
 
   // 3a) #nucleusGroup
-  function shiftNucleusGroup(group) {
+  function shiftNucleusGroup(blockX, blockY, stack) {
     /**
      * Shifts nucleus group from its previous sibling by the corresponding offset,
      * if not first sibling, if else set at origin (0,0) relative to its parent
      */
 
-    const groupLength = group.length;
-    const xOfGroupCorner = getMin('left', group)
-    const yOfGroupCorner = getMin('top', group)
+    const stackLength = stack.length;
 
-    if (groupLength === 0) {
+    // CHANGE COORDINATE SYSTEM:
+    // Get coordinates of nucleus in relation to coordinates of block, because 
+    // only nucleus should be shifted (and with that, descendants shift as well together with it)
+    // (blockX and blockY are relative to nucleus origin of (0,0) and nucleusX 
+    // and nucleusY should be relative to the origin of the parent of the nucleus)
+
+    // Set nucleus corner at origin-blockX so that nucleusGroup corner lands on origin (0, 0) (ex: if nucleusGroup at x=10, sets to 0-10 so that nucleus set to - 10 which leaves the nucleusGroup at origin)
+    nucleusX = 0 - blockX;
+    nucleusY = 0 - blockY;
+
+    if (stackLength === 0) {
       // Case if nucleus is first innerGroup in group of current level
       console.log(`${groupLength + 1}st innerGroup (nucleus) in stack[${m.lvl}].`);
-      m.x = 0 - xOfGroupCorner; // Sets nucleus corner at origin - xOfGroupCorner so that nucleusGroup corner lands on origin (0, 0) (ex: if nucleusGroup at x=10, sets to 0-10 so that nucleus set to - 10 which leaves the nucleusGroup at origin)
-      m.y = 0 - yOfGroupCorner; // Like above
+
+      // SHIFT NUCLEUS (and with that it's descendants):
+      m.x = nucleusX;
+      m.y = nucleusY;
+
       console.log(`nucleusGroup (innerGroup) is first of stack an thus positioned at (${m.x}, ${m.y})`);
-    } else if (groupLength >= 1) {
+    } else if (stackLength >= 1) {
       // Case if nucleus is second, third, ..., n-th innerGroup in 
-      console.log(`nucleusGroup (innerGroup) number ${groupLength + 1} in stack[${m.lvl}].`);
-      const indexOfPrevious = groupLength - 1;
-      console.log(groupLength);
+      console.log(`nucleusGroup (innerGroup) number ${stackLength + 1} in stack[${m.lvl}].`);
+      const indexOfPrevious = stackLength - 1;
+      console.log(stackLength);
       console.log(indexOfPrevious);
-      const xOfPrevious = group[indexOfPrevious].x;
-      const yOfPrevious = group[indexOfPrevious].y;
-      const wOfPrevious = group[indexOfPrevious].w;
-      const hOfPrevious = group[indexOfPrevious].h;
-      // Set x and y analog to #inline
-      m.x = -xOfGroupCorner + wOfPrevious + s.groupSpacing;
-      m.y = -yOfGroupCorner + (hOfPrevious / 2) - (m.h / 2);
-      //m.y = (yOfPrevious === undefined ? 0 : yOfPrevious + (bottomOfPrevious - hOfNucleusBlock) / 2);
-      console.log(`x-Coordinate = xOfPrevious + wOfPrevious + s.cellSpacing = ${xOfPrevious} - ${xOfGroupCorner} + ${wOfPrevious} + ${s.cellSpacing} = ${m.x}`);
-      console.log(`y-Coordinate = yOfPrevious - yOfGroupCorner + (hOfPrevious / 2) - (m.h / 2)) = ${yOfPrevious} - ${yOfGroupCorner} + (${hOfPrevious} - ${m.h}) / 2 = ${yOfPrevious - yOfGroupCorner} + ${hOfPrevious - m.h} / 2 = ${m.y}`);
+      const xOfPrevious = stack[indexOfPrevious].x;
+      const yOfPrevious = stack[indexOfPrevious].y;
+      const wOfPrevious = stack[indexOfPrevious].w;
+      const hOfPrevious = stack[indexOfPrevious].h;
+
+      // SHIFT NUCLEUS (and with that it's descendants): x: offset from previous, y: inline with previous (both analog to #inline)
+      m.x = (xOfPrevious + wOfPrevious + s.groupSpacing) + nucleusX;
+      m.y = (yOfPrevious) + nucleusY;
+      //m.y = (yOfPrevious) + (hOfPrevious / 2) + (hOfPrevious / 2) + nucleusY;
+
+      console.log(`x-Coordinate = xOfPrevious + wOfPrevious + s.groupSpacing + nucleusX = ${xOfPrevious} + ${wOfPrevious} + ${s.groupSpacing} + ${nucleusX} = ${m.x}`);
+      console.log(`y-Coordinate = yOfPrevious + nucleusY = ${yOfPrevious} + ${nucleusY} = ${m.y}`);
       console.log(`nucleusGroup shifted relative to previous in stack: (${xOfPrevious}, ${yOfPrevious})  -->  (${m.x}, ${m.y})`);
     }
 
@@ -518,9 +548,11 @@ function vertexPlacement(pidJson) {
       const hOfPrevious = stack[indexOfPrevious].h;
       console.log(xOfPrevious);
       console.log(yOfPrevious);
+
       // Set x and y analog to #inline
-      m.x = (xOfPrevious === undefined ? 0 : xOfPrevious + wOfPrevious + s.groupSpacing);
-      m.y = (yOfPrevious === undefined ? 0 : yOfPrevious + (hOfPrevious - m.h) / 2);
+      m.x = xOfPrevious + wOfPrevious + s.groupSpacing;
+      m.y = yOfPrevious + (hOfPrevious - m.h) / 2;
+
       console.log(`x-Coordinate = xOfPrevious + wOfPrevious + s.cellSpacing = ${xOfPrevious} + ${wOfPrevious} + ${s.cellSpacing} = ${m.x}`);
       console.log(`y-Coordinate = yOfPrevious + (hOfPrevious - m.h) / 2 = ${xOfPrevious} + (${hOfPrevious} - ${m.h}) / 2 = ${xOfPrevious} + ${hOfPrevious - m.h} / 2 = ${m.y}`);
       console.log(`innerGroup shifted relative to previous in stack: (${xOfPrevious}, ${yOfPrevious})  -->  (${m.x}, ${m.y})`);
@@ -572,29 +604,41 @@ function vertexPlacement(pidJson) {
      * Center block inside group: offset all contained vertices within the group individually
      */
 
-    stack.forEach((vertex) => {
-      if ("group" !== vertex.pidClass) {
-        // Case for non-group children
-        console.group(`Applying blockMargin offset of ${s.blockMargin} to ${vertex.name} for x and y.`);
+    stack.forEach((child) => {
+      if ("group" !== child.pidClass) {
+        // Case for non-group children (ex. nucleus or lone shapes)
+        // APPLY groupMargin
+        console.group(`Applying blockMargin offset of ${s.blockMargin} to ${child.name} for x and y.`);
+
+        // Get all descendants (block)
+        let descendantsWithParent = getDescendants(child.id, memory);
+        descendantsWithParent.push(child); // Push root/parent vertex as well
+
+        // Measure block of all descean
+
+        // Calculate offset:
         const xOffset = ((m.w / 2) - (blockWidth / 2));
-        const yOffset = ((m.h / 2) - (vertex.h / 2));
+        const yOffset = ((m.h / 2) - (child.h / 2));
         console.warn(`xOffset = ${m.w} / 2 - ${blockWidth} / 2 = ${xOffset}`);
-        console.warn(`yOffset = ${m.h} / 2 - ${vertex.h} / 2 = ${yOffset}`);
-        applyOffset("x", xOffset, vertex);
-        applyOffset("y", yOffset, vertex);
+        console.warn(`yOffset = ${m.h} / 2 - ${child.h} / 2 = ${yOffset}`);
+
+        // Apply Offset:
+        applyOffset("x", xOffset, child);
+        applyOffset("y", yOffset, child);
         console.groupEnd();
-      } else if ("group" === vertex.pidClass) {
-        // Case for innerGroups that have other innerGroups as chidlren (for example units, and maybe emodules). groupMargin must be different
-        console.group(`Applying groupMargin offset of ${s.groupMargin} to ${vertex.name} for x and y.`);
+      } else if ("group" === child.pidClass) {
+        // Case for children that are group (ex.innerGroups that have other innerGroups as chidlren like units, and maybe emodules).
+        console.group(`Applying groupMargin offset of ${s.groupMargin} to ${child.name} for x and y.`);
         const xOffset = ((m.w / 2) - (blockWidth / 2));
-        const yOffset = ((m.h / 2) - (vertex.h / 2));
+        const yOffset = ((m.h / 2) - (child.h / 2));
         console.warn(`xOffset = ${m.w} / 2 - ${blockWidth} / 2 = ${xOffset}`);
-        console.warn(`yOffset = ${m.h} / 2 - ${vertex.h} / 2 = ${yOffset}`);
-        applyOffset("x", xOffset, vertex);
-        applyOffset("y", yOffset, vertex);
+        console.warn(`yOffset = ${m.h} / 2 - ${child.h} / 2 = ${yOffset}`);
+
+        applyOffset("x", xOffset, child);
+        applyOffset("y", yOffset, child);
         console.groupEnd();
       }
-      if (m.id === vertex.id) console.warn(`WARNING: Group container not excluded from for each because ids match: ${m.id} === ${vertex.id} --> TRUE`);
+      if (m.id === child.id) console.warn(`WARNING: Group container not excluded from for each because ids match: ${m.id} === ${child.id} --> TRUE`);
     });
 
   }
@@ -629,7 +673,110 @@ function vertexPlacement(pidJson) {
     }
   }
 
+
+  //let pidJson = [ ...vertices, ...simplifiedEdges ];
   return pidJson;
+}
+
+
+// TODO: this function
+function simplifyConnections(pidVertices, pidEdges) {
+  /**
+   * Simplifies connections from and to groups by replacing both the preEdge and
+   * postEdge of that connection with a single, direct connection when that is
+   * the case. NOTE: simplifiedId retains the id of the preEdge (so remaining
+   * properties are inherited from the preEdge, which should have same as postEdge)
+   */
+
+  console.groupCollapsed("Simplifying connections of pidEdges...");
+
+  let vertices = pidVertices;
+  let edges = pidEdges;
+  let simplifiedEdges = [];
+
+  edges.forEach((edge) => {
+    edges.pop(edge); // remove 
+
+    let preEdge;
+    let postEdge;
+    let idsToSkip = [];
+    let source = getVertexById(edge.sourceId, vertices);
+    let target = getVertexById(edge.targetId, vertices);
+
+    if (skipIfFound(edge.id, idsToSkip)) return;
+
+    if ('group' !== target.pidClass && 'group' !== source.pidClass) simplifiedEdges.push(edge); // Case: shape --> shape
+
+    if ('group' === target.pidClass || 'group' === source.pidClass) {
+
+      if ('group' !== target.pidClass) {
+        // Case: shape --> group
+        startEdge = edge; // clone edge
+        nextEdge = getNextEdge(edge);
+        while ('group' === nextEdge.pidClass) {
+          // Skip connecting port
+          nextEdge = getNextEdge(nextEdge);
+        }
+      } else if ('group' !== source.pidClass) {
+        // Case: group --> shape
+        endEdge = edge; // clone edge
+        previousEdge = getNextEdge(edge);
+        postEdge = edge; // clone edge
+        preEdge = edges.find((edge) => edge.id = postEdge.id); // find corresponding edge and clone
+      }
+    }
+
+    function getNextEdge(edge) {
+      return edges.find((nextEdge) => edge.targetPort === nextEdge.sourcePort); // Find corresponding edge and clone
+    }
+
+    // if (target.pidClass === 'group' || source.pidClass === 'group') {
+
+    //   // Skip edge if connection already simplified with partner edge
+    //   if (skipIfFound(edge.id, idsToSkip)) return;
+
+    //   if (target.pidClass === 'group') {
+    //     // Case: shape --> group
+    //     preEdge = edge; // clone edge
+    //     postEdge = edges.find((edge) => edge.id = preEdge.id); // Find corresponding edge and clone
+    //   }
+    //   else if (source.pidClass === 'group') {
+    //     // Case: group --> shape
+    //     postEdge = edge; // clone edge
+    //     preEdge = edges.find((edge) => edge.id = postEdge.id); // find corresponding edge and clone
+    //   }
+
+    //   idsToSkip.push(preEdge.id);
+    //   idsToSkip.push(postEdge.id);
+    //   let simplifiedEdge = simplifyEdge(preEdge, postEdge);
+    //   simplifiedEdges.push(simplifiedEdge);
+
+    // }
+
+    // else simplifiedEdges.push(edge);
+  });
+
+  function skipIfFound(id, idsToSkip) {
+    let skip = idsToSkip.find((simplifiedEdge) => simplifiedEdge.id === id);
+    return skip ? true : false;
+  }
+
+  function simplifyEdge(preEdge, postEdge) {
+    console.log(`simplifiedEdge: sourceId: ${preEdge.sourceId} --> targetId: ${postEdge.targetId}`);
+    preEdge.targetId = postEdge.targetId; // skip group port (returns to shape1-->shape2 for shape1-->groupA and groupA-->shape2)
+    return preEdge;
+  }
+
+  console.table(simplifiedEdges);
+  console.groupEnd();
+
+  return simplifiedEdges;
+}
+
+
+// TODO:
+function rotateVertices() {
+  // rotate vertices (ex. valves) based on connections and positioni
 }
 
 
