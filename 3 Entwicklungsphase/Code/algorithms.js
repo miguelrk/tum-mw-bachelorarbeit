@@ -172,7 +172,14 @@ function vertexPlacement(pidJson) {
             // (and with that, its relatively positioned descendants of the children) so function must be 
             // passed descendantsWithParent and not m.descendants
             //shiftNucleusGroup(m.descendants);
+            <<
+            << << < HEAD
 
+              ===
+              === =
+
+              >>>
+              >>> > 28 a74c8508f16df96e87b05c926a46c1353ea541
             shiftNucleusGroup(blockX, blockY, stack[m.lvl]);
 
             console.groupEnd();
@@ -476,7 +483,8 @@ function vertexPlacement(pidJson) {
      * if not first sibling, if else set at origin (0,0) relative to its parent
      */
 
-    const stackLength = stack.length;
+    const stackLength = stack.length; <<
+    << << < HEAD
 
     // CHANGE COORDINATE SYSTEM:
     // Get coordinates of nucleus in relation to coordinates of block, because 
@@ -488,6 +496,21 @@ function vertexPlacement(pidJson) {
     nucleusX = 0 - blockX;
     nucleusY = 0 - blockY;
 
+    ===
+    === =
+
+    // CHANGE COORDINATE SYSTEM:
+    // Get coordinates of nucleus in relation to coordinates of block, because 
+    // only nucleus should be shifted (and with that, descendants shift as well together with it)
+    // (blockX and blockY are relative to nucleus origin of (0,0) and nucleusX 
+    // and nucleusY should be relative to the origin of the parent of the nucleus)
+
+    // Set nucleus corner at origin-blockX so that nucleusGroup corner lands on origin (0, 0) (ex: if nucleusGroup at x=10, sets to 0-10 so that nucleus set to - 10 which leaves the nucleusGroup at origin)
+    nucleusX = 0 - blockX;
+    nucleusY = 0 - blockY;
+
+    >>>
+    >>> > 28 a74c8508f16df96e87b05c926a46c1353ea541
     if (stackLength === 0) {
       // Case if nucleus is first innerGroup in group of current level
       console.log(`${groupLength + 1}st innerGroup (nucleus) in stack[${m.lvl}].`);
@@ -496,8 +519,12 @@ function vertexPlacement(pidJson) {
       m.x = nucleusX;
       m.y = nucleusY;
 
-      console.log(`nucleusGroup (innerGroup) is first of stack an thus positioned at (${m.x}, ${m.y})`);
-    } else if (stackLength >= 1) {
+      console.log(`nucleusGroup (innerGroup) is first of stack an thus positioned at (${m.x}, ${m.y})`); <<
+      << << < HEAD
+    } else if (stackLength >= 1) { ===
+      === =
+    } else if (stackLength >= 1) { >>>
+      >>> > 28 a74c8508f16df96e87b05c926a46c1353ea541
       // Case if nucleus is second, third, ..., n-th innerGroup in 
       console.log(`nucleusGroup (innerGroup) number ${stackLength + 1} in stack[${m.lvl}].`);
       const indexOfPrevious = stackLength - 1;
@@ -625,8 +652,12 @@ function vertexPlacement(pidJson) {
         // Apply Offset:
         applyOffset("x", xOffset, child);
         applyOffset("y", yOffset, child);
-        console.groupEnd();
-      } else if ("group" === child.pidClass) {
+        console.groupEnd(); <<
+        << << < HEAD
+      } else if ("group" === child.pidClass) { ===
+        === =
+      } else if ("group" === child.pidClass) { >>>
+        >>> > 28 a74c8508f16df96e87b05c926a46c1353ea541
         // Case for children that are group (ex.innerGroups that have other innerGroups as chidlren like units, and maybe emodules).
         console.group(`Applying groupMargin offset of ${s.groupMargin} to ${child.name} for x and y.`);
         const xOffset = ((m.w / 2) - (blockWidth / 2));
@@ -713,14 +744,14 @@ function simplifyConnections(pidVertices, pidEdges) {
         // Case: shape --> group
         startEdge = edge; // clone edge
         nextEdge = getNextEdge(edge);
-        while ('group' === nextEdge.pidClass) {
-          // Skip connecting port
-          nextEdge = getNextEdge(nextEdge);
-        }
+        if ('group' === nextEdge.pidClass)
+          do {
+            skipPort();
+            postEdge =
+              getNextEdge(nextEdge);
+          } while (nextEdge)
       } else if ('group' !== source.pidClass) {
         // Case: group --> shape
-        endEdge = edge; // clone edge
-        previousEdge = getNextEdge(edge);
         postEdge = edge; // clone edge
         preEdge = edges.find((edge) => edge.id = postEdge.id); // find corresponding edge and clone
       }
@@ -745,7 +776,14 @@ function simplifyConnections(pidVertices, pidEdges) {
     //     postEdge = edge; // clone edge
     //     preEdge = edges.find((edge) => edge.id = postEdge.id); // find corresponding edge and clone
     //   }
+    <<
+    << << < HEAD
 
+      ===
+      === =
+
+      >>>
+      >>> > 28 a74c8508f16df96e87b05c926a46c1353ea541
     //   idsToSkip.push(preEdge.id);
     //   idsToSkip.push(postEdge.id);
     //   let simplifiedEdge = simplifyEdge(preEdge, postEdge);
@@ -757,8 +795,12 @@ function simplifyConnections(pidVertices, pidEdges) {
   });
 
   function skipIfFound(id, idsToSkip) {
-    let skip = idsToSkip.find((simplifiedEdge) => simplifiedEdge.id === id);
-    return skip ? true : false;
+    let skip = idsToSkip.find((simplifiedEdge) => simplifiedEdge.id === id); <<
+    << << < HEAD
+    return skip ? true : false; ===
+    === =
+    return skip ? true : false; >>>
+    >>> > 28 a74c8508f16df96e87b05c926a46c1353ea541
   }
 
   function simplifyEdge(preEdge, postEdge) {
