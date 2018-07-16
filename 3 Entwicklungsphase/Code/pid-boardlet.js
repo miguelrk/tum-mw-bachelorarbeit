@@ -421,6 +421,28 @@ window.addEventListener('load', () => {
       shadow: 0
     };
 
+    const sapientBind = {
+      datasources: {
+        pValueCurrent: {
+          source: 'var', // var/nodestatus/...
+          params: {
+            id: flowRate // id of p_values_current
+          }
+        }
+      },
+      bindings: {
+        text: {
+          value: {
+            source: 'dataref',
+            defaultValue: '---',
+            params: {
+              ref: 'pValueCurrent'
+            }
+          }
+        }
+      }
+    };
+
     console.groupCollapsed("XML String generation started...");
 
     const htmlLabel = '&lt;b&gt;%pid-label%&lt;br&gt;&lt;span style=&quot;background-color: rgb(0 , 0 , 255)&quot;&gt;&lt;font color=&quot;#ffffff&quot;&gt;&amp;nbsp;4000 m3/s&amp;nbsp;&lt;/font&gt;&lt;/span&gt;&lt;/b&gt;&lt;br&gt;';

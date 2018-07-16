@@ -35656,7 +35656,7 @@
     "shapeThumbnail": "images\\pipe_line.svg",
     "_vertex": "",
     "_edge": "1",
-    "_style": "edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=none;startFill=0;startSize=11;endArrow=classic;endFill=1;endSize=11;jettySize=auto;orthogonalLoop=1;strokeColor=#000000;strokeWidth=4;fontSize=18;fontColor=#000000;",
+    "_style": "edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=none;startFill=0;startSize=11;endArrow=classic;endFill=1;endSize=11;jettySize=auto;orthogonalLoop=1;strokeColor=#000000;strokeWidth=4;fontSize=18;fontColor=#000000;jumpStyle=arc;jumpSize=20;",
     "styleObject" : {
       "shape" : "",
       "overflow" : "",
@@ -35699,7 +35699,9 @@
       "fillColor" : "",
       "fontSize" : "fontSize=18",
       "fontColor" : "fontColor=#000000",
-      "rotation" : ""
+      "rotation" : "",
+      "jumpStyle" : "jumpStyle=arc",
+      "jumpSize" : "jumpSize=20"
     },
     "_value" : "",
     "_connectable" : "",
@@ -35738,7 +35740,7 @@
     "shapeThumbnail": "images\\connection_line.svg",
     "_vertex": "",
     "_edge": "1",
-    "_style": "edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=none;startFill=0;startSize=1;endArrow=none;endFill=0;endSize=1;jettySize=auto;orthogonalLoop=1;strokeColor=#000000;strokeWidth=2;fontSize=18;fontColor=#000000;",
+    "_style": "edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=none;startFill=0;startSize=1;endArrow=none;endFill=0;endSize=1;jettySize=auto;orthogonalLoop=1;strokeColor=#000000;strokeWidth=2;fontSize=18;fontColor=#000000;jumpStyle=arc;jumpSize=20;",
     "styleObject" : {
       "shape" : "",
       "overflow" : "",
@@ -35781,7 +35783,9 @@
       "fillColor" : "",
       "fontSize" : "fontSize=18",
       "fontColor" : "fontColor=#000000",
-      "rotation" : ""
+      "rotation" : "",
+      "jumpStyle" : "jumpStyle=arc",
+      "jumpSize" : "jumpSize=20"
     },
     "_value" : "",
     "_connectable" : "",
@@ -35820,7 +35824,7 @@
     "shapeThumbnail": "images\\signal_line.svg",
     "_vertex": "",
     "_edge": "1",
-    "_style": "edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=none;startFill=0;startSize=1;endArrow=none;endFill=0;endSize=1;jettySize=auto;orthogonalLoop=1;strokeColor=#000000;strokeWidth=3;fontSize=18;fontColor=#000000;dashed=1;",
+    "_style": "edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=none;startFill=0;startSize=1;endArrow=none;endFill=0;endSize=1;jettySize=auto;orthogonalLoop=1;strokeColor=#000000;strokeWidth=3;fontSize=18;fontColor=#000000;dashed=1;jumpStyle=arc;jumpSize=20;",
     "styleObject" : {
       "shape" : "",
       "overflow" : "",
@@ -35863,7 +35867,9 @@
       "fillColor" : "",
       "fontSize" : "fontSize=18",
       "fontColor" : "fontColor=#000000",
-      "rotation" : ""
+      "rotation" : "",
+      "jumpStyle" : "jumpStyle=arc",
+      "jumpSize" : "jumpSize=20"
     },
     "_value" : "",
     "_connectable" : "",
@@ -35902,7 +35908,7 @@
     "shapeThumbnail": "images\\data_line.svg",
     "_vertex": "",
     "_edge": "1",
-    "_style": "edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=none;startFill=0;startSize=1;endArrow=none;endFill=0;endSize=1;jettySize=auto;orthogonalLoop=1;strokeColor=#000000;strokeWidth=4;fontSize=18;fontColor=#000000;dashed=1;dashPattern=1 4;",
+    "_style": "edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=none;startFill=0;startSize=1;endArrow=none;endFill=0;endSize=1;jettySize=auto;orthogonalLoop=1;strokeColor=#000000;strokeWidth=4;fontSize=18;fontColor=#000000;dashed=1;dashPattern=1 4;jumpStyle=arc;jumpSize=20;",
     "styleObject" : {
       "shape" : "",
       "overflow" : "",
@@ -35945,7 +35951,9 @@
       "fillColor" : "",
       "fontSize" : "fontSize=18",
       "fontColor" : "fontColor=#000000",
-      "rotation" : ""
+      "rotation" : "",
+      "jumpStyle" : "jumpStyle=arc",
+      "jumpSize" : "jumpSize=20"
     },
     "_value" : "",
     "_connectable" : "",
