@@ -204,7 +204,7 @@ function vertexPlacement(pidJson) {
               m.x = parentWidth + s.cellSpacing;
               m.y = s.cellSpacing;
             } else if (p.tags.includes('childOfNonGroup')) {
-              // Case for second, third, ..., n-th ndPPchildOfNonGroup in current level stack
+              // Case for second, third, ..., n-th childOfNonGroup in current level stack
               console.log(`aroundParent child of ${m.parent.shortName} set to take next slot (offset relative to previous).`);
               m.x = parentWidth + s.cellSpacing;
               console.warn('p.y:');
@@ -230,8 +230,12 @@ function vertexPlacement(pidJson) {
             // 1b) MEASURE:
             const blockWidth = measureBlock('width', m.descendants);
             const blockHeight = measureBlock('height', m.descendants);
+
+            if (m.shapeName === 'unit_group') console.warn(`BLOCK width x height: ${blockWidth}x${blockHeight} = ${blockWidth * blockHeight}`)
             // 2) SCALE:
             scaleGroup(blockWidth, blockHeight, s.blockMargin, m.descendants);
+
+            if (m.shapeName === 'unit_group') console.warn(`GROUP width x height: ${m.w}x${m.h} = ${m.a}`)
             // 3) SHIFT:
             shiftInnerGroup(stack[m.lvl]);
             // 4) CENTER:
@@ -354,13 +358,6 @@ function vertexPlacement(pidJson) {
     };
     data.push(tableData);
   });
-
-  console.log('memory:');
-  console.table(memory);
-  console.log('data:');
-  console.table(data);
-  console.log('pidJson:');
-  console.table(pidJson);
 
   /*************************END OF VERTICES LOOP********************************/
 
@@ -686,11 +683,11 @@ function vertexPlacement(pidJson) {
 
   function simplifyConnections(pidVertices, pidEdges) {
     /**
-    * Simplifies connections from and to groups by replacing both the preEdge and
-    * postEdge of that connection with a single, direct connection when that is
-    * the case. NOTE: simplifiedId retains the id of the startEdge (so remaining
-    * properties are inherited from the startEdge, which should have same as endEdge)
-    */
+     * Simplifies connections from and to groups by replacing both the preEdge and
+     * postEdge of that connection with a single, direct connection when that is
+     * the case. NOTE: simplifiedId retains the id of the startEdge (so remaining
+     * properties are inherited from the startEdge, which should have same as endEdge)
+     */
 
     console.groupCollapsed("Simplifying connections of pidEdges...");
 
@@ -700,8 +697,6 @@ function vertexPlacement(pidJson) {
     let idsToSkip = [];
 
     edges.forEach((edge) => {
-      // VARIANT 4: simplifiedEdges.length = 47
-      //edge = edges.pop(edge);
 
       let startEdge;
       let endEdge;
@@ -716,25 +711,29 @@ function vertexPlacement(pidJson) {
 
       // Case: shape --> shape
       if ('group' !== target.pidClass && 'group' !== source.pidClass) {
-        console.warn(`${edge.id}: ${source.pidClass} --> ${target.pidClass}`);
+        console.group(`edge ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass} --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
         idsToSkip.push(edge.id);
-        simplifiedEdges.push(edge);        
+        simplifiedEdges.push(edge);
+        console.groupEnd();
       }
 
-      // TODO: Fix missing edge from DisplA to SensorFlow and from DisplA to Displacement
-
-      // Case: shape --> group || group --> group || group --> shape
+      // Clse: group --> group
       else {
-        console.warn(`${edge.id}: ${source.pidClass} --> ${target.pidClass}`);
+        console.group(`edge ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass} --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
         // Traverse connection back and forth (to first startPort and last endPort)
-        startEdge = getStartEdge(edge, source); // recursively get previousEdge until startEdge
-        endEdge = getEndEdge(edge, target); // recursively get nextEdge until endEdge
+        startEdge = getFirstEdge(edge, source, target); // recursively get previousEdge until startEdge
+        endEdge = getLastEdge(edge, source, target); // recursively get nextEdge until endEdge
         // Clone targetId and targetPort of endEdge and rest of startEdge
         let simplifiedEdge = startEdge;
         simplifiedEdge.targetId = endEdge.targetId;
         simplifiedEdge.targetPort = endEdge.targetPort;
         // Push a single, direct and simplified edge to the array
         simplifiedEdges.push(simplifiedEdge);
+
+        let simplifiedEdgeSource = getVertexBy('id', simplifiedEdge.sourceId, vertices);
+        let previousEdgeTarget = getVertexBy('id', simplifiedEdge.targetId, vertices);
+        console.log(`simplifiedEdge ${simplifiedEdge.id}: ${simplifiedEdge.sourceId} | ${simplifiedEdgeSource.shortName} | ${source.pidClass} --> ${previousEdgeTarget.shortName} | ${source.pidClass} | ${edge.targetId}`);
+        console.groupEnd();
       }
     });
 
@@ -743,65 +742,64 @@ function vertexPlacement(pidJson) {
       return array.find((vertex) => vertex[property] === value);
     }
 
-    function skipIfFound(id, array) {
-      let skip = array.find((simplifiedEdge) => simplifiedEdge.id === id);
-      return skip ? true : false;
-    }
-    
-    function getStartEdge(edge, source) {
+    function getFirstEdge(edge, source, target) {
       /**
-      * Recursively get previousEdge until startEdge
+       * Recursively get previousEdge until startEdge
        */
       idsToSkip.push(edge.id);
-      let startEdge = edge;
+      console.log(idsToSkip.length);
       let previousEdge = getPreviousEdge(edge);
-      if (previousEdge === 'isStartEdge') return startEdge;
-      else {
+      if (!previousEdge) {
+        console.log(`return ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass} --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
+        return edge;
+      } else {
         let previousEdgeSource = getVertexBy('id', previousEdge.sourceId, vertices);
-        console.log(`previousEdge ${previousEdge.id}: ${previousEdge.sourceId} (${previousEdgeSource.pidClass}) --> ${previousEdge.targetId} (${source.pidClass})`);
-        startEdge = getStartEdge(previousEdge, previousEdgeSource);
-        return startEdge;
+        let previousEdgeTarget = getVertexBy('id', previousEdge.targetId, vertices);
+        let firstEdge = getFirstEdge(previousEdge, previousEdgeSource, previousEdgeTarget);
+        return firstEdge;
       }
     }
 
     function getPreviousEdge(edge) {
       // Find corresponding edge and clone
-      let previousEdge = edges.find((previousEdge) => edge.sourcePort === previousEdge.targetPort);
+      return edges.find((previousEdge) => edge.sourcePort === previousEdge.targetPort);
       // Return clone or 'isStartEdge' string if previousEdge = undefined (no previousEdge found)
-      return previousEdge !== undefined ? previousEdge : 'isStartEdge';
     }
 
-    function getEndEdge(edge, target) {
+    function getLastEdge(edge, source, target) {
       /**
-      * Recursively get nextEdge until endEdge
-      */
+       * Recursively get nextEdge until endEdge
+       */
       idsToSkip.push(edge.id);
-      let endEdge = edge;
+      console.log(idsToSkip.length);
       let nextEdge = getNextEdge(edge);
-      if (nextEdge === 'isEndEdge') return endEdge;
-      else {
+      if (!nextEdge) {
+        console.log(`return ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass}) --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
+      } else if (nextEdge) {
+        let nextEdgeSource = getVertexBy('id', nextEdge.sourceId, vertices);
         let nextEdgeTarget = getVertexBy('id', nextEdge.targetId, vertices);
-        console.log(`nextEdge ${nextEdge.id}: ${nextEdge.sourceId} (${nextEdgeTarget.pidClass}) --> ${nextEdge.targetId} (${target.pidClass})`);
-        endEdge = getEndEdge(nextEdge, nextEdgeTarget);
-        return endEdge;
+        getLastEdge(nextEdge, nextEdgeSource, nextEdgeTarget);
       }
+      return edge;
     }
 
     function getNextEdge(edge) {
       // Find corresponding edge and clone
-      let nextEdge = edges.find((nextEdge) => edge.targetPort === nextEdge.sourcePort);
-      // Return clone or 'isEndEdge' string if nextEdge = undefined (no nextEdge found)
-      return nextEdge !== undefined ? nextEdge : 'isEndEdge';
+      return edges.find((nextEdge) => edge.targetPort === nextEdge.sourcePort);
     }
-
-
 
     console.groupEnd();
     return simplifiedEdges;
   }
 
 
-  pidJson = [ ...vertices, ...simplifiedEdges ];
+  pidJson = [...vertices, ...simplifiedEdges];
+  console.log('memory:');
+  console.table(memory);
+  console.log('data:');
+  console.table(data);
+  console.log('pidJson:');
+  console.table(pidJson);
   return pidJson;
 }
 
@@ -934,7 +932,7 @@ function generatePidXmlString(pidJson) {
     const target = pidJson.find((vertex) => vertex.id === pidLine.targetId);
     const parent = pidJson.find((parent) => parent.id === source.id);
     xmlString += `
-    <object id="${pidLine.id ? pidLine.id : pidLine._id}" label="${source.id}>${target.id}" placeholders="1" pid-label="${pidLine.pidLabel ? pidLine.pidLabel : (pidLine.shortName ? pidLine.shortName : (pidLine.germanName ? pidLine.germanName : (pidLine.englishName ? pidLine.englishName : 'Beer')))}" pid-current-value="${pidLine.id}" pid-function="${pidLine.pidFunction}" pid-number="${pidLine.pidNumber}" sapient-bind="">
+    <object id="${pidLine.id ? pidLine.id : pidLine._id}" label="${pidLine.id}: ${source.id}>${target.id}" placeholders="1" pid-label="${pidLine.pidLabel ? pidLine.pidLabel : (pidLine.shortName ? pidLine.shortName : (pidLine.germanName ? pidLine.germanName : (pidLine.englishName ? pidLine.englishName : 'Beer')))}" pid-current-value="${pidLine.id}" pid-function="${pidLine.pidFunction}" pid-number="${pidLine.pidNumber}" sapient-bind="">
       <mxCell id="${pidLine.id ? pidLine.id : pidLine._id}" style="${concatenateStyles(pidLine.styleObject)}" edge="${pidLine._edge}" source="${pidLine.sourceId}" target="${pidLine.targetId}" parent="${parent.id ? parent.id : pidLine._parent}">
         <mxGeometry relative="${pidLine.mxGeometry._relative ? pidLine.mxGeometry._relative : 1}" as="${pidLine.mxGeometry._as ? pidLine.mxGeometry._as : 'geometry'}"></mxGeometry>
       </mxCell>
