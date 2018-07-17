@@ -40,34 +40,35 @@ function vertexPlacement(pidJson) {
     console.group(`${v.pidLevel}: ${v.pidClass} (${v.shortName})`);
     console.log(`stack[${v.pidLevel}]`);
     console.table(stack[v.pidLevel]);
-    // Frequently accessed variables pushed to memory object ('_' indicates mxGraph private variable)
-    m = {
-      // Already there:
-      name: v.shortName,
-      lvl: v.pidLevel,
-      pidClass: v.pidClass,
-      pidHierarchy: v.pidHierarchy,
-      id: v.id,
-      parent: getParent(v.parentId, vertices),
-      siblings: getSiblings(v.parentId, memory),
-      children: getChildren(v.id, memory),
-      descendants: getDescendants(v.id, memory),
-      // To be calculated:
-      tags: [],
-      x: parseInt(v.mxGeometry._x, 10),
-      y: parseInt(v.mxGeometry._y, 10),
-      w: parseInt(v.mxGeometry._width, 10) ? parseInt(v.mxGeometry._width, 10) : 1000, // if width empty (groups) set to 1000 for now
-      h: parseInt(v.mxGeometry._height, 10) ? parseInt(v.mxGeometry._height, 10) : 1000, // if width empty (groups) set to 1000 for now
-      area: parseInt(v.mxGeometry._width, 10) * parseInt(v.mxGeometry._height, 10),
-      left: parseInt(v.mxGeometry._x, 10),
-      top: parseInt(v.mxGeometry._y, 10),
-      right: parseInt(v.mxGeometry._width, 10),
-      bottom: parseInt(v.mxGeometry._height, 10)
-    };
-    console.warn(m.children);
-    console.warn(m.descendants);
 
     if (v.shapeName && v.parentId) {
+      // Frequently accessed variables pushed to memory object ('_' indicates mxGraph private variable)
+      m = {
+        // Already there:
+        name: v.shortName,
+        lvl: v.pidLevel,
+        pidClass: v.pidClass,
+        pidHierarchy: v.pidHierarchy,
+        id: v.id,
+        parent: getParent(v.parentId, vertices),
+        siblings: getSiblings(v.parentId, memory),
+        children: getChildren(v.id, memory),
+        descendants: getDescendants(v.id, memory),
+        // To be calculated:
+        tags: [],
+        x: parseInt(v.mxGeometry._x, 10),
+        y: parseInt(v.mxGeometry._y, 10),
+        w: parseInt(v.mxGeometry._width, 10) ? parseInt(v.mxGeometry._width, 10) : 1000, // if width empty (groups) set to 1000 for now
+        h: parseInt(v.mxGeometry._height, 10) ? parseInt(v.mxGeometry._height, 10) : 1000, // if width empty (groups) set to 1000 for now
+        area: parseInt(v.mxGeometry._width, 10) * parseInt(v.mxGeometry._height, 10),
+        left: parseInt(v.mxGeometry._x, 10),
+        top: parseInt(v.mxGeometry._y, 10),
+        right: parseInt(v.mxGeometry._width, 10),
+        bottom: parseInt(v.mxGeometry._height, 10)
+      };
+      console.warn(m.children);
+      console.warn(m.descendants);
+
       /*************************************************************************
        *                     SPECIFICATION OF CONSTRAINTS:                      *
        *************************************************************************
@@ -145,14 +146,18 @@ function vertexPlacement(pidJson) {
             m.x = (() => {
               if (p.pidClass === undefined || p.pidClass === "group") return 0; // if group set at origin (0, 0)
               else if (p.lvl === m.lvl) return (p.right + s.cellSpacing); // else if in current inline level space shape from previous one
-              else if (p.lvl < m.lvl) return; // skip if child (one level lower than current inline shapes). These children move already relative to their parent (next shape)
+              else if (p.lvl < m.lvl) {
+                // skip if child (one level lower than current inline shapes). These children move already relative to their parent (next shape)
+              }
               else if (p.lvl > m.lvl) return 0; // reset when back at level of current inline shapes
               else return 0;
             })();
             m.y = (() => {
               if (p.pidClass === undefined || p.pidClass === "group") return 0; // if group set at origin (0, 0)
               else if (p.lvl === m.lvl) return (p.y + (p.h - m.h) / 2); // else if in current inline level space shape from previous one
-              else if (p.lvl < m.lvl) return; // skip if child (one level lower than current inline shapes). These children move already relative to their parent (next shape)
+              else if (p.lvl < m.lvl) {
+                // skip if child (one level lower than current inline shapes). These children move already relative to their parent (next shape)
+              }
               else if (p.lvl > m.lvl) return s.spacing + Math.abs(measureBlock('height', descendantsWithParent)); // reset to new line when back at level of current inline shapes
             })();
 
@@ -274,6 +279,11 @@ function vertexPlacement(pidJson) {
             console.log(blockBottom);
             console.log(blockWidth);
             console.log(blockHeight);
+            // Set sides of block
+            m.left = blockLeft;
+            m.right = blockRight;
+            m.top = blockTop;
+            m.bottom = blockBottom;
 
             // Scale:
             scaleGroup(blockWidth, blockHeight, s.margin, descendantSides);
@@ -507,7 +517,6 @@ function vertexPlacement(pidJson) {
       console.log(cell);
       descendantSides.push(cell);
     });
-    console.log(descendantSides);
     return descendantSides;
   }
 
@@ -1241,7 +1250,34 @@ function generatePidXmlString(pidJson) {
 
   console.groupCollapsed("XML String generation started...");
 
-  // TODO: Fix pid-current-value in xml-string-templates which is currently set to the ID
+  function getDataBinding(shape) {
+    return ''; // FIXME:
+    if ('equipment' === shape.pidClass) {
+      let sapientBind = {
+        datasources: {
+          pValueCurrent: {
+            source: 'var',
+            params: {
+              id: shape.id
+            }
+          }
+        },
+        bindings: {
+          text: {
+            value: {
+              source: 'dataref',
+              defaultValue: '---',
+              params: {
+                ref: 'pValueCurrent'
+              }
+            }
+          }
+        }
+      };
+      //return JSON.stringify(sapientBind);
+    }
+  }
+  
   // TODO: Set labels in value attribute in pid-shapes-library and set label=${pidEquipment.value} in template literals
   const htmlLabel = '&lt;b&gt;%pid-label%&lt;br&gt;&lt;span style=&quot;background-color: rgb(0 , 255 , 0)&quot;&gt;&lt;font color=&quot;#ffffff&quot;&gt;&amp;nbsp;%pid-current-value%&amp;nbsp;&lt;/font&gt;&lt;/span&gt;&lt;/b&gt;&lt;br&gt;';
   const htmlLabelInstrument = '&lt;table cellpadding=&quot;4&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;font-size:1em;width:100%;height:100%;&quot;&gt;&lt;tr&gt;&lt;td&gt;%pid-function%&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%pid-number%&lt;/td&gt;&lt;/table&gt; ';
@@ -1262,7 +1298,7 @@ function generatePidXmlString(pidJson) {
     // Values not preceeded with '_' are instance attributes (from database)
     // FIXME: Remove id attribute in mxCell and leave it only in object?
     xmlString += `
-    <object id="${pidEquipment.id ? pidEquipment.id : pidEquipment._id}" label="${pidEquipment.shapeCategory !== 'engines' ? htmlLabel : 'M'}" placeholders="1" pid-label="${pidEquipment.pidLabel ? pidEquipment.pidLabel : (pidEquipment.shortName ? pidEquipment.shortName : (pidEquipment.germanName ? pidEquipment.germanName : (pidEquipment.englishName ? pidEquipment.englishName : null)))}" pid-current-value="${pidEquipment.id}" pid-function="${pidEquipment.pidFunction}" pid-number="${pidEquipment.pidNumber}" sapient-bind="">
+    <object id="${pidEquipment.id ? pidEquipment.id : pidEquipment._id}" label="${pidEquipment._value !== '' ? pidEquipment._value : htmlLabel}" placeholders="1" pid-label="${pidEquipment.pidLabel ? pidEquipment.pidLabel : (pidEquipment.shortName ? pidEquipment.shortName : (pidEquipment.germanName ? pidEquipment.germanName : (pidEquipment.englishName ? pidEquipment.englishName : null)))}" pid-current-value="${pidEquipment.id}" pid-function="${pidEquipment.pidFunction}" pid-number="${pidEquipment.pidNumber}" sapient-bind="${getDataBinding(pidEquipment)}">
         <mxCell style="${concatenateStyles(pidEquipment.styleObject)}" vertex="${pidEquipment._vertex}" connectable="1" parent="${pidEquipment.parentId ? pidEquipment.parentId : pidEquipment._parent}">
           <mxGeometry x="${pidEquipment.mxGeometry._x ? pidEquipment.mxGeometry._x : 50}" y="${pidEquipment.mxGeometry._y ? pidEquipment.mxGeometry._y : 50}" width="${pidEquipment.mxGeometry._width}" height="${pidEquipment.mxGeometry._height}" as="${pidEquipment.mxGeometry._as}"></mxGeometry>
         </mxCell>
@@ -1273,7 +1309,7 @@ function generatePidXmlString(pidJson) {
   console.log(`Generating XML-tags for ${instrumentCount} instrument instances...`);
   pidInstruments.forEach((pidInstrument) => {
     xmlString += `
-    <object id="${pidInstrument.id ? pidInstrument.id : pidInstrument._id}" label="${htmlLabelInstrument}" placeholders="1" pid-label="${pidInstrument.pidLabel ? pidInstrument.pidLabel : (pidInstrument.shortName ? pidInstrument.shortName : (pidInstrument.germanName ? pidInstrument.germanName : (pidInstrument.englishName ? pidInstrument.englishName : null)))}" pid-current-value="${pidInstrument.id}" pid-function="${pidInstrument.pidFunction}" pid-number="${pidInstrument.pidNumber}" sapient-bind="">
+    <object id="${pidInstrument.id ? pidInstrument.id : pidInstrument._id}" label="${htmlLabelInstrument}" placeholders="1" pid-label="${pidInstrument.pidLabel ? pidInstrument.pidLabel : (pidInstrument.shortName ? pidInstrument.shortName : (pidInstrument.germanName ? pidInstrument.germanName : (pidInstrument.englishName ? pidInstrument.englishName : null)))}" pid-current-value="${pidInstrument.id}" pid-function="${pidInstrument.pidFunction}" pid-number="${pidInstrument.pidNumber}" sapient-bind="${getDataBinding(pidInstrument)}">
       <mxCell style="${concatenateStyles(pidInstrument.styleObject)}" vertex="${pidInstrument._vertex}" connectable="1" parent="${pidInstrument.parentId ? pidInstrument.parentId : pidInstrument._parent}">
         <mxGeometry x="${pidInstrument.mxGeometry._x ? pidInstrument.mxGeometry._x : 50}" y="${pidInstrument.mxGeometry._y ? pidInstrument.mxGeometry._y : 50}" width="${pidInstrument.mxGeometry._width}" height="${pidInstrument.mxGeometry._height}" as="${pidInstrument.mxGeometry._as}"></mxGeometry>
       </mxCell>
@@ -1284,7 +1320,7 @@ function generatePidXmlString(pidJson) {
   console.log(`Generating XML-tags for ${arrowCount} arrow instances...`);
   pidArrows.forEach((pidArrow) => {
     xmlString += `
-    <object id="${pidArrow.id ? pidArrow.id : pidArrow._id}" label="${htmlLabel}" placeholders="1" pid-label="${pidArrow.pidLabel ? pidArrow.pidLabel : (pidArrow.shortName ? pidArrow.shortName : (pidArrow.germanName ? pidArrow.germanName : (pidArrow.englishName ? pidArrow.englishName : null)))}" pid-current-value="${pidArrow.id}" pid-function="${pidArrow.pidFunction}" pid-number="${pidArrow.pidNumber}" sapient-bind="">
+    <object id="${pidArrow.id ? pidArrow.id : pidArrow._id}" label="${pidArrow._value !== '' ? pidArrow._value : htmlLabel}" placeholders="1" pid-label="${pidArrow.pidLabel ? pidArrow.pidLabel : (pidArrow.shortName ? pidArrow.shortName : (pidArrow.germanName ? pidArrow.germanName : (pidArrow.englishName ? pidArrow.englishName : null)))}" pid-current-value="${pidArrow.id}" pid-function="${pidArrow.pidFunction}" pid-number="${pidArrow.pidNumber}" sapient-bind="${getDataBinding(pidArrow)}">
       <mxCell style="${concatenateStyles(pidArrow.styleObject)}" vertex="${pidArrow._vertex}" connectable="1" parent="${pidArrow.parentId ? pidArrow.parentId : pidArrow._parent}">
         <mxGeometry x="${pidArrow.mxGeometry._x ? pidArrow.mxGeometry._x : 50}" y="${pidArrow.mxGeometry._y ? pidArrow.mxGeometry._y : 50}" width="${pidArrow.mxGeometry._width}" height="${pidArrow.mxGeometry._height}" as="${pidArrow.mxGeometry._as}"></mxGeometry>
       </mxCell>
@@ -1295,7 +1331,7 @@ function generatePidXmlString(pidJson) {
   console.log(`Generating XML-tags for ${groupCount} group instances...`);
   pidGroups.forEach((pidGroup) => {
     xmlString += `
-    <object id="${pidGroup.id ? pidGroup.id : pidGroup._id}" label="${htmlLabelGroup}" placeholders="1" pid-label="${pidGroup.pidLabel ? pidGroup.pidLabel : (pidGroup.shortName ? pidGroup.shortName : (pidGroup.germanName ? pidGroup.germanName : (pidGroup.englishName ? pidGroup.englishName : null)))}" pid-hierarchy="${pidGroup.pidHierarchy}" pid-current-value="${pidGroup.id}" pid-function="${pidGroup.pidFunction}" pid-number="${pidGroup.pidNumber}" sapient-bind="">
+    <object id="${pidGroup.id ? pidGroup.id : pidGroup._id}" label="${pidGroup._value !== '' ? pidGroup._value : htmlLabelGroup}" placeholders="1" pid-label="${pidGroup.pidLabel ? pidGroup.pidLabel : (pidGroup.shortName ? pidGroup.shortName : (pidGroup.germanName ? pidGroup.germanName : (pidGroup.englishName ? pidGroup.englishName : null)))}" pid-hierarchy="${pidGroup.pidHierarchy}" pid-current-value="${pidGroup.id}" pid-function="${pidGroup.pidFunction}" pid-number="${pidGroup.pidNumber}" sapient-bind="${getDataBinding(pidGroup)}">
       <mxCell style="${concatenateStyles(pidGroup.styleObject)}" vertex="${pidGroup._vertex}" connectable="${pidGroup._connectable}" parent="${pidGroup.parentId ? pidGroup.parentId : pidGroup._parent}">
         <mxGeometry x="${pidGroup.mxGeometry._x ? pidGroup.mxGeometry._x : graphSettings.defaultPadding}" y="${pidGroup.mxGeometry._y ? pidGroup.mxGeometry._y : graphSettings.defaultPadding}" width="${pidGroup.mxGeometry._width}" height="${pidGroup.mxGeometry._height}" as="${pidGroup.mxGeometry._as}"></mxGeometry>
       </mxCell>
@@ -1311,7 +1347,7 @@ function generatePidXmlString(pidJson) {
     const target = pidJson.find((vertex) => vertex.id === pidLine.targetId);
     const parent = pidJson.find((parent) => parent.id === source.id);
     xmlString += `
-    <object id="${pidLine.id ? pidLine.id : pidLine._id}" label="${pidLine.id}: ${source.id}>${target.id}" placeholders="1" pid-label="${pidLine.pidLabel ? pidLine.pidLabel : (pidLine.shortName ? pidLine.shortName : (pidLine.germanName ? pidLine.germanName : (pidLine.englishName ? pidLine.englishName : 'Beer')))}" pid-current-value="${pidLine.id}" pid-function="${pidLine.pidFunction}" pid-number="${pidLine.pidNumber}" sapient-bind="">
+    <object id="${pidLine.id ? pidLine.id : pidLine._id}" label="${pidLine._value !== '' ? pidLine._value : htmlLabelLine}" placeholders="1" pid-label="${pidLine.pidLabel ? pidLine.pidLabel : (pidLine.shortName ? pidLine.shortName : (pidLine.germanName ? pidLine.germanName : (pidLine.englishName ? pidLine.englishName : 'Beer')))}" pid-current-value="${pidLine.id}" pid-function="${pidLine.pidFunction}" pid-number="${pidLine.pidNumber}" sapient-bind="${getDataBinding(pidLine)}">
       <mxCell id="${pidLine.id ? pidLine.id : pidLine._id}" style="${concatenateStyles(pidLine.styleObject)}" edge="${pidLine._edge}" source="${pidLine.sourceId}" target="${pidLine.targetId}" parent="${parent.id ? parent.id : pidLine._parent}">
         <mxGeometry relative="${pidLine.mxGeometry._relative ? pidLine.mxGeometry._relative : 1}" as="${pidLine.mxGeometry._as ? pidLine.mxGeometry._as : 'geometry'}"></mxGeometry>
       </mxCell>

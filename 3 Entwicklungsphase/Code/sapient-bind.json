@@ -1,0 +1,89 @@
+// Simple for p_values_current
+{
+  "datasources": {
+    "pValueCurrent": {
+      "source": "var", // var/nodestatus/...
+      "params": {
+        "id": 1292 // id of p_values_current
+      }
+    }
+  },
+  "bindings": {
+    "text": {
+      "value": {
+        "source": "dataref",
+        "defaultValue": "---",
+        "params": {
+          "ref": "pValueCurrent"
+        }
+      }
+    }
+  }
+}
+
+{
+  "datasources": {
+    "text": {
+      "source": "var",
+      "params": {
+        "id": "INSERT P_VALUES_CURRENT ID"
+      }
+    },
+    "color": {
+      "source": "var",
+      "params": {
+        "id": "INSERT P_VALUES_CURRENT ID"
+      }
+    }
+  },
+  "bindings": {
+    "text": {
+      "value": {
+        "source": "dataref",
+        "params": {
+          "ref": "text"
+        }
+      },
+      "defaultValue": "---",
+      "exceptionValue": "Ex!"
+    },
+    "fillColor": {
+      "value": {
+        "source": "function",
+        "defaultValue": "white",
+        "params": {
+          "name": "map",
+          "params": {
+            "input": {
+              "source": "function",
+              "params": {
+                "name": "sum",
+                "params": {
+                  "values": [
+                    0,
+                    {
+                      "source": "dataref",
+                      "params": {
+                        "ref": "color"
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "map": [
+              [
+                0,
+                "red"
+              ],
+              [
+                2,
+                "green"
+              ]
+            ]
+          }
+        }
+      }
+    }
+  }
+}
