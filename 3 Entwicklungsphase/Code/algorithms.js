@@ -8,7 +8,6 @@ function vertexPlacement(pidJson) {
   console.table(edges);
   //console.log(JSON.stringify(edges));
 
-  // TODO:
   let simplifiedEdges = simplifyConnections(vertices, edges);
   console.log('simplifiedEdges:');
   console.table(simplifiedEdges);
@@ -134,6 +133,11 @@ function vertexPlacement(pidJson) {
         if (m.tags.includes('childOfGroup')) {
           console.group("#childOfGroup");
 
+          let descendantsWithParent = memory.filter((child) => (child.parentId === m.id));
+          descendantsWithParent.push(m); // Push root/parent vertex as well
+          console.warn('descendantsWithParent:')
+          console.warn(descendantsWithParent);
+
           if (m.tags.includes("inline")) {
             console.group("#inline");
 
@@ -149,7 +153,7 @@ function vertexPlacement(pidJson) {
               if (p.pidClass === undefined || p.pidClass === "group") return 0; // if group set at origin (0, 0)
               else if (p.lvl === m.lvl) return (p.y + (p.h - m.h) / 2); // else if in current inline level space shape from previous one
               else if (p.lvl < m.lvl) return; // skip if child (one level lower than current inline shapes). These children move already relative to their parent (next shape)
-              else if (p.lvl > m.lvl) return 0; // reset to new line when back at level of current inline shapes
+              else if (p.lvl > m.lvl) return s.spacing + Math.abs(measureBlock('height', descendantsWithParent)); // reset to new line when back at level of current inline shapes
             })();
 
             console.log(`Coordinates: (${m.x}, ${m.y})`);
@@ -162,11 +166,6 @@ function vertexPlacement(pidJson) {
           } else if (m.tags.includes("nucleusGroup")) {
             console.group(`#nucleusGroup`); // nucleusGroups of all pidLevels
             console.log(`nucleusGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
-
-            let descendantsWithParent = memory.filter((child) => (child.parentId === m.id));
-            descendantsWithParent.push(m); // Push root/parent vertex as well
-            console.warn('descendantsWithParent:')
-            console.warn(descendantsWithParent);
 
             // Measure:
             const blockWidth = measureBlock('width', descendantsWithParent);
@@ -234,35 +233,58 @@ function vertexPlacement(pidJson) {
             console.group(`#innerGroup`);
             console.log(`innerGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
 
-            if ('Cell' === m.pidHierarchy) {
-              // innerGroup with only group children (either innerGroups or nucleusGroups)
-              let scaledGroup = packBlocks(m.children, vertices, memory); // function returns scaled group dimmensions
-              m.w = scaledGroup.width;
-              m.h = scaledGroup.height;
-              // Scale:
-              //scaleGroup(blockWidth, blockHeight, s.margin, m.descendants);
-              // Center:
-              shiftChildren(blockWidth, blockHeight, m.children);
-              // Clear:
-              clearStack(stack[p.lvl]);
-            }
-            
-            else {
-              // innerGroup with at least one shape as children
+            console.log(m.pidHierarchy);
 
-              // Measure:
-              let blockWidth = measureBlock('width', m.descendants);
-              let blockHeight = measureBlock('height', m.descendants);
-              // Scale:
-              scaleGroup(blockWidth, blockHeight, s.margin, m.descendants);
-              // Shift:
-              shiftInnerGroup(stack[m.lvl]);
-              // Center:
-              shiftChildren(blockWidth, blockHeight, m.children);
-              // Clear:
-              clearStack(stack[p.lvl]);
-            }
-            
+            // if ('Unit' === m.pidHierarchy) {
+            //   // innerGroup with only group children (either innerGroups or nucleusGroups)
+            //   let children = getChildren(m.id, memory);
+            //   children.forEach((child) => child.tag2)
+            //   console.log(children);
+            //   let childrenGroups = children.filter((child) => child.tag2 === 'innerGroup' || 'nucleusGroup' === child.tag2);
+            //   console.log('childrenGroups');
+            //   console.log(childrenGroups);
+            //   let scaledGroup = packBlocks(childrenGroups, vertices, memory); // function returns scaled group dimmensions
+            //   m.w = scaledGroup.width;
+            //   m.h = scaledGroup.height;
+            //   // Scale:
+            //   //scaleGroup(blockWidth, blockHeight, s.margin, m.descendants);
+            //   // Center:
+            //   //shiftChildren(blockWidth, blockHeight, m.children);
+            //   // Clear:
+            //   clearStack(stack[p.lvl]);
+            // } else {
+
+
+            // innerGroup with at least one shape as children
+
+            // Measure: get absolute measures of all descendants (relative to current parent/grandparent: m)
+            let descendantSides = getAbsoluteSides(m.descendants, m);
+
+            let blockLeft = Math.abs(getMin("left", descendantSides));
+            let blockRight = getMax("right", descendantSides);
+            let blockTop = Math.abs(getMin("top", descendantSides));
+            let blockBottom = getMax("bottom", descendantSides);
+            let blockWidth = measureBlock('width', descendantSides);
+            let blockHeight = measureBlock('height', descendantSides);
+            console.log('descendantSides');
+            console.log(descendantSides);
+            console.log(blockLeft);
+            console.log(blockRight);
+            console.log(blockTop);
+            console.log(blockBottom);
+            console.log(blockWidth);
+            console.log(blockHeight);
+
+            // Scale:
+            scaleGroup(blockWidth, blockHeight, s.margin, descendantSides);
+            // Shift:
+            shiftInnerGroup(stack[m.lvl]);
+            // Center:
+            shiftChildren(blockWidth, blockHeight, m.children);
+            // Clear:
+            clearStack(stack[p.lvl]);
+            // }
+
 
           } else if (m.tags.includes("outerGroup")) {
             console.group("#outerGroup");
@@ -274,18 +296,16 @@ function vertexPlacement(pidJson) {
               let scaledGroup = packBlocks(m.children, vertices, memory); // function returns scaled group dimmensions
               m.w = scaledGroup.width;
               m.h = scaledGroup.height;
-            }
-            else {
+            } else {
               m.w = 2 * s.margin + measureBlock('width', m.children);
               m.h = 2 * s.margin + measureBlock('height', m.children);
             }
-            m.x = s.margin;
-            m.y = s.margin;
+
             // Scale: 
             //scaleGroup(blockWidth, blockHeight, s.margin, m.children);
             // Shift:
             //shiftOuterGroup(stack[m.lvl]);
-            
+
             // Center:       before: shiftChildren(blockWidth, blockHeight, m.children);
             // Clear:
             clearStack(stack[p.lvl]);
@@ -472,6 +492,43 @@ function vertexPlacement(pidJson) {
     return array.reduce((max, vertex) => (vertex[variable] > max[variable] ? vertex : max), array[0]);
   }
 
+  function getAbsoluteSides(descendants, m) {
+    /**
+     * Gets absolute sides of descendants (considering the parent's/grandparent's position)
+     */
+    let descendantSides = [];
+    descendants.map((descendant) => {
+      let cell = {
+        left: getAbsolute("left", descendant, m),
+        right: getAbsolute("right", descendant, m),
+        top: getAbsolute("top", descendant, m),
+        bottom: getAbsolute("bottom", descendant, m)
+      }
+      console.log(cell);
+      descendantSides.push(cell);
+    });
+    console.log(descendantSides);
+    return descendantSides;
+  }
+
+  function getAbsolute(variable, descendant, parent) {
+    /**
+     * Receives a variable name (string) and an array and returns the absolute value
+     */
+    let levelDifference = descendant.lvl - parent.lvl;
+    console.log("levelDifference");
+    console.log(levelDifference);
+    if (1 === levelDifference) return descendant[variable];
+    else if (2 === levelDifference) {
+      let parent = memory.find((parent) => parent.id === descendant.parentId);
+      return descendant[variable] - parent[variable];
+    } else if (3 === levelDifference) {
+      let parent = memory.find((parent) => parent.id === descendant.parentId);
+      let grandparent = memory.find((grandparent) => grandparent.id === parent.id);
+      return descendant[variable] - grandparent[variable];
+    }
+  }
+
   // function centerBlock(children) {
 
   //   let child = children[0];
@@ -493,7 +550,7 @@ function vertexPlacement(pidJson) {
 
   //   console.log('block:');
   //   console.log(block);
-      
+
   //   // Get corresponding object in vertices and memory arrays
   //   let originalVertex = vertices.find(v => v.id === block.id);
   //   let memoryVertex = memory.find(v => v.id === block.id);
@@ -525,9 +582,9 @@ function vertexPlacement(pidJson) {
 
   function packBlocks(children, vertices, memory) {
     /* Runs algorithm to optimally pack blocks based on passed sorting option,
-    * updates the original properties in the vertices and memory arrays 
-    * and returns scaled group dimmensions for setting m.w and m.h of current group
-    */
+     * updates the original properties in the vertices and memory arrays 
+     * and returns scaled group dimmensions for setting m.w and m.h of current group
+     */
     console.group(`Packing blocks.`);
 
     let root;
@@ -739,7 +796,7 @@ function vertexPlacement(pidJson) {
     console.log('scaledGroup:');
     console.log(scaledGroup);
     console.groupEnd();
-    
+
     return scaledGroup;
   }
 
@@ -929,6 +986,11 @@ function vertexPlacement(pidJson) {
         let descendantsWithParent = getDescendants(child.id, memory);
         descendantsWithParent.push(child); // Push root/parent vertex as well
 
+        let rights = descendantsWithParent.map((descendant) => descendant.right);
+        let lefts = descendantsWithParent.map((descendant) => descendant.left);
+        let tops = descendantsWithParent.map((descendant) => descendant.top);
+        let bottoms = descendantsWithParent.map((descendant) => descendant.bottom);
+
         // Measure block of all descendants
         let blockWidth = measureBlock('width', m.descendants);
         let blockHeight = measureBlock('height', m.descendants);
@@ -951,9 +1013,7 @@ function vertexPlacement(pidJson) {
         applyOffset("y", yCenteringOffset, child);
 
         console.groupEnd();
-        }
-
-        else if ("group" === child.pidClass) {
+      } else if ("group" === child.pidClass) {
         // Case for children that are group (ex.innerGroups that have other innerGroups as chidlren like units, and maybe emodules).
         console.group(`Applying margin offset of ${s.margin} to ${child.name} for x and y.`);
         const xOffset = ((m.w / 2) - (blockWidth / 2));
