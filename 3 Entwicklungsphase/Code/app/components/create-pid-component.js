@@ -41,9 +41,10 @@ let component = SapientComponent.extend(Evented, {
     currentProgressValue:0,
     maxProgressValue:100,
     // For fetched data from database
-    lNodes: null, // raw fetched data from database
-    visuVertices: null, // raw fetched data from database
-    pidConnections: null,
+    lNodes: null, // database query:  SELECT * sapient._owner.l_nodes WHERE id >= pidRootNodeId
+    visuVertices: null, // database query:  SELECT * sapient._owner.prj_prc_visu_vertices
+    pidConnections: null, // database query:  SELECT * sapient._owner.prj_prc_pro_flows
+    pidValueRelations: null, // database query:  SELECT * sapient._owner.p_value_relations WHERE id >= pidRootNodeId
     // For input and return values of functions in script
     pidNodes: null, // mapped data (after left join lNodes and visuVertices with javascript in checkIfQueriesDone())
     pidNodesTree: undefined, // output of buildHierarchy(pidNodes)
@@ -94,6 +95,7 @@ let component = SapientComponent.extend(Evented, {
         * Boardlet from parentView.parameters.node.value and writes it in value
         * attribute of input field
         */
+        this.resetProgressBar();
         let value = this.get('parentView.parameters.node.value');
         // Skip initial value of pidRootNodeId Because null == undefined:
         // (variable == null) equals (variable === undefined || variable === null)
@@ -118,7 +120,7 @@ let component = SapientComponent.extend(Evented, {
         * first call) 
         */
         if (firstCheck) {
-            console.groupCollapsed('Waiting for file input and root node selection...');
+            console.groupCollapsed('File input and root node selection...');
             this.set('firstCheck', false);
             return;
         }
@@ -127,7 +129,6 @@ let component = SapientComponent.extend(Evented, {
             document.getElementById('generate-pid-button').className =
                 'button button-success';
             document.getElementById('generate-pid-button').addEventListener('click', () => {
-                this.resetProgressBar();
                 this.databaseQueries();
             },false);
             console.groupEnd();
@@ -143,7 +144,7 @@ let component = SapientComponent.extend(Evented, {
     },
 
 
-    updateProgressBar: async function (progress, max) {
+    updateProgressBar: async function(progress, max) {
         /**
          * Function to set the value of the progress bar.
          * NOT IMPLEMENTED YET
@@ -164,16 +165,13 @@ let component = SapientComponent.extend(Evented, {
             // OPTIONAL: setTimeout to hide progressBar after a few seconds
             // because if no delay, progress is too fast and progressBar will be hidden 
             // almost immedeately after showing
-            setTimeout(() => {
-                
-                this.set('showProgressBar', false);
-            }, 3000);
+            //setTimeout(() => this.set('showProgressBar', false), 3000);
         }
         this.set("currentProgressValue", progress); // update
     },
     
     
-    resetProgressBar: async function () {
+    resetProgressBar: async function() {
         /**
          * Hide and then reset to avoid resetting animation
          */
@@ -184,114 +182,51 @@ let component = SapientComponent.extend(Evented, {
     },
 
 
+    resetGlobalVariables: function() {
+        /**
+        * Resets globall variables for another script run (called on click event of generate-pid-button)
+        */
+        console.groupCollapsed('Reseting global variables...');
+         // For continue test conditions (booleans)
+         this.set('firstCheck', true);
+         this.set('rootNode', false);
+         this.set('loading', false);
+        // For fetched data from database
+        this.set('lNodes', null);
+        this.set('visuVertices', null);
+        this.set('pidConnections', null);
+        this.set('pidConnections', null);
+        this.set('pidValueRelations', null);
+        // For input and return values of functions in script
+        this.set('pidNodes', null);
+        this.set('pidNodesTree', undefined);
+        this.set('pidNodesInOrder', undefined);
+        this.set('pidVertices', undefined);
+        this.set('pidEdges', undefined);
+        this.set('pidDataBindings', undefined);
+        // For visualization
+        this.set('pidJson', undefined);
+        this.set('pidJsonString', '');
+        this.set('pidXmlString', '');
+        this.set('pidHtmlString', '');
+        console.groupEnd();
+    },
+
+
     databaseQueries: async function() {
         console.groupCollapsed('P&ID Generation started...');
         console.time();
         let root = this.get('pidRootNode')[0];
         document.getElementById('xml-viewer-div').innerHTML = `Generating P&ID visualization of ${root.shortName} ...`;
         // Add sapient disabled class for success-button
-        document.getElementById('generate-pid-button').className =
-            'button button-success disabled';
-        // TODO: Display a loader in xml-viewer-div
-        // document.getElementById('xml-viewer-div').innerHTML =
-        //     'Generating XML of P&ID Visualization...';
+        document.getElementById('generate-pid-button').className = 'button button-success disabled';
+
         this.set('loading', true);
 
-        // 1) TODO: Generate JSON Object of P&ID (pidJson) FROM DATABASE QUERIES
         console.groupCollapsed(`Querying database...`);
         this.set('lNodes', this.getData('lNodes'));
         this.set('visuVertices', this.getData('visuVertices'))
         this.set('pidConnections', this.getData('pidConnections'));
-    },
-
-
-    checkIfQueriesDone: function(data) {
-        /** Checks if fetched data has been set to the variables by checking if
-        * null or undefined simoultaneously if fetched data
-        * hasn't yet been set to the variables. Because null == undefined:
-        * (variable == null) equals (variable === undefined || variable === null)
-        */
-        let variables = [
-            'pidRootNode',
-            'lNodes',
-            'visuVertices',
-            'pidNodes',
-            'pidConnections'
-        ];
-        let ok = {
-            pidRootNode: false,
-            lNodes: false,
-            visuVertices: false,
-            pidNodes: false,
-            pidConnections: false
-        };
-
-        // Checks all variables and sets the corresonding boolean value
-        //console.groupCollapsed('Queries done status:')
-        variables.forEach((variable) => {
-            if (this.get(variable) === null || this.get(variable) === undefined) {
-                ok[variable] = false;
-                //console.log(`${variable}: ${ok[variable]}`); 
-            }
-            else {
-                // NOTE: pidNodes never set here to true, must be set afterwards (after Left Join)
-                ok[variable] = true;
-                //console.log(`${variable}: ${ok[variable]}`);
-            }
-        });
-        //console.groupEnd();
-
-        // Log root node name in boardlet
-        if (ok.pidRootNode === true) {
-            const rootNode = this.get('pidRootNode');
-            //console.table(rootNode);
-            let name = '';
-            // Manage empty name fields for selected root nodes
-            if (rootNode.shortName !== '') { name = rootNode[0].shortName }
-            else { name = 'Invalid root node for visualization. Select another one.' } 
-            //console.log(name);
-            document.getElementById('root-node-selection').value = name;
-            document.getElementById('selection-field').style.borderColor = 'green';
-            //document.getElementById('input-icon').className = 'icon-check';
-            this.set('rootNode', true);
-            this.checkToEnableButton(this.get('firstCheck'));
-        }
-    
-        // Left Join lNodes and visuVertices
-        if (ok.lNodes === true && ok.visuVertices === true) {
-            /*  Replicates PostgreSQL Left Join: 
-                    SELECT * FROM sapient_owner.l_nodes 
-                    LEFT JOIN sapient_owner.prj_prc_visu_vertices 
-                    ON node = parent
-            */
-            console.log(this.get('lNodes'));
-            console.log(this.get('visuVertices'));
-
-            let nodeInstances = [];
-            this.get('lNodes').forEach((lNode) => {
-                let vertexMatch = {};
-                vertexMatch = this.get('visuVertices').find((visuVertex) => visuVertex.nodeId === lNode.id);
-                // Clone all properties to NEW target object (which is returned) Alternatively: let pidVertex = Object.assign({}, pidNode, matchingShape);
-                let nodeInstance = { ...lNode, ...vertexMatch };
-                nodeInstances.push(nodeInstance);
-            });
-            this.set('pidNodes', nodeInstances);
-            ok.pidNodes = true;
-            //console.log('Merged lNodes and visuVertices to create pidNodes:');
-            //console.table(this.get('pidNodes'));
-        }
-        // Continue with PID generation when all queries done
-        if (ok.pidNodes === true && ok.pidConnections === true) {
-            console.groupCollapsed('All queries done:')
-            console.log('pidNodes:');
-            console.log(this.get('pidNodes'));
-            console.log('pidConnections:');
-            console.log(this.get('pidConnections'));
-            console.groupEnd();
-            // TODO: Insert a log for count of nodes and connections in innerHTML 
-            console.groupEnd();
-            this.generatePid();
-        }
     },
 
 
@@ -353,10 +288,10 @@ let component = SapientComponent.extend(Evented, {
             /* SUBOPTIMAL POSTGRESQL QUERY: get all l_nodes starting from selected root node id and perform left join (suboptimal because l_node ids must be in descending hierarchical order)
                selected root node (WHERE n.id >= rootNodeId)
                
-                    SELECT * FROM sapient_owner.l_nodes 
-                    LEFT JOIN sapient_owner.prj_prc_visu_vertices 
-                    ON node = parent
-                    WHERE sapient_owner.l_nodes.id >= rootNodeId;
+                    SELECT * FROM sapient_owner.l_nodes AS n
+                    LEFT JOIN sapient_owner.prj_prc_visu_vertices  AS v
+                    ON v.node = n.id
+                    WHERE n.id >= rootNodeId;
 
                 resource = "l_nodes";
                 alias = { "n":"l_nodes", "v":"prj_prc_visu_vertices" };
@@ -366,6 +301,7 @@ let component = SapientComponent.extend(Evented, {
                 subscriptionOptions = undefined;
                 model = undefined;
             */
+            // IMPLEMENTATION: Fetch all l_nodes Where id >= rootId and LEFT JOIN with visu_vertices and with valueRelations
             resource = 'l_nodes';
             filter = [{ 
                 field: 'id',
@@ -411,6 +347,35 @@ let component = SapientComponent.extend(Evented, {
                 { flowType: 'flow_type' }
             ];
         }
+        if (data === "valueRelations") {
+            /* OPTIMAL POSTGRESQL QUERY: get all l_nodes starting from selected root node id and perform left join (suboptimal because l_node ids must be in descending hierarchical order)
+               selected root node (WHERE n.id >= rootNodeId)
+
+                    Select * FROM sapient_owner.l_nodes AS n
+                    LEFT JOIN sapient_owner.p_value_relations AS v
+                    ON n.id = v.node
+                    WHERE n.id > 21000;
+
+                resource = "l_nodes";
+                alias = { "n":"l_nodes", "v":"prj_prc_visu_vertices" };
+                fields = { "n":[ "id", "node_level", "parent", "short_name", "name_0", "attr_jsonb" ], "v":[ "id", "node", "is_instrument", "shape_name", "pid_label", "pid_function", "pid_number" ]};
+                relate = [{ "src":"n", "dst":"v", "how":"left", "on":{ "src":"id", "dst":"nodeId" } }];
+                filter = [{ "field":"n.id", op:"ge", "val":this.get("pidRootNodeId") }];
+                subscriptionOptions = undefined;
+                model = undefined;
+            */
+            resource = 'p_value_relations';
+            filter = [{ 
+                field: 'id',
+                op: 'ge',
+                val: rootId
+            }];
+            nameMappings = [
+                { id: 'id' },
+                { node: 'node' },  // Private key l_nodes
+                { value: 'value' }, // Private key of p_values_current and p_values_config
+            ];
+        } 
 
         let jsObject = [];
 
@@ -423,8 +388,7 @@ let component = SapientComponent.extend(Evented, {
             //console.log(result);
             if (result.content.length > 0) {
                 let jsonClassArray = result.content;
-                //console.log('jsonClassArray: \n');
-                //console.log(jsonClassArray);
+
                 // Build jsObject with only fields in corresonding model
                 jsonClassArray.forEach((row) => {
                     let object = {};
@@ -437,7 +401,7 @@ let component = SapientComponent.extend(Evented, {
                 });
                 //console.log(`Succesfully parsed queried ${data} data to object:`);
                 //console.table(jsObject);
-                //console.log(`jsObjectString (${data}): \n`);
+                //console.log(`jsObjectString (${data}):`);
                 //console.log(JSON.stringify(jsObject));
             }
 
@@ -447,9 +411,96 @@ let component = SapientComponent.extend(Evented, {
             this.set(data, jsObject);
         })
         .then(() => {
-            // TODO: IMPLEMENT WAIT FOR ALL QUERIES AND NOT ONLY NODES AND CONNECTIONS
             this.checkIfQueriesDone(data);
         });
+    },
+    
+
+    checkIfQueriesDone: function(data) {
+        /** Checks if fetched data has been set to the variables by checking if
+        * null or undefined simoultaneously if fetched data
+        * hasn't yet been set to the variables. Because null == undefined:
+        * (variable == null) equals (variable === undefined || variable === null)
+        */
+        let variables = [
+            'pidRootNode',
+            'lNodes',
+            'visuVertices',
+            'pidNodes',
+            'pidConnections'
+            'pidValueRelations'
+        ];
+        let ok = {
+            pidRootNode: false,
+            lNodes: false,
+            visuVertices: false,
+            pidNodes: false,
+            pidConnections: false,
+            pidValueRelations: false
+        };
+
+        // Checks all variables and sets the corresonding boolean value
+        //console.groupCollapsed('Queries done status:')
+        variables.forEach((variable) => {
+            if (this.get(variable) === null || this.get(variable) === undefined) {
+                ok[variable] = false;
+                //console.log(`${variable}: ${ok[variable]}`); 
+            }
+            else {
+                // NOTE: pidNodes never set here to true, must be set afterwards (after Left Join)
+                ok[variable] = true;
+                //console.log(`${variable}: ${ok[variable]}`);
+            }
+        });
+        //console.groupEnd();
+
+        // Log root node name in boardlet
+        if (ok.pidRootNode === true) {
+            const rootNode = this.get('pidRootNode');
+            let name = '';
+            // Manage empty name fields for selected root nodes
+            if (rootNode.shortName !== '') { name = rootNode[0].shortName }
+            else { name = 'Invalid root node for visualization. Select another one.' } 
+            document.getElementById('root-node-selection').value = name;
+            document.getElementById('selection-field').style.borderColor = 'green';
+            this.set('rootNode', true);
+            this.checkToEnableButton(this.get('firstCheck'));
+        }
+    
+        // Left Join lNodes and visuVertices (merge)
+        if (ok.lNodes === true && ok.visuVertices === true && ok.valueRelations) {
+            /*  Replicates PostgreSQL Left Join: 
+                    SELECT * FROM sapient_owner.l_nodes AS n 
+                    LEFT JOIN sapient_owner.prj_prc_visu_vertices as v
+                    ON n.id = v.parent
+                    WHERE n.id >= rootId
+            */
+
+            let nodeInstances = [];
+            this.get('lNodes').forEach((lNode) => {
+                let vertexMatch = {};
+                vertexMatch = this.get('visuVertices').find((visuVertex) => visuVertex.nodeId === lNode.id);
+                // Clone all properties to NEW target object (which is returned) Alternatively: let pidVertex = Object.assign({}, pidNode, matchingShape);
+                let nodeInstance = { ...lNode, ...vertexMatch };
+                nodeInstances.push(nodeInstance);
+            });
+            this.set('pidNodes', nodeInstances);
+            ok.pidNodes = true;
+            //console.log('Merged lNodes and visuVertices to create pidNodes:');
+            //console.table(this.get('pidNodes'));
+        }
+        // Continue with PID generation when all queries done
+        if (ok.pidNodes === true && ok.pidConnections === true) {
+            console.groupCollapsed('All queries done:')
+            console.log('pidNodes:');
+            console.log(this.get('pidNodes'));
+            console.log('pidConnections:');
+            console.log(this.get('pidConnections'));
+            console.groupEnd();
+            // TODO: Insert a log for count of nodes and connections in innerHTML 
+            console.groupEnd();
+            this.generatePid();
+        }
     },
 
 
@@ -499,6 +550,9 @@ let component = SapientComponent.extend(Evented, {
         document.getElementById('upload-pid-button').addEventListener('click', () => {
                 this.uploadXmlFile(this.get('pidXmlString'));
             },false);
+
+        // 5) Reset global variables for next visualization generation (fired on click of generate-pid-button)
+        this.resetGlobalVariables();
 
         console.timeEnd();
         console.groupEnd();
@@ -675,7 +729,6 @@ let component = SapientComponent.extend(Evented, {
         const pidNodesCount = this.get('pidNodesInOrder').length;
         let pidVertices = [];
  
-        // TODO: pidNodes = (FETCH FROM PRJ_PRC_VISU_VERTECI)
         this.get('pidNodesInOrder').forEach((pidNode) => {
             let matchingShape = {};
             let details = JSON.parse(pidNode.details);
@@ -749,98 +802,218 @@ let component = SapientComponent.extend(Evented, {
         * the shapeName according to certain PID Rules for pidConnections. 
         */
         console.groupCollapsed("Mapping connections to line shapes...");
-        const pidShapesCount = this.get('pidShapesLibrary').length;
-        let pidConnections = [];
+        const vertices = this.get('pidVertices');
+        const allConnections = this.get('pidConnections');
+
+        // 1) Filter: keep connections only if both target and id found in filtered vertices
+        let connections = [];
+        allConnections.forEach((connection) => {
+            // Find corresponding source and target vertices from vertices (filtered already in buildHierarchy())
+            const sourceIdFound = vertices.some((vertex) => vertex.id === connection.sourceId);
+            const targetIdFound = vertices.some((vertex) => vertex.id === connection.targetId);
+
+            if (sourceIdFound && targetIdFound) connections.push(connection);
+        });
+        console.log(`Filtered connections: kept ${connections.length}/${this.get('pidConnections').length} of all connections:`);
+        console.table(connections);
+
+        // 2) Simplify: Clear waypoints/wayports of edges (ex. shape1 --> group1 --> group2 --> shape2  simplified to  shape1 --> shape1)
+        let simplifiedConnections = simplifyConnections(vertices, connections);
+        console.log(`Simplified connections: kept ${simplifiedConnections.length}/${connections.length} filtered connections:`);
+        console.table(simplifiedConnections);
+        
+        // 3) Map to shapes: set shapeName property and map to corresponding edge shape in pid shapes library
         let pidEdges = [];
+        simplifiedConnections.forEach((simpleConnection) => {
+            // Find corresponding source and target vertices from vertices
+            let source = vertices.find((vertex) => vertex.id === simpleConnection.sourceId);
+            let target = vertices.find((vertex) => vertex.id === simpleConnection.targetId);
 
-        console.log(this.get('pidConnections').length);
-        console.log(this.get('pidConnections'));
-
-        this.get('pidConnections').forEach((connection) => {
-            // Find corresponding source and target vertices from pidVertices
-            let source = this.get('pidVertices').find((vertex) => vertex.id === connection.sourceId);
-            let target = this.get('pidVertices').find((vertex) => vertex.id === connection.targetId);
-
-            // TODO: Filter out connections between vertices not present in 
-            // pidVertices (all connections fetched from database, but root node
-            // selection might filter out certain vertices, thus remove those
-            // connections or mxGraph crashes)
+            // Catches possible wrongly non-filtered connections
             if ((source !== null || source !== undefined) && (target !== null || target !== undefined)) {
-                pidConnections.push(connection);
-                console.log(connection);
-            }
-        });
 
-        pidConnections.forEach((pidConnection) => {
-            // Find corresponding source and target vertices from pidVertices
-            let source = this.get('pidVertices').find((vertex) => vertex.id === pidConnection.sourceId);
-            let target = this.get('pidVertices').find((vertex) => vertex.id === pidConnection.targetId);
-            /* PID RULES
-                Set shapeName to pidConnection based on flowType attribute in 
-                database or based on logical PID rules.
-                +---------------+-----------+------------+-------+-------+------+
-                | source\target | equipment | instrument | group | arrow | line |
-                +---------------+-----------+------------+-------+-------+------+
-                |   equipment   |     P     |      P     |   P   |   -   |   -  |
-                +---------------+-----------+------------+-------+-------+------+
-                |   instrument  |     P     |      D     |   D   |   -   |   -  |
-                +---------------+-----------+------------+-------+-------+------+
-                |     group     |     P     |      D     |   P   |   -   |   -  |
-                +---------------+-----------+------------+-------+-------+------+
-                |     arrow     |     -     |      -     |   -   |   -   |   -  |
-                +---------------+-----------+------------+-------+-------+------+
-                |      line     |     -     |      -     |   -   |   -   |   -  |
-                +---------------+-----------+------------+-------+-------+------+
-            */
-            if (
-                pidConnection.flowType === 'process_flow' || 
-                (source.pidClass === 'equipment' && target.pidClass === 'equipment') || 
-                (source.pidClass === 'equipment' && target.pidClass === 'instrument') || 
-                (source.pidClass === 'equipment' && target.pidClass === 'group') || 
-                (source.pidClass === 'instrument' && target.pidClass === 'equipment') ||
-                (source.pidClass === 'group' && target.pidClass === 'equipment') || 
-                (source.pidClass === 'group' && target.pidClass === 'group')) {
-                pidConnection.shapeName = 'pipe_line';
+                /* PID RULES
+                    Set shapeName to simpleConnection based on flowType attribute in 
+                    database or based on logical PID rules (because for now, all lines
+                    are modelled as material_flows provisionally)
+                    +---------------+-----------+------------+-------+-------+------+
+                    | source\target | equipment | instrument | group | arrow | line |
+                    +---------------+-----------+------------+-------+-------+------+
+                    |   equipment   |     P     |      P     |   P   |   -   |   -  |
+                    +---------------+-----------+------------+-------+-------+------+
+                    |   instrument  |     P     |      D     |   D   |   -   |   -  |
+                    +---------------+-----------+------------+-------+-------+------+
+                    |     group     |     P     |      D     |   P   |   -   |   -  |
+                    +---------------+-----------+------------+-------+-------+------+
+                    |     arrow     |     -     |      -     |   -   |   -   |   -  |
+                    +---------------+-----------+------------+-------+-------+------+
+                    |      line     |     -     |      -     |   -   |   -   |   -  |
+                    +---------------+-----------+------------+-------+-------+------+
+                */
+                
+                if (
+                    simpleConnection.flowType === 'data_flow' || 
+                    (source.pidClass === 'instrument' && target.pidClass === 'instrument') || 
+                    (source.pidClass === 'instrument' && target.pidClass === 'group') || 
+                    (source.pidClass === 'group' && target.pidClass === 'instrument')) {
+                    simpleConnection.shapeName = 'data_line';
+                }
+                else if (simpleConnection.flowType === 'signal_flow') {
+                    simpleConnection.shapeName = 'signal_line';
+                }
+                else if (simpleConnection.flowType === 'connection_flow') {
+                    simpleConnection.shapeName = 'connection_line';
+                }
+                else if (
+                    simpleConnection.flowType === 'process_flow' || 
+                    (source.pidClass === 'equipment' && target.pidClass === 'equipment') || 
+                    (source.pidClass === 'equipment' && target.pidClass === 'instrument') || 
+                    (source.pidClass === 'equipment' && target.pidClass === 'group') || 
+                    (source.pidClass === 'instrument' && target.pidClass === 'equipment') ||
+                    (source.pidClass === 'group' && target.pidClass === 'equipment') || 
+                    (source.pidClass === 'group' && target.pidClass === 'group')) {
+                    simpleConnection.shapeName = 'pipe_line';
+                }
+                /*else if ( // Instrument between two equipments
+                    (source.pidClass === 'equipment' && target.pidClass === 'instrument') || 
+                    (source.pidClass === 'instrument' && target.pidClass === 'equipment')) {
+                    // 'Short-circuit' equipment to equipment and create connection_line from pipe_line to instrument
+                    const source = this.get('pidVertices').find((vertex) => vertex.id === simpleConnection.sourceId);
+                    const target = this.get('pidVertices').find((vertex) => vertex.id === simpleConnection.targetId);
+                    simpleConnection.shapeName = 'connection_line';
+                } */
+                else {
+                    // Default to connection line
+                    simpleConnection.shapeName = 'connection_line';
+                }
+                
+                let matchingShape = {};
+                matchingShape = this.get('pidShapesLibrary').find((shape) => shape.shapeName === simpleConnection.shapeName);
+                //console.log(simpleConnection);
+                //console.log(matchingShape);
+                // Clone all properties to NEW target object (which is returned)
+                let pidEdge = Object.assign({}, simpleConnection, matchingShape);
+                pidEdges.push(pidEdge);
             }
-            else if (
-                pidConnection.flowType === 'data_flow' || 
-                (source.pidClass === 'instrument' && target.pidClass === 'instrument') || 
-                (source.pidClass === 'instrument' && target.pidClass === 'group') || 
-                (source.pidClass === 'group' && target.pidClass === 'instrument')) {
-                pidConnection.shapeName = 'data_line';
-            }
-            else if (pidConnection.flowType === 'signal_flow') {
-                pidConnection.shapeName = 'signal_line';
-            }
-            else if (pidConnection.flowType === 'connection_flow') {
-                pidConnection.shapeName = 'connection_line';
-            }
-            /*else if ( // Instrument between two equipments
-                (source.pidClass === 'equipment' && target.pidClass === 'instrument') || 
-                (source.pidClass === 'instrument' && target.pidClass === 'equipment')) {
-                // 'Short-circuit' equipment to equipment and create connection_line from pipe_line to instrument
-                const source = this.get('pidVertices').find((vertex) => vertex.id === pidConnection.sourceId);
-                const target = this.get('pidVertices').find((vertex) => vertex.id === pidConnection.targetId);
-                pidConnection.shapeName = 'connection_line';
-            } */
-            else {
-                // Default to connection line
-                pidConnection.shapeName = 'connection_line';
-            }
-            
-            let matchingShape = {};
-            matchingShape = this.get('pidShapesLibrary').find((shape) => shape.shapeName === pidConnection.shapeName);
-            //console.log(pidConnection);
-            //console.log(matchingShape);
-            // Clone all properties to NEW target object (which is returned)
-            let pidEdge = Object.assign({}, pidConnection, matchingShape);
-            pidEdges.push(pidEdge);
         });
-        console.log(`Mapped ${pidConnections.length} connection instances to edge shapes from ${pidShapesCount} total shapes in library.`);
-        console.log('pidConnections:');
-        console.log(pidConnections);
-        console.log('pidEdges:');
+        console.log(`Mapped ${pidEdges.length} connection instances to edge shapes from ${this.get('pidShapesLibrary').length} total shapes in library:`);
         console.table(pidEdges);
+
+
+        function simplifyConnections(pidVertices, pidEdges) {
+            /**
+            * Simplifies connections from and to groups by replacing both the preEdge and
+            * postEdge of that connection with a single, direct connection when that is
+            * the case. NOTE: simplifiedId retains the id of the startEdge (so remaining
+            * properties are inherited from the startEdge, which should have same as endEdge)
+            */
+
+            console.groupCollapsed("Simplifying connections of pidEdges...");
+
+            let vertices = pidVertices;
+            let edges = pidEdges;
+            let simplifiedEdges = [];
+            let idsToSkip = [];
+            
+            edges.forEach((edge) => {
+
+                let startEdge;
+                let endEdge;
+                let source = getVertexBy('id', edge.sourceId, vertices);
+                let target = getVertexBy('id', edge.targetId, vertices);
+                //console.log(source);
+                //console.log(target);
+                //console.log(idsToSkip);
+
+                // Case: if connection of edge already simplified and thus edge.id pushed to idsToSkip array
+                if (idsToSkip.find((id) => id === edge.id)) {
+                    console.log(`${edge.id} found in idsToSkip --> return`);
+                    return;
+                }
+                else if (undefined !== source && undefined !== target) {
+                    // Case: shape --> shape
+                    if ('group' !== target.pidClass && 'group' !== source.pidClass) {
+                        console.groupCollapsed(`edge ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass} --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
+                        simplifiedEdges.push(edge);
+                        console.groupEnd();
+                    }
+
+                    // Case: group --> group
+                    else {
+                        // Traverse connection back and forth (to first startPort and last endPort)
+                        startEdge = getFirstEdge(edge, source, target); // recursively get previousEdge until startEdge
+                        endEdge = getLastEdge(edge, source, target); // recursively get nextEdge until endEdge
+                        // Clone targetId and targetPort of endEdge and rest of startEdge
+                        let simplifiedEdge = startEdge;
+                        simplifiedEdge.targetId = endEdge.targetId;
+                        simplifiedEdge.targetPort = endEdge.targetPort;
+                        // Push a single, direct and simplified edge to the array
+                        simplifiedEdges.push(simplifiedEdge);
+
+                        let simplifiedEdgeSource = getVertexBy('id', simplifiedEdge.sourceId, vertices);
+                        let previousEdgeTarget = getVertexBy('id', simplifiedEdge.targetId, vertices);
+                        console.log(`simplifiedEdge ${simplifiedEdge.id}: ${simplifiedEdge.sourceId} | ${simplifiedEdgeSource.shortName} | ${source.pidClass} --> ${previousEdgeTarget.shortName} | ${source.pidClass} | ${edge.targetId}`);
+                        console.groupEnd();
+                    }
+                }
+                
+            });
+
+
+            function getVertexBy(property, value, array) {
+                return array.find((vertex) => vertex[property] === value);
+            }
+
+            function getFirstEdge(edge, source, target) {
+                /**
+                * Recursively get previousEdge until startEdge
+                */
+                idsToSkip.push(edge.id);
+                //console.log(idsToSkip.length);
+                let previousEdge = getPreviousEdge(edge);
+                if (!previousEdge) {
+                    console.log(`return ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass} --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
+                    return edge;
+                } else {
+                    let previousEdgeSource = getVertexBy('id', previousEdge.sourceId, vertices);
+                    let previousEdgeTarget = getVertexBy('id', previousEdge.targetId, vertices);
+                    let firstEdge = getFirstEdge(previousEdge, previousEdgeSource, previousEdgeTarget);
+                    return firstEdge;
+                }
+            }
+
+            function getPreviousEdge(edge) {
+                // Find corresponding edge and clone
+                return edges.find((previousEdge) => edge.sourcePort === previousEdge.targetPort);
+                // Return clone or 'isStartEdge' string if previousEdge = undefined (no previousEdge found)
+            }
+
+            function getLastEdge(edge, source, target) {
+                /**
+                * Recursively get nextEdge until endEdge
+                */
+                idsToSkip.push(edge.id);
+                //console.log(idsToSkip.length);
+                let nextEdge = getNextEdge(edge);
+                if (!nextEdge) {
+                    console.log(`return ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass}) --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
+                } else if (nextEdge) {
+                    let nextEdgeSource = getVertexBy('id', nextEdge.sourceId, vertices);
+                    let nextEdgeTarget = getVertexBy('id', nextEdge.targetId, vertices);
+                    getLastEdge(nextEdge, nextEdgeSource, nextEdgeTarget);
+                }
+                return edge;
+            }
+
+            function getNextEdge(edge) {
+                // Find corresponding edge and clone
+                return edges.find((nextEdge) => edge.targetPort === nextEdge.sourcePort);
+            }
+
+            console.groupEnd();
+            return simplifiedEdges;
+        }
+
         console.groupEnd();
         return pidEdges;
     },
@@ -852,7 +1025,7 @@ let component = SapientComponent.extend(Evented, {
 
 
     vertexPlacement: function(pidVertices, pidEdges) {
-        console.group("Positioning vertices in graph...");
+        console.groupCollapsed("Positioning vertices in graph...");
         let vertices = pidVertices.filter((v) => v.shapeName && v.parentId && v.shapeName !== '' && v.parentId !== 1); // filter out not visualizable vertices (enterprise and legato nodes)
         let edges = pidEdges;
         //console.log(JSON.stringify(vertices));
@@ -860,10 +1033,6 @@ let component = SapientComponent.extend(Evented, {
         console.table(vertices);
         console.table(edges);
         //console.log(JSON.stringify(edges));
-
-        let simplifiedEdges = simplifyConnections(vertices, edges);
-        console.log('simplifiedEdges:');
-        console.table(simplifiedEdges);
 
         // s:settings, m:memory, i:index, p:previous, v:vertex
         // SET ONCE AND NEVER RESET
@@ -1912,122 +2081,8 @@ let component = SapientComponent.extend(Evented, {
             }
         }
 
-        function simplifyConnections(pidVertices, pidEdges) {
-            /**
-            * Simplifies connections from and to groups by replacing both the preEdge and
-            * postEdge of that connection with a single, direct connection when that is
-            * the case. NOTE: simplifiedId retains the id of the startEdge (so remaining
-            * properties are inherited from the startEdge, which should have same as endEdge)
-            */
 
-            console.groupCollapsed("Simplifying connections of pidEdges...");
-
-            let vertices = pidVertices;
-            let edges = pidEdges;
-            let simplifiedEdges = [];
-            let idsToSkip = [];
-
-            edges.forEach((edge) => {
-
-                let startEdge;
-                let endEdge;
-                let source = getVertexBy('id', edge.sourceId, vertices);
-                let target = getVertexBy('id', edge.targetId, vertices);
-                console.log(source);
-                console.log(target);
-                console.log(idsToSkip);
-
-                // Case: if connection of edge already simplified and thus edge.id pushed to idsToSkip array
-                if (idsToSkip.find((id) => id === edge.id)) {
-                    console.warn(`${edge.id} found in idsToSkip --> return`);
-                    console.groupEnd();
-                    return;
-                }
-                else if (undefined !== source && undefined !== target) {
-                    console.group(`edge ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass} --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
-                    // Case: shape --> shape
-                    if ('group' !== target.pidClass && 'group' !== source.pidClass) {
-                        simplifiedEdges.push(edge);
-                        console.groupEnd();
-                    }
-
-                    // Case: group --> group
-                    else {
-                        // Traverse connection back and forth (to first startPort and last endPort)
-                        startEdge = getFirstEdge(edge, source, target); // recursively get previousEdge until startEdge
-                        endEdge = getLastEdge(edge, source, target); // recursively get nextEdge until endEdge
-                        // Clone targetId and targetPort of endEdge and rest of startEdge
-                        let simplifiedEdge = startEdge;
-                        simplifiedEdge.targetId = endEdge.targetId;
-                        simplifiedEdge.targetPort = endEdge.targetPort;
-                        // Push a single, direct and simplified edge to the array
-                        simplifiedEdges.push(simplifiedEdge);
-
-                        let simplifiedEdgeSource = getVertexBy('id', simplifiedEdge.sourceId, vertices);
-                        let previousEdgeTarget = getVertexBy('id', simplifiedEdge.targetId, vertices);
-                        console.log(`simplifiedEdge ${simplifiedEdge.id}: ${simplifiedEdge.sourceId} | ${simplifiedEdgeSource.shortName} | ${source.pidClass} --> ${previousEdgeTarget.shortName} | ${source.pidClass} | ${edge.targetId}`);
-                        console.groupEnd();
-                    }
-                }
-            });
-
-
-            function getVertexBy(property, value, array) {
-                return array.find((vertex) => vertex[property] === value);
-            }
-
-            function getFirstEdge(edge, source, target) {
-                /**
-                * Recursively get previousEdge until startEdge
-                */
-                idsToSkip.push(edge.id);
-                console.log(idsToSkip.length);
-                let previousEdge = getPreviousEdge(edge);
-                if (!previousEdge) {
-                    console.log(`return ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass} --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
-                    return edge;
-                } else {
-                    let previousEdgeSource = getVertexBy('id', previousEdge.sourceId, vertices);
-                    let previousEdgeTarget = getVertexBy('id', previousEdge.targetId, vertices);
-                    let firstEdge = getFirstEdge(previousEdge, previousEdgeSource, previousEdgeTarget);
-                    return firstEdge;
-                }
-            }
-
-            function getPreviousEdge(edge) {
-                // Find corresponding edge and clone
-                return edges.find((previousEdge) => edge.sourcePort === previousEdge.targetPort);
-                // Return clone or 'isStartEdge' string if previousEdge = undefined (no previousEdge found)
-                }
-
-                function getLastEdge(edge, source, target) {
-                /**
-                * Recursively get nextEdge until endEdge
-                */
-                idsToSkip.push(edge.id);
-                console.log(idsToSkip.length);
-                let nextEdge = getNextEdge(edge);
-                if (!nextEdge) {
-                    console.log(`return ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass}) --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
-                } else if (nextEdge) {
-                    let nextEdgeSource = getVertexBy('id', nextEdge.sourceId, vertices);
-                    let nextEdgeTarget = getVertexBy('id', nextEdge.targetId, vertices);
-                    getLastEdge(nextEdge, nextEdgeSource, nextEdgeTarget);
-                }
-                return edge;
-            }
-
-            function getNextEdge(edge) {
-                // Find corresponding edge and clone
-                return edges.find((nextEdge) => edge.targetPort === nextEdge.sourcePort);
-            }
-
-            console.groupEnd();
-            return simplifiedEdges;
-        }
-
-
-        let pidJson = [...vertices, ...simplifiedEdges];
+        let pidJson = [...vertices, ...edges];
         console.log('memory:');
         console.table(memory);
         console.log('data:');
@@ -2100,32 +2155,35 @@ let component = SapientComponent.extend(Evented, {
 
         console.groupCollapsed("XML String generation started...");
 
-        function getDataBinding(shape) {
-            return ''; // FIXME:
-            // if ('equipment' === shape.pidClass) {
-            //     let sapientBind = {
-            //         datasources: {
-            //         pValueCurrent: {
-            //             source: 'var',
-            //             params: {
-            //             id: shape.id
-            //             }
-            //         }
-            //         },
-            //         bindings: {
-            //         text: {
-            //             value: {
-            //             source: 'dataref',
-            //             defaultValue: '---',
-            //             params: {
-            //                 ref: 'pValueCurrent'
-            //             }
-            //             }
-            //         }
-            //         }
-            //     };
-            //     //return JSON.stringify(sapientBind);
-            // }
+        function getSapientBind(shape) {
+            if ('equipment' === shape.pidClass) {
+                let sapientBind = {
+                    datasources: {
+                    pValueCurrent: {
+                        source: 'var',
+                        params: {
+                        id: shape.id
+                        }
+                    }
+                    },
+                    bindings: {
+                    text: {
+                        value: {
+                        source: 'dataref',
+                        defaultValue: '---',
+                        params: {
+                            ref: 'pValueCurrent'
+                        }
+                        }
+                    }
+                    }
+                };
+                const sapientBindString = JSON.stringify(sapientBind);
+                console.log(sapientBindString);
+                const escapedSapientBind = this.escapeToHtmlValid(sapientBindString);
+                console.log(escapedSapientBind);
+                return escapedSapientBind;
+            }
         }
 
          // TODO: Set labels in value attribute in pid-shapes-library and set label=${pidEquipment.value} in template literals
@@ -2148,7 +2206,7 @@ let component = SapientComponent.extend(Evented, {
             // Values not preceeded with '_' are instance attributes (from database)
             // FIXME: Remove id attribute in mxCell and leave it only in object?
             xmlString += `
-    <object id="${pidEquipment.id ? pidEquipment.id : pidEquipment._id}" label="${pidEquipment._value !== '' ? pidEquipment._value : htmlLabel}" placeholders="1" pid-label="${pidEquipment.pidLabel ? pidEquipment.pidLabel : (pidEquipment.shortName ? pidEquipment.shortName : (pidEquipment.germanName ? pidEquipment.germanName : (pidEquipment.englishName ? pidEquipment.englishName : null)))}" pid-current-value="${pidEquipment.id}" pid-function="${pidEquipment.pidFunction}" pid-number="${pidEquipment.pidNumber}" sapient-bind="${getDataBinding(pidEquipment)}">
+    <object id="${pidEquipment.id ? pidEquipment.id : pidEquipment._id}" label="${pidEquipment._value !== '' ? pidEquipment._value : htmlLabel}" placeholders="1" pid-label="${pidEquipment.pidLabel ? pidEquipment.pidLabel : (pidEquipment.shortName ? pidEquipment.shortName : (pidEquipment.germanName ? pidEquipment.germanName : (pidEquipment.englishName ? pidEquipment.englishName : null)))}" pid-current-value="${pidEquipment.id}" pid-function="${pidEquipment.pidFunction}" pid-number="${pidEquipment.pidNumber}" sapient-bind="${getSapientBind(pidEquipment)}">
         <mxCell style="${this.concatenateStyles(pidEquipment.styleObject)}" vertex="${pidEquipment._vertex}" connectable="1" parent="${pidEquipment.parentId ? pidEquipment.parentId : pidEquipment._parent}">
           <mxGeometry x="${pidEquipment.mxGeometry._x ? pidEquipment.mxGeometry._x : 50}" y="${pidEquipment.mxGeometry._y ? pidEquipment.mxGeometry._y : 50}" width="${pidEquipment.mxGeometry._width}" height="${pidEquipment.mxGeometry._height}" as="${pidEquipment.mxGeometry._as}"></mxGeometry>
         </mxCell>
@@ -2159,7 +2217,7 @@ let component = SapientComponent.extend(Evented, {
         console.log(`Generating XML-tags for ${instrumentCount} instrument instances...`);
         pidInstruments.forEach((pidInstrument) => {
             xmlString += `
-    <object id="${pidInstrument.id ? pidInstrument.id : pidInstrument._id}" label="${htmlLabelInstrument}" placeholders="1" pid-label="${pidInstrument.pidLabel ? pidInstrument.pidLabel : (pidInstrument.shortName ? pidInstrument.shortName : (pidInstrument.germanName ? pidInstrument.germanName : (pidInstrument.englishName ? pidInstrument.englishName : null)))}" pid-current-value="${pidInstrument.id}" pid-function="${pidInstrument.pidFunction}" pid-number="${pidInstrument.pidNumber}" sapient-bind="${getDataBinding(pidInstrument)}">
+    <object id="${pidInstrument.id ? pidInstrument.id : pidInstrument._id}" label="${htmlLabelInstrument}" placeholders="1" pid-label="${pidInstrument.pidLabel ? pidInstrument.pidLabel : (pidInstrument.shortName ? pidInstrument.shortName : (pidInstrument.germanName ? pidInstrument.germanName : (pidInstrument.englishName ? pidInstrument.englishName : null)))}" pid-current-value="${pidInstrument.id}" pid-function="${pidInstrument.pidFunction}" pid-number="${pidInstrument.pidNumber}" sapient-bind="${getSapientBind(pidInstrument)}">
       <mxCell style="${this.concatenateStyles(pidInstrument.styleObject)}" vertex="${pidInstrument._vertex}" connectable="1" parent="${pidInstrument.parentId ? pidInstrument.parentId : pidInstrument._parent}">
         <mxGeometry x="${pidInstrument.mxGeometry._x ? pidInstrument.mxGeometry._x : 50}" y="${pidInstrument.mxGeometry._y ? pidInstrument.mxGeometry._y : 50}" width="${pidInstrument.mxGeometry._width}" height="${pidInstrument.mxGeometry._height}" as="${pidInstrument.mxGeometry._as}"></mxGeometry>
       </mxCell>
@@ -2170,7 +2228,7 @@ let component = SapientComponent.extend(Evented, {
         console.log(`Generating XML-tags for ${arrowCount} arrow instances...`);
         pidArrows.forEach((pidArrow) => {
             xmlString += `
-    <object id="${pidArrow.id ? pidArrow.id : pidArrow._id}" label="${pidArrow._value !== '' ? pidArrow._value : htmlLabel}" placeholders="1" pid-label="${pidArrow.pidLabel ? pidArrow.pidLabel : (pidArrow.shortName ? pidArrow.shortName : (pidArrow.germanName ? pidArrow.germanName : (pidArrow.englishName ? pidArrow.englishName : null)))}" pid-current-value="${pidArrow.id}" pid-function="${pidArrow.pidFunction}" pid-number="${pidArrow.pidNumber}" sapient-bind="${getDataBinding(pidArrow)}">
+    <object id="${pidArrow.id ? pidArrow.id : pidArrow._id}" label="${pidArrow._value !== '' ? pidArrow._value : htmlLabel}" placeholders="1" pid-label="${pidArrow.pidLabel ? pidArrow.pidLabel : (pidArrow.shortName ? pidArrow.shortName : (pidArrow.germanName ? pidArrow.germanName : (pidArrow.englishName ? pidArrow.englishName : null)))}" pid-current-value="${pidArrow.id}" pid-function="${pidArrow.pidFunction}" pid-number="${pidArrow.pidNumber}" sapient-bind="${getSapientBind(pidArrow)}">
       <mxCell style="${this.concatenateStyles(pidArrow.styleObject)}" vertex="${pidArrow._vertex}" connectable="1" parent="${pidArrow.parentId ? pidArrow.parentId : pidArrow._parent}">
         <mxGeometry x="${pidArrow.mxGeometry._x ? pidArrow.mxGeometry._x : 50}" y="${pidArrow.mxGeometry._y ? pidArrow.mxGeometry._y : 50}" width="${pidArrow.mxGeometry._width}" height="${pidArrow.mxGeometry._height}" as="${pidArrow.mxGeometry._as}"></mxGeometry>
       </mxCell>
@@ -2181,7 +2239,7 @@ let component = SapientComponent.extend(Evented, {
         console.log(`Generating XML-tags for ${groupCount} group instances...`);
         pidGroups.forEach((pidGroup) => {
             xmlString += `
-    <object id="${pidGroup.id ? pidGroup.id : pidGroup._id}" label="${pidGroup._value !== '' ? pidGroup._value : htmlLabelGroup}" placeholders="1" pid-label="${pidGroup.pidLabel ? pidGroup.pidLabel : (pidGroup.shortName ? pidGroup.shortName : (pidGroup.germanName ? pidGroup.germanName : (pidGroup.englishName ? pidGroup.englishName : null)))}" pid-hierarchy="${pidGroup.pidHierarchy}" pid-current-value="${pidGroup.id}" pid-function="${pidGroup.pidFunction}" pid-number="${pidGroup.pidNumber}" sapient-bind="${getDataBinding(pidGroup)}">
+    <object id="${pidGroup.id ? pidGroup.id : pidGroup._id}" label="${pidGroup._value !== '' ? pidGroup._value : htmlLabelGroup}" placeholders="1" pid-label="${pidGroup.pidLabel ? pidGroup.pidLabel : (pidGroup.shortName ? pidGroup.shortName : (pidGroup.germanName ? pidGroup.germanName : (pidGroup.englishName ? pidGroup.englishName : null)))}" pid-hierarchy="${pidGroup.pidHierarchy}" pid-current-value="${pidGroup.id}" pid-function="${pidGroup.pidFunction}" pid-number="${pidGroup.pidNumber}" sapient-bind="${getSapientBind(pidGroup)}">
       <mxCell style="${this.concatenateStyles(pidGroup.styleObject)}" vertex="${pidGroup._vertex}" connectable="${pidGroup._connectable}" parent="${pidGroup.parentId ? pidGroup.parentId : pidGroup._parent}">
         <mxGeometry x="${pidGroup.mxGeometry._x ? pidGroup.mxGeometry._x : graphSettings.defaultPadding}" y="${pidGroup.mxGeometry._y ? pidGroup.mxGeometry._y : graphSettings.defaultPadding}" width="${pidGroup.mxGeometry._width}" height="${pidGroup.mxGeometry._height}" as="${pidGroup.mxGeometry._as}"></mxGeometry>
       </mxCell>
@@ -2197,7 +2255,7 @@ let component = SapientComponent.extend(Evented, {
             //const target = pidJson.find((vertex) => vertex.id === pidLine.targetId);
             const parent = pidJson.find((parent) => parent.id === source.id);
             xmlString += `
-    <object id="${pidLine.id ? pidLine.id : pidLine._id}" label="${pidLine._value !== '' ? pidLine._value : htmlLabelLine}" placeholders="1" pid-label="${pidLine.pidLabel ? pidLine.pidLabel : (pidLine.shortName ? pidLine.shortName : (pidLine.germanName ? pidLine.germanName : (pidLine.englishName ? pidLine.englishName : 'Beer')))}" pid-current-value="${pidLine.id}" pid-function="${pidLine.pidFunction}" pid-number="${pidLine.pidNumber}" sapient-bind="${getDataBinding(pidLine)}">
+    <object id="${pidLine.id ? pidLine.id : pidLine._id}" label="${pidLine._value !== '' ? pidLine._value : htmlLabelLine}" placeholders="1" pid-label="${pidLine.pidLabel ? pidLine.pidLabel : (pidLine.shortName ? pidLine.shortName : (pidLine.germanName ? pidLine.germanName : (pidLine.englishName ? pidLine.englishName : 'Beer')))}" pid-current-value="${pidLine.id}" pid-function="${pidLine.pidFunction}" pid-number="${pidLine.pidNumber}" sapient-bind="${getSapientBind(pidLine)}">
       <mxCell id="${pidLine.id ? pidLine.id : pidLine._id}" style="${this.concatenateStyles(pidLine.styleObject)}" edge="${pidLine._edge}" source="${pidLine.sourceId}" target="${pidLine.targetId}" parent="${parent.id ? parent.id : pidLine._parent}">
         <mxGeometry relative="${pidLine.mxGeometry._relative ? pidLine.mxGeometry._relative : 1}" as="${pidLine.mxGeometry._as ? pidLine.mxGeometry._as : 'geometry'}"></mxGeometry>
       </mxCell>
@@ -2246,7 +2304,7 @@ let component = SapientComponent.extend(Evented, {
         // Formats raw XML-string to pretty print
         let formattedXmlString = this.formatXml(xmlString, '  ');
         // Encodes XML string to valid HTML string (HTML characters)
-        let formattedHtmlString = this.escapeXmlToHtml(formattedXmlString);
+        let formattedHtmlString = this.escapeToHtmlValid(formattedXmlString);
         //console.log(`pidHtmlString = \n${formattedHtmlString}`);
         document.getElementById('xml-viewer-div').innerHTML = formattedHtmlString;
     },
@@ -2319,7 +2377,7 @@ let component = SapientComponent.extend(Evented, {
     },
 
 
-    escapeXmlToHtml: function(xmlString) {
+    escapeToHtmlValid: function(xmlString) {
         //console.log('Escaping pidXmlString to pidHtmlString...');
         let htmlString = String(xmlString)
             .replace(/&/g, "&amp;")
