@@ -44,14 +44,12 @@ let component = SapientComponent.extend(Evented, {
     lNodes: null, // database query:  SELECT * sapient._owner.l_nodes WHERE id >= pidRootNodeId
     visuVertices: null, // database query:  SELECT * sapient._owner.prj_prc_visu_vertices
     pidConnections: null, // database query:  SELECT * sapient._owner.prj_prc_pro_flows
-    pidValueRelations: null, // database query:  SELECT * sapient._owner.p_value_relations WHERE id >= pidRootNodeId
     // For input and return values of functions in script
     pidNodes: null, // mapped data (after left join lNodes and visuVertices with javascript in checkIfQueriesDone())
     pidNodesTree: undefined, // output of buildHierarchy(pidNodes)
     pidNodesInOrder: undefined, // output of traverseAndSort(pidNodesTree)
     pidVertices: undefined, // output of mapNodesToShapes() - accesses pidNodesInOrder and pidShapesLibrary from within function
     pidEdges: undefined, // output of mapConnectionsToShapes() - accesses pidConnections, pidVertices and pidShapesLibrary from within function
-    pidDataBindings: undefined, // TODO: output of mapDataBindingsToShapes() - accesses ...........................
     // For visualization
     pidJson: undefined, // input of generatePidXmlString()
     pidJsonString: '', // to download pid-visualization in JSON format
@@ -109,7 +107,7 @@ let component = SapientComponent.extend(Evented, {
             this.set('pidRootNodeId', value);
             this.getData('pidRootNode');            
         }
-
+        console.log(`Selected root node Id: ${this.get('pidRootNodeId')}`);
     }),
 
 
@@ -213,8 +211,7 @@ let component = SapientComponent.extend(Evented, {
     },
 
 
-    databaseQueries: async function() {
-        console.groupCollapsed('P&ID Generation started...');
+    databaseQueries: function() {
         console.time();
         let root = this.get('pidRootNode')[0];
         document.getElementById('xml-viewer-div').innerHTML = `Generating P&ID visualization of ${root.shortName} ...`;
@@ -231,11 +228,9 @@ let component = SapientComponent.extend(Evented, {
 
 
     getData: function(data) {
-        console.log(`Querying database for ${data} records asyncronously...`);
-        let resource;
-        let filter;
+        console.log(`Querying database for ${data} records...`);
+        let resource, alias, fields, relate, filter;
         let rootId = this.get('pidRootNodeId');
-        //let rootLevel = this.get('pidRootNode').nodeLevel;
         let nameMappings = [];
 
         // Build query parameters dynamically depending on data request
@@ -301,21 +296,59 @@ let component = SapientComponent.extend(Evented, {
                 subscriptionOptions = undefined;
                 model = undefined;
             */
-            // IMPLEMENTATION: Fetch all l_nodes Where id >= rootId and LEFT JOIN with visu_vertices and with valueRelations
-            resource = 'l_nodes';
-            filter = [{ 
-                field: 'id',
-                op: 'ge',
-                val: rootId
-            }];
+            /* // IMPLEMENTATION: Fetch all l_nodes Where id >= rootId and LEFT JOIN with visu_vertices and with valueRelations
+                resource = 'l_nodes';
+                filter = [{ 
+                    field: 'id',
+                    op: 'ge',
+                    val: rootId
+                }];
+                nameMappings = [
+                    { id: 'id' },
+                    { nodeLevel: 'node_level' },
+                    { parentId: 'parent' },
+                    { shortName: 'short_name' },
+                    { germanName: 'name_0' },
+                    { englishName: 'name_1' },
+                    { details: 'attr_jsonb' },
+                ];
+            */
+            resource = "l_nodes";
+            alias = { "n":"l_nodes", "r":"p_value_relations", "c":"p_values_config", "t":"p_value_types" };
+            fields = {
+                "n": "id, node_level, parent, short_name, name, attr_jsonb",
+                "r": "id as r_id, node, value",
+                "c": "id as c_id, value_type, value_format, unit, value_symbol, name as c_name",
+                "t": "id as t_id, name as t_name"
+            };
+            relate = [
+                    { "src":"n", "dst":"r", "how":"left", "on":{ "src":"id", "dst":"node" } },
+                    { "src":"r", "dst":"c", "how":"left", "on":{ "src":"value", "dst":"id" } },
+                    { "src":"c", "dst":"t", "how":"left", "on":{ "src":"value_type", "dst":"id" } }
+            ];
+            filter = { "field":"n.id", "op":"ge", "val":this.get("pidRootNodeId") };
             nameMappings = [
+                // From l_nodes:
                 { id: 'id' },
                 { nodeLevel: 'node_level' },
                 { parentId: 'parent' },
                 { shortName: 'short_name' },
-                { germanName: 'name_0' },
-                { englishName: 'name_1' },
+                { name: 'name' },
                 { details: 'attr_jsonb' },
+                // From p_value_relations:
+                { rId: 'r_id' },
+                { rNode: 'node' },
+                { rValue: 'value' },
+                // From p_values_config:
+                { cId: 'c_id' },
+                { cValueType: 'value_type' },
+                { cValueFormat: 'value_format' },
+                { cUnit: 'unit' },
+                { cValueSymbol: 'value_symbol' },
+                { cName: 'c_name' },
+                // From p_value_types:
+                { tId: 't_id' },
+                { tName: 't_name' }
             ];
         }
         if (data === "visuVertices") {
@@ -380,15 +413,18 @@ let component = SapientComponent.extend(Evented, {
         let jsObject = [];
 
         this.get('server').getRecords(resource, {
+            alias: alias,
+            fields: fields,
+            relate: relate,
             filter: filter
-        }, 
-        undefined)
+        }, undefined)
         .then((result) => {
             //console.log('Database query result: \n');
             //console.log(result);
             if (result.content.length > 0) {
                 let jsonClassArray = result.content;
-
+                //console.log('Database query result content: \n');
+                //console.log(jsonClassArray);
                 // Build jsObject with only fields in corresonding model
                 jsonClassArray.forEach((row) => {
                     let object = {};
@@ -399,10 +435,6 @@ let component = SapientComponent.extend(Evented, {
                     })
                     jsObject.push(object);
                 });
-                //console.log(`Succesfully parsed queried ${data} data to object:`);
-                //console.table(jsObject);
-                //console.log(`jsObjectString (${data}):`);
-                //console.log(JSON.stringify(jsObject));
             }
 
         })
@@ -414,7 +446,7 @@ let component = SapientComponent.extend(Evented, {
             this.checkIfQueriesDone(data);
         });
     },
-    
+
 
     checkIfQueriesDone: function(data) {
         /** Checks if fetched data has been set to the variables by checking if
@@ -428,15 +460,13 @@ let component = SapientComponent.extend(Evented, {
             'visuVertices',
             'pidNodes',
             'pidConnections'
-            'pidValueRelations'
         ];
         let ok = {
             pidRootNode: false,
             lNodes: false,
             visuVertices: false,
             pidNodes: false,
-            pidConnections: false,
-            pidValueRelations: false
+            pidConnections: false
         };
 
         // Checks all variables and sets the corresonding boolean value
@@ -468,36 +498,34 @@ let component = SapientComponent.extend(Evented, {
         }
     
         // Left Join lNodes and visuVertices (merge)
-        if (ok.lNodes === true && ok.visuVertices === true && ok.valueRelations) {
-            /*  Replicates PostgreSQL Left Join: 
-                    SELECT * FROM sapient_owner.l_nodes AS n 
-                    LEFT JOIN sapient_owner.prj_prc_visu_vertices as v
-                    ON n.id = v.parent
-                    WHERE n.id >= rootId
-            */
-
-            let nodeInstances = [];
+        if (ok.lNodes === true && ok.visuVertices === true) {
+            // Replicates PostgreSQL Left Join:
+            let allQueriedNodes = [];
             this.get('lNodes').forEach((lNode) => {
                 let vertexMatch = {};
                 vertexMatch = this.get('visuVertices').find((visuVertex) => visuVertex.nodeId === lNode.id);
                 // Clone all properties to NEW target object (which is returned) Alternatively: let pidVertex = Object.assign({}, pidNode, matchingShape);
-                let nodeInstance = { ...lNode, ...vertexMatch };
-                nodeInstances.push(nodeInstance);
+                let queriedNode = { ...lNode, ...vertexMatch };
+                allQueriedNodes.push(queriedNode);
             });
-            this.set('pidNodes', nodeInstances);
+            // Filter out Legato node as well as enterprise level nodes and other nodes not to be visualized (with Legato as parent)
+            // buildHierarchy() later filters out non descendants of selected root node 
+            let filteredNodes = allQueriedNodes.filter((node) => node.parentId && node.parentId !== 1 && node.shortName !== null); 
+            this.set('pidNodes', filteredNodes);
             ok.pidNodes = true;
             //console.log('Merged lNodes and visuVertices to create pidNodes:');
             //console.table(this.get('pidNodes'));
         }
         // Continue with PID generation when all queries done
         if (ok.pidNodes === true && ok.pidConnections === true) {
-            console.groupCollapsed('All queries done:')
-            console.log('pidNodes:');
-            console.log(this.get('pidNodes'));
-            console.log('pidConnections:');
-            console.log(this.get('pidConnections'));
+            console.log('All queries and data mappings done:')
+            console.groupCollapsed('pidNodes (joined lNodes and visuVertices):');
+            console.table(this.get('pidNodes'));
+            console.log(JSON.stringify(this.get('pidNodes')));
             console.groupEnd();
-            // TODO: Insert a log for count of nodes and connections in innerHTML 
+            console.groupCollapsed('pidConnections:');
+            console.table(this.get('pidConnections'));
+            console.log(JSON.stringify(this.get('pidNodes')));
             console.groupEnd();
             this.generatePid();
         }
@@ -505,6 +533,7 @@ let component = SapientComponent.extend(Evented, {
 
 
     generatePid: function() {
+        console.groupEnd();
             
         // Create node hierarchy out of parent relations (filter nodes only from pidJson)
         this.set('pidNodesTree', this.buildHierarchy(this.get('pidNodes')));
@@ -518,25 +547,22 @@ let component = SapientComponent.extend(Evented, {
         // Add edges to pidJson
         this.set('pidEdges', this.mapConnectionsToShapes());
 
-        // Add edges to pidJson
-        //this.set('pidDataBindings', this.mapDataBindingsToShapes());
-
         // Position vertices by modifying default _x and _y vertex properties
         this.set('pidJson', this.vertexPlacement(this.get('pidVertices'), this.get('pidEdges')));
         
         // Generate JSON string from JS-Object (individually for 5 distinct pid classes)
         this.set('pidJsonString', JSON.stringify(this.get('pidJson')));
 
-        // 2) Generate XML File of P&ID Visualization (pidXml) from pidJson
+        // Generate XML File of P&ID Visualization (pidXml) from pidJson
         this.set('pidXmlString', this.generatePidXmlString(this.get('pidJson')));
         //let pidXml = parseXml(pidXmlString); // Delete: downloadFile() requires xml string not xml file
 
-        // 3) Render XML as Text in xml-viewer-div of boardlet
+        // Render XML as Text in xml-viewer-div of boardlet
         this.set('loading', false);
         this.renderXml(this.get('pidXmlString'));
         console.log('generatePid() done after:');
 
-        // 4) Remove sapient disabled class for success-button and adds event listener
+        // Remove sapient disabled class for success-button and adds event listener
         document.getElementById('download-json-button').className = 'button';
         document.getElementById('download-xml-button').className = 'button';
         document.getElementById('upload-pid-button').className = 'button button-success';
@@ -546,12 +572,12 @@ let component = SapientComponent.extend(Evented, {
         document.getElementById('download-xml-button').addEventListener('click', () => {
                 this.downloadFile('pid-visualization.xml', this.get('pidXmlString'));
             },false);
-        // TODO: Change callback to uploadFile() when done implementing
+        // TODO: Implement uploadFile() and set here as callback function
         document.getElementById('upload-pid-button').addEventListener('click', () => {
                 this.uploadXmlFile(this.get('pidXmlString'));
             },false);
 
-        // 5) Reset global variables for next visualization generation (fired on click of generate-pid-button)
+        // Reset global variables for next visualization generation (fired on click of generate-pid-button)
         this.resetGlobalVariables();
 
         console.timeEnd();
@@ -583,7 +609,7 @@ let component = SapientComponent.extend(Evented, {
                 console.log(`${node.shortName} is selected root node`);
             }
             // Descendants: If parent of current node found in descendants
-            else if (filteredArray.some((descendant) => descendant.id === node.parentId)) {
+            else if (queriedArray.some((descendant) => descendant.id === node.parentId)) {
                 filteredArray.push(node);
                 console.log(`${node.shortName} is descendant`);
             }
@@ -933,9 +959,8 @@ let component = SapientComponent.extend(Evented, {
                 else if (undefined !== source && undefined !== target) {
                     // Case: shape --> shape
                     if ('group' !== target.pidClass && 'group' !== source.pidClass) {
-                        console.groupCollapsed(`edge ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass} --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
+                        console.log(`edge ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass} --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
                         simplifiedEdges.push(edge);
-                        console.groupEnd();
                     }
 
                     // Case: group --> group
@@ -953,7 +978,6 @@ let component = SapientComponent.extend(Evented, {
                         let simplifiedEdgeSource = getVertexBy('id', simplifiedEdge.sourceId, vertices);
                         let previousEdgeTarget = getVertexBy('id', simplifiedEdge.targetId, vertices);
                         console.log(`simplifiedEdge ${simplifiedEdge.id}: ${simplifiedEdge.sourceId} | ${simplifiedEdgeSource.shortName} | ${source.pidClass} --> ${previousEdgeTarget.shortName} | ${source.pidClass} | ${edge.targetId}`);
-                        console.groupEnd();
                     }
                 }
                 
@@ -1017,11 +1041,6 @@ let component = SapientComponent.extend(Evented, {
         console.groupEnd();
         return pidEdges;
     },
-
-
-    /*mapDataBindingsToShapes: function() {
-        console.log('Mapping data bindings to shapes...');
-    }*/
 
 
     vertexPlacement: function(pidVertices, pidEdges) {
@@ -2156,47 +2175,55 @@ let component = SapientComponent.extend(Evented, {
         console.groupCollapsed("XML String generation started...");
 
         function getSapientBind(shape) {
-            if ('equipment' === shape.pidClass) {
-                let sapientBind = {
-                    datasources: {
-                    pValueCurrent: {
-                        source: 'var',
-                        params: {
-                        id: shape.id
-                        }
-                    }
-                    },
-                    bindings: {
-                    text: {
-                        value: {
-                        source: 'dataref',
-                        defaultValue: '---',
-                        params: {
-                            ref: 'pValueCurrent'
-                        }
-                        }
-                    }
-                    }
-                };
-                const sapientBindString = JSON.stringify(sapientBind);
-                console.log(sapientBindString);
-                const escapedSapientBind = this.escapeToHtmlValid(sapientBindString);
-                console.log(escapedSapientBind);
-                return escapedSapientBind;
-            }
+            /*
+            * Creates JSON strings directly to avoid JSON.stringify() and
+            * to keep new line charachters (so \n escaped into HTML-safe: &#xA;)
+            */
+            return '';
+            // //if ('equipment' === shape.pidClass) {}
+            //     let name = 'name';
+            //     // if (flow) name = 'pValueCurrent';
+            //     // else if (bool) {}
+            //     let sapientBind = {
+            //         datasources: {
+            //             text: {
+            //                 source: "var",
+            //                 params: {
+            //                     id: "${shape.id}"
+            //                 }
+            //             }
+            //         },
+            //         bindings: {
+            //             text: {
+            //                 value: {
+            //                     source: "dataref",
+            //                     defaultValue: "---",
+            //                     params: {
+            //                         ref: "text"
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //     };
+            //     console.log(sapientBind);
+            //     let sapientBindString = JSON.stringify(sapientBind);
+            //     console.log(sapientBindString);
+            //     const escapedSapientBind = this.escapeToHtmlValid(sapientBindString);
+            //     console.log(escapedSapientBind);
+            //     return escapedSapientBind;
         }
 
          // TODO: Set labels in value attribute in pid-shapes-library and set label=${pidEquipment.value} in template literals
-        const htmlLabel = '&lt;b&gt;%pid-label%&lt;br&gt;&lt;span style=&quot;background-color: rgb(0 , 255 , 0)&quot;&gt;&lt;font color=&quot;#ffffff&quot;&gt;&amp;nbsp;%pid-current-value%&amp;nbsp;&lt;/font&gt;&lt;/span&gt;&lt;/b&gt;&lt;br&gt;';
-        const htmlLabelInstrument = '&lt;table cellpadding=&quot;4&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;font-size:1em;width:100%;height:100%;&quot;&gt;&lt;tr&gt;&lt;td&gt;%pid-function%&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%pid-number%&lt;/td&gt;&lt;/table&gt; ';
-        const htmlLabelGroup = '%pid-hierarchy%: %pid-label%';
-        const htmlLabelLine = '&lt;b&gt;%pid-label%&lt;br&gt;&lt;span style=&quot;background-color: rgb(0 , 255 , 0)&quot;&gt;&lt;font color=&quot;#ffffff&quot;&gt;&amp;nbsp;%pid-current-value%&amp;nbsp;&lt;/font&gt;&lt;/span&gt;&lt;/b&gt;&lt;br&gt;';
+        const htmlLabel = `&lt;b&gt;%pid-label%&lt;br&gt;&lt;span style=&quot;background-color: rgb(0 , 255 , 0)&quot;&gt;&lt;font color=&quot;#ffffff&quot;&gt;&amp;nbsp;%pid-current-value%&amp;nbsp;&lt;/font&gt;&lt;/span&gt;&lt;/b&gt;&lt;br&gt;`;
+        const htmlLabelInstrument = `&lt;table cellpadding=&quot;4&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;font-size:1em;width:100%;height:100%;&quot;&gt;&lt;tr&gt;&lt;td&gt;%pid-function%&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%pid-number%&lt;/td&gt;&lt;/table&gt;`;
+        const htmlLabelGroup = `%pid-hierarchy%: %pid-label%`;
+        const htmlLabelLine = `&lt;b&gt;%pid-label%&lt;br&gt;&lt;span style=&quot;background-color: rgb(0 , 255 , 0)&quot;&gt;&lt;font color=&quot;#ffffff&quot;&gt;&amp;nbsp;%pid-current-value%&amp;nbsp;&lt;/font&gt;&lt;/span&gt;&lt;/b&gt;&lt;br&gt;`;
         // Add mxGraph and mxGraphModel boilerplate settings
         let xmlString = `
 <mxGraphModel dx="${graphSettings.dx}" dy="${graphSettings.dy}" grid="${graphSettings.grid}" gridSize="${graphSettings.gridSize}" guides="${graphSettings.guides}" tooltips="${graphSettings.tooltips}" connect="${graphSettings.connect}" arrows="${graphSettings.arrows}" fold="${graphSettings.fold}" page="${graphSettings.page}" pageScale="${graphSettings.pageScale}" pageWidth="${graphSettings.pageWidth}" pageHeight="${graphSettings.pageHeight}" background="${graphSettings.background}" math="${graphSettings.math}" shadow="${graphSettings.shadow}">
-  <root>
-    <mxCell id="0"/>
-    <mxCell id="1" parent="0"/>`;
+    <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>`;
 
         // Add vertices:
         const equipmentCount = pidEquipments.length;
@@ -2206,45 +2233,45 @@ let component = SapientComponent.extend(Evented, {
             // Values not preceeded with '_' are instance attributes (from database)
             // FIXME: Remove id attribute in mxCell and leave it only in object?
             xmlString += `
-    <object id="${pidEquipment.id ? pidEquipment.id : pidEquipment._id}" label="${pidEquipment._value !== '' ? pidEquipment._value : htmlLabel}" placeholders="1" pid-label="${pidEquipment.pidLabel ? pidEquipment.pidLabel : (pidEquipment.shortName ? pidEquipment.shortName : (pidEquipment.germanName ? pidEquipment.germanName : (pidEquipment.englishName ? pidEquipment.englishName : null)))}" pid-current-value="${pidEquipment.id}" pid-function="${pidEquipment.pidFunction}" pid-number="${pidEquipment.pidNumber}" sapient-bind="${getSapientBind(pidEquipment)}">
-        <mxCell style="${this.concatenateStyles(pidEquipment.styleObject)}" vertex="${pidEquipment._vertex}" connectable="1" parent="${pidEquipment.parentId ? pidEquipment.parentId : pidEquipment._parent}">
-          <mxGeometry x="${pidEquipment.mxGeometry._x ? pidEquipment.mxGeometry._x : 50}" y="${pidEquipment.mxGeometry._y ? pidEquipment.mxGeometry._y : 50}" width="${pidEquipment.mxGeometry._width}" height="${pidEquipment.mxGeometry._height}" as="${pidEquipment.mxGeometry._as}"></mxGeometry>
-        </mxCell>
-    </object>`;
-  });
+        <object id="${pidEquipment.id ? pidEquipment.id : pidEquipment._id}" label="${pidEquipment._value !== '' ? pidEquipment._value : htmlLabel}" placeholders="1" pid-label="${pidEquipment.pidLabel ? pidEquipment.pidLabel : (pidEquipment.shortName ? pidEquipment.shortName : (pidEquipment.germanName ? pidEquipment.germanName : (pidEquipment.englishName ? pidEquipment.englishName : null)))}" pid-current-value="${pidEquipment.id}" pid-function="${pidEquipment.pidFunction}" pid-number="${pidEquipment.pidNumber}" sapient-bind="${getSapientBind(pidEquipment)}">
+            <mxCell style="${this.concatenateStyles(pidEquipment.styleObject)}" vertex="${pidEquipment._vertex}" connectable="1" parent="${pidEquipment.parentId ? pidEquipment.parentId : pidEquipment._parent}">
+                <mxGeometry x="${pidEquipment.mxGeometry._x ? pidEquipment.mxGeometry._x : 50}" y="${pidEquipment.mxGeometry._y ? pidEquipment.mxGeometry._y : 50}" width="${pidEquipment.mxGeometry._width}" height="${pidEquipment.mxGeometry._height}" as="${pidEquipment.mxGeometry._as}"></mxGeometry>
+            </mxCell>
+        </object>`;
+        });
 
         const instrumentCount = pidInstruments.length;
         console.log(`Generating XML-tags for ${instrumentCount} instrument instances...`);
         pidInstruments.forEach((pidInstrument) => {
             xmlString += `
-    <object id="${pidInstrument.id ? pidInstrument.id : pidInstrument._id}" label="${htmlLabelInstrument}" placeholders="1" pid-label="${pidInstrument.pidLabel ? pidInstrument.pidLabel : (pidInstrument.shortName ? pidInstrument.shortName : (pidInstrument.germanName ? pidInstrument.germanName : (pidInstrument.englishName ? pidInstrument.englishName : null)))}" pid-current-value="${pidInstrument.id}" pid-function="${pidInstrument.pidFunction}" pid-number="${pidInstrument.pidNumber}" sapient-bind="${getSapientBind(pidInstrument)}">
-      <mxCell style="${this.concatenateStyles(pidInstrument.styleObject)}" vertex="${pidInstrument._vertex}" connectable="1" parent="${pidInstrument.parentId ? pidInstrument.parentId : pidInstrument._parent}">
-        <mxGeometry x="${pidInstrument.mxGeometry._x ? pidInstrument.mxGeometry._x : 50}" y="${pidInstrument.mxGeometry._y ? pidInstrument.mxGeometry._y : 50}" width="${pidInstrument.mxGeometry._width}" height="${pidInstrument.mxGeometry._height}" as="${pidInstrument.mxGeometry._as}"></mxGeometry>
-      </mxCell>
-    </object>`;
-  });
+        <object id="${pidInstrument.id ? pidInstrument.id : pidInstrument._id}" label="${htmlLabelInstrument}" placeholders="1" pid-label="${pidInstrument.pidLabel ? pidInstrument.pidLabel : (pidInstrument.shortName ? pidInstrument.shortName : (pidInstrument.germanName ? pidInstrument.germanName : (pidInstrument.englishName ? pidInstrument.englishName : null)))}" pid-current-value="${pidInstrument.id}" pid-function="${pidInstrument.pidFunction}" pid-number="${pidInstrument.pidNumber}" sapient-bind="${getSapientBind(pidInstrument)}">
+            <mxCell style="${this.concatenateStyles(pidInstrument.styleObject)}" vertex="${pidInstrument._vertex}" connectable="1" parent="${pidInstrument.parentId ? pidInstrument.parentId : pidInstrument._parent}">
+                <mxGeometry x="${pidInstrument.mxGeometry._x ? pidInstrument.mxGeometry._x : 50}" y="${pidInstrument.mxGeometry._y ? pidInstrument.mxGeometry._y : 50}" width="${pidInstrument.mxGeometry._width}" height="${pidInstrument.mxGeometry._height}" as="${pidInstrument.mxGeometry._as}"></mxGeometry>
+            </mxCell>
+        </object>`;
+        });
 
         const arrowCount = pidArrows.length;
         console.log(`Generating XML-tags for ${arrowCount} arrow instances...`);
         pidArrows.forEach((pidArrow) => {
             xmlString += `
-    <object id="${pidArrow.id ? pidArrow.id : pidArrow._id}" label="${pidArrow._value !== '' ? pidArrow._value : htmlLabel}" placeholders="1" pid-label="${pidArrow.pidLabel ? pidArrow.pidLabel : (pidArrow.shortName ? pidArrow.shortName : (pidArrow.germanName ? pidArrow.germanName : (pidArrow.englishName ? pidArrow.englishName : null)))}" pid-current-value="${pidArrow.id}" pid-function="${pidArrow.pidFunction}" pid-number="${pidArrow.pidNumber}" sapient-bind="${getSapientBind(pidArrow)}">
-      <mxCell style="${this.concatenateStyles(pidArrow.styleObject)}" vertex="${pidArrow._vertex}" connectable="1" parent="${pidArrow.parentId ? pidArrow.parentId : pidArrow._parent}">
-        <mxGeometry x="${pidArrow.mxGeometry._x ? pidArrow.mxGeometry._x : 50}" y="${pidArrow.mxGeometry._y ? pidArrow.mxGeometry._y : 50}" width="${pidArrow.mxGeometry._width}" height="${pidArrow.mxGeometry._height}" as="${pidArrow.mxGeometry._as}"></mxGeometry>
-      </mxCell>
-    </object>`;
-  });
+        <object id="${pidArrow.id ? pidArrow.id : pidArrow._id}" label="${pidArrow._value !== '' ? pidArrow._value : htmlLabel}" placeholders="1" pid-label="${pidArrow.pidLabel ? pidArrow.pidLabel : (pidArrow.shortName ? pidArrow.shortName : (pidArrow.germanName ? pidArrow.germanName : (pidArrow.englishName ? pidArrow.englishName : null)))}" pid-current-value="${pidArrow.id}" pid-function="${pidArrow.pidFunction}" pid-number="${pidArrow.pidNumber}" sapient-bind="${getSapientBind(pidArrow)}">
+            <mxCell style="${this.concatenateStyles(pidArrow.styleObject)}" vertex="${pidArrow._vertex}" connectable="1" parent="${pidArrow.parentId ? pidArrow.parentId : pidArrow._parent}">
+                <mxGeometry x="${pidArrow.mxGeometry._x ? pidArrow.mxGeometry._x : 50}" y="${pidArrow.mxGeometry._y ? pidArrow.mxGeometry._y : 50}" width="${pidArrow.mxGeometry._width}" height="${pidArrow.mxGeometry._height}" as="${pidArrow.mxGeometry._as}"></mxGeometry>
+            </mxCell>
+        </object>`;
+        });
 
         const groupCount = pidGroups.length;
         console.log(`Generating XML-tags for ${groupCount} group instances...`);
         pidGroups.forEach((pidGroup) => {
             xmlString += `
-    <object id="${pidGroup.id ? pidGroup.id : pidGroup._id}" label="${pidGroup._value !== '' ? pidGroup._value : htmlLabelGroup}" placeholders="1" pid-label="${pidGroup.pidLabel ? pidGroup.pidLabel : (pidGroup.shortName ? pidGroup.shortName : (pidGroup.germanName ? pidGroup.germanName : (pidGroup.englishName ? pidGroup.englishName : null)))}" pid-hierarchy="${pidGroup.pidHierarchy}" pid-current-value="${pidGroup.id}" pid-function="${pidGroup.pidFunction}" pid-number="${pidGroup.pidNumber}" sapient-bind="${getSapientBind(pidGroup)}">
-      <mxCell style="${this.concatenateStyles(pidGroup.styleObject)}" vertex="${pidGroup._vertex}" connectable="${pidGroup._connectable}" parent="${pidGroup.parentId ? pidGroup.parentId : pidGroup._parent}">
-        <mxGeometry x="${pidGroup.mxGeometry._x ? pidGroup.mxGeometry._x : graphSettings.defaultPadding}" y="${pidGroup.mxGeometry._y ? pidGroup.mxGeometry._y : graphSettings.defaultPadding}" width="${pidGroup.mxGeometry._width}" height="${pidGroup.mxGeometry._height}" as="${pidGroup.mxGeometry._as}"></mxGeometry>
-      </mxCell>
-    </object>`;
-  });
+        <object id="${pidGroup.id ? pidGroup.id : pidGroup._id}" label="${pidGroup._value !== '' ? pidGroup._value : htmlLabelGroup}" placeholders="1" pid-label="${pidGroup.pidLabel ? pidGroup.pidLabel : (pidGroup.shortName ? pidGroup.shortName : (pidGroup.germanName ? pidGroup.germanName : (pidGroup.englishName ? pidGroup.englishName : null)))}" pid-hierarchy="${pidGroup.pidHierarchy}" pid-current-value="${pidGroup.id}" pid-function="${pidGroup.pidFunction}" pid-number="${pidGroup.pidNumber}" sapient-bind="${getSapientBind(pidGroup)}">
+            <mxCell style="${this.concatenateStyles(pidGroup.styleObject)}" vertex="${pidGroup._vertex}" connectable="${pidGroup._connectable}" parent="${pidGroup.parentId ? pidGroup.parentId : pidGroup._parent}">
+                <mxGeometry x="${pidGroup.mxGeometry._x ? pidGroup.mxGeometry._x : graphSettings.defaultPadding}" y="${pidGroup.mxGeometry._y ? pidGroup.mxGeometry._y : graphSettings.defaultPadding}" width="${pidGroup.mxGeometry._width}" height="${pidGroup.mxGeometry._height}" as="${pidGroup.mxGeometry._as}"></mxGeometry>
+            </mxCell>
+        </object>`;
+        });
 
         // Add edges:
         const lineCount = pidLines.length;
@@ -2255,18 +2282,18 @@ let component = SapientComponent.extend(Evented, {
             //const target = pidJson.find((vertex) => vertex.id === pidLine.targetId);
             const parent = pidJson.find((parent) => parent.id === source.id);
             xmlString += `
-    <object id="${pidLine.id ? pidLine.id : pidLine._id}" label="${pidLine._value !== '' ? pidLine._value : htmlLabelLine}" placeholders="1" pid-label="${pidLine.pidLabel ? pidLine.pidLabel : (pidLine.shortName ? pidLine.shortName : (pidLine.germanName ? pidLine.germanName : (pidLine.englishName ? pidLine.englishName : 'Beer')))}" pid-current-value="${pidLine.id}" pid-function="${pidLine.pidFunction}" pid-number="${pidLine.pidNumber}" sapient-bind="${getSapientBind(pidLine)}">
-      <mxCell id="${pidLine.id ? pidLine.id : pidLine._id}" style="${this.concatenateStyles(pidLine.styleObject)}" edge="${pidLine._edge}" source="${pidLine.sourceId}" target="${pidLine.targetId}" parent="${parent.id ? parent.id : pidLine._parent}">
-        <mxGeometry relative="${pidLine.mxGeometry._relative ? pidLine.mxGeometry._relative : 1}" as="${pidLine.mxGeometry._as ? pidLine.mxGeometry._as : 'geometry'}"></mxGeometry>
-      </mxCell>
-    </object>`;
-  });
+        <object id="${pidLine.id ? pidLine.id : pidLine._id}" label="${pidLine._value !== '' ? pidLine._value : htmlLabelLine}" placeholders="1" pid-label="${pidLine.pidLabel ? pidLine.pidLabel : (pidLine.shortName ? pidLine.shortName : (pidLine.germanName ? pidLine.germanName : (pidLine.englishName ? pidLine.englishName : 'Beer')))}" pid-current-value="${pidLine.id}" pid-function="${pidLine.pidFunction}" pid-number="${pidLine.pidNumber}" sapient-bind="${getSapientBind(pidLine)}">
+            <mxCell id="${pidLine.id ? pidLine.id : pidLine._id}" style="${this.concatenateStyles(pidLine.styleObject)}" edge="${pidLine._edge}" source="${pidLine.sourceId}" target="${pidLine.targetId}" parent="${parent.id ? parent.id : pidLine._parent}">
+                <mxGeometry relative="${pidLine.mxGeometry._relative ? pidLine.mxGeometry._relative : 1}" as="${pidLine.mxGeometry._as ? pidLine.mxGeometry._as : 'geometry'}"></mxGeometry>
+            </mxCell>
+        </object>`;
+        });
 
-  // TODO:  Add database bindings
+        // TODO:  Add database bindings
 
-  // Add boilerplate closing tags
+        // Add boilerplate closing tags
         xmlString += `
-  </root>
+    </root>
 </mxGraphModel>`;
 
         console.log('pidXmlString');
@@ -2377,14 +2404,15 @@ let component = SapientComponent.extend(Evented, {
     },
 
 
-    escapeToHtmlValid: function(xmlString) {
-        //console.log('Escaping pidXmlString to pidHtmlString...');
-        let htmlString = String(xmlString)
+    escapeToHtmlValid: function(string) {
+        let htmlString = String(string)
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")
             .replace(/ /g, "&nbsp;")
-            .replace(/\n/g, "<br />");
+            .replace(/\n/g, "<br />")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&quot;")
         return htmlString;
     },
 
