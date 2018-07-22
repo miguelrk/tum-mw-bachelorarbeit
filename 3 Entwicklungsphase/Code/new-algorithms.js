@@ -1,12 +1,310 @@
-function vertexPlacement(pidJson) {
-  console.group("Positioning vertices in graph...");
-  let vertices = pidJson.filter(object => object._vertex === "1");
-  let edges = pidJson.filter(object => object._edge === "1");
-  //console.log(JSON.stringify(vertices));
-  console.log(JSON.stringify(vertices));
-  console.table(vertices);
-  console.table(edges);
-  //console.log(JSON.stringify(edges));
+let pidVertices = mapNodesToShapes(pidNodes);
+let allConnections = pidJson.filter(object => object._edge === "1");
+let pidEdges = mapConnectionsToShapes(pidVertices, allConnections);
+let pidJsonAfter = vertexPlacement(pidVertices, pidEdges);
+console.log("pidJson after:");
+console.log(pidJsonAfter);
+pidXmlString = generatePidXmlString(pidJsonAfter);
+renderXml(pidXmlString);
+
+
+function mapNodesToShapes(pidNodesInOrder) {
+  /**
+   * Maps each pidNode to its corresponding vertex shape (E/I/G/A) and creates a pidVertex
+   * instance with all pidNode and pidShape attributes. For pidNodes without 
+   * a shapeName (shapeName === '') like groups, it determines the shapeName
+   * according to the pidLevel set in traverseAndSort.
+   */
+  console.groupCollapsed("Mapping nodes to shapes (equipment, instruments, arrows, groups)...");
+  const pidShapesCount = pidShapesLibrary.length;
+  const pidNodesCount = pidNodesInOrder.length;
+  let pidVertices = [];
+
+  pidNodesInOrder.forEach((pidNode) => {
+    let matchingShape = {};
+    let details = JSON.parse(pidNode.details);
+    if (details !== null && details !== undefined) pidNode.pidHierarchy = details.isaLevel;
+    // Set shapeName Fallback: in case of no name (groups are modelled as nodes but not given a 
+    // shapeName so shapeName set based on pidLevel, determined in traverseAndSort)
+    if (!pidNode.shapeName || pidNode.shapeName === "" || pidNode.shapeName === null || pidNode.shapeName === undefined) {
+
+      if (pidNode.pidHierarchy === 'Enterprise') {
+        // Skip shapeName setting because no shape exists for Enterprise
+      } else if (pidNode.pidHierarchy === 'Site') {
+        pidNode.shapeName = "site_group";
+      } else if (pidNode.pidHierarchy === 'Area') {
+        pidNode.shapeName = "area_group";
+      } else if (pidNode.pidHierarchy === 'Cell') {
+        pidNode.shapeName = "processCell_group";
+      } else if (pidNode.pidHierarchy === 'Unit') {
+        pidNode.shapeName = "unit_group";
+      } else if (pidNode.pidHierarchy === 'EModule') {
+        pidNode.shapeName = "eModule_group"; // EModule Groups
+      } else {
+        // Skip legato system root node
+      }
+      console.groupCollapsed(`${pidNode.id}: ${pidNode.shortName} shapeName was empty, now set to ${pidNode.shapeName}`);
+      console.log('id:    ' + pidNode.id ? pidNode.id : 'empty');
+      console.log('name:  ' + pidNode.shortName ? pidNode.shortName : 'empty');
+      console.log('shapeName:  ' + pidNode.shapeName ? pidNode.shapeName : 'empty');
+      console.log('pidLevel:    ' + pidNode.pidLevel ? pidNode.pidLevel : 'empty');
+      console.log('pidHierarchy:    ' + pidNode.pidHierarchy ? pidNode.pidHierarchy : 'empty');
+      console.groupEnd();
+    } else {
+      console.groupCollapsed(`${pidNode.id}: ${pidNode.shortName} had shapeName`);
+      console.log('id:    ' + pidNode.id ? pidNode.id : 'empty');
+      console.log('name:  ' + pidNode.shortName ? pidNode.shortName : 'empty');
+      console.log('shapeName:  ' + pidNode.shapeName ? pidNode.shapeName : 'empty');
+      console.log('pidLevel:    ' + pidNode.pidLevel ? pidNode.pidLevel : 'empty');
+      console.log('pidHierarchy:    ' + pidNode.pidHierarchy ? pidNode.pidHierarchy : 'empty');
+      console.groupEnd();
+    }
+
+    //Map node to shape via shapeName attributes
+    matchingShape = pidShapesLibrary.find((shape) => shape.shapeName === pidNode.shapeName);
+    //console.log(pidNode);
+    //console.log(matchingShape);
+    // Clone all properties to NEW target object (which is returned) Alternatively: let pidVertex = Object.assign({}, pidNode, matchingShape);
+    let pidVertex = { ...pidNode,
+      ...matchingShape
+    };
+    pidVertices.push(pidVertex);
+  });
+
+  console.log(`Mapped ${pidNodesCount} node instances to vertex shapes from ${pidShapesCount} total shapes in library.`);
+  console.log("pidVertices:");
+  console.table(pidVertices);
+  console.log(JSON.stringify(pidVertices));
+  console.groupEnd();
+  return pidVertices;
+}
+
+
+function mapConnectionsToShapes(vertices, allConnections) {
+  /**
+   * Maps each pidConnection to its corresponding edge shape and creates a pidEdge
+   * instance with all pidConnection and pidShape attributes. Because only 
+   * process_flows modelled, additionally determines
+   * the shapeName according to certain PID Rules for pidConnections. 
+   */
+  console.groupCollapsed("Mapping connections to line shapes...");
+
+  // 1) Filter: keep connections only if both target and id found in filtered vertices
+  let connections = [];
+  allConnections.forEach((connection) => {
+    // Find corresponding source and target vertices from vertices (filtered already in buildHierarchy())
+    const sourceIdFound = vertices.some((vertex) => vertex.id === connection.sourceId);
+    const targetIdFound = vertices.some((vertex) => vertex.id === connection.targetId);
+
+    if (sourceIdFound && targetIdFound) connections.push(connection);
+  });
+  console.log(`Filtered connections: kept ${connections.length}/${allConnections.length} of all connections:`);
+  console.table(connections);
+
+  // 2) Simplify: Clear waypoints/wayports of edges (ex. shape1 --> group1 --> group2 --> shape2  simplified to  shape1 --> shape1)
+  let simplifiedConnections = simplifyConnections(vertices, connections);
+  console.log(`Simplified connections: kept ${simplifiedConnections.length}/${connections.length} filtered connections:`);
+  console.table(simplifiedConnections);
+
+  // 3) Map to shapes: set shapeName property and map to corresponding edge shape in pid shapes library
+  let pidEdges = [];
+  simplifiedConnections.forEach((simpleConnection) => {
+    // Find corresponding source and target vertices from vertices
+    let source = vertices.find((vertex) => vertex.id === simpleConnection.sourceId);
+    let target = vertices.find((vertex) => vertex.id === simpleConnection.targetId);
+
+    // Catches possible wrongly non-filtered connections
+    if ((source !== null || source !== undefined) && (target !== null || target !== undefined)) {
+
+      /* PID RULES
+          Set shapeName to simpleConnection based on flowType attribute in 
+          database or based on logical PID rules (because for now, all lines
+          are modelled as material_flows provisionally)
+          +---------------+-----------+------------+-------+-------+------+
+          | source\target | equipment | instrument | group | arrow | line |
+          +---------------+-----------+------------+-------+-------+------+
+          |   equipment   |     P     |      P     |   P   |   -   |   -  |
+          +---------------+-----------+------------+-------+-------+------+
+          |   instrument  |     P     |      D     |   D   |   -   |   -  |
+          +---------------+-----------+------------+-------+-------+------+
+          |     group     |     P     |      D     |   P   |   -   |   -  |
+          +---------------+-----------+------------+-------+-------+------+
+          |     arrow     |     -     |      -     |   -   |   -   |   -  |
+          +---------------+-----------+------------+-------+-------+------+
+          |      line     |     -     |      -     |   -   |   -   |   -  |
+          +---------------+-----------+------------+-------+-------+------+
+      */
+
+      if (
+        simpleConnection.flowType === 'data_flow' ||
+        (source.pidClass === 'instrument' && target.pidClass === 'instrument') ||
+        (source.pidClass === 'instrument' && target.pidClass === 'group') ||
+        (source.pidClass === 'group' && target.pidClass === 'instrument')) {
+        simpleConnection.shapeName = 'data_line';
+      } else if (simpleConnection.flowType === 'signal_flow') {
+        simpleConnection.shapeName = 'signal_line';
+      } else if (simpleConnection.flowType === 'connection_flow') {
+        simpleConnection.shapeName = 'connection_line';
+      } else if (
+        simpleConnection.flowType === 'process_flow' ||
+        (source.pidClass === 'equipment' && target.pidClass === 'equipment') ||
+        (source.pidClass === 'equipment' && target.pidClass === 'instrument') ||
+        (source.pidClass === 'equipment' && target.pidClass === 'group') ||
+        (source.pidClass === 'instrument' && target.pidClass === 'equipment') ||
+        (source.pidClass === 'group' && target.pidClass === 'equipment') ||
+        (source.pidClass === 'group' && target.pidClass === 'group')) {
+        simpleConnection.shapeName = 'pipe_line';
+      }
+      /*else if ( // Instrument between two equipments
+          (source.pidClass === 'equipment' && target.pidClass === 'instrument') || 
+          (source.pidClass === 'instrument' && target.pidClass === 'equipment')) {
+          // 'Short-circuit' equipment to equipment and create connection_line from pipe_line to instrument
+          const source = get('pidVertices').find((vertex) => vertex.id === simpleConnection.sourceId);
+          const target = get('pidVertices').find((vertex) => vertex.id === simpleConnection.targetId);
+          simpleConnection.shapeName = 'connection_line';
+      } */
+      else {
+        // Default to connection line
+        simpleConnection.shapeName = 'connection_line';
+      }
+
+      let matchingShape = {};
+      matchingShape = pidShapesLibrary.find((shape) => shape.shapeName === simpleConnection.shapeName);
+      //console.log(simpleConnection);
+      //console.log(matchingShape);
+      // Clone all properties to NEW target object (which is returned)
+      let pidEdge = Object.assign({}, simpleConnection, matchingShape);
+      pidEdges.push(pidEdge);
+    }
+  });
+  console.log(`Mapped ${pidEdges.length} connection instances to edge shapes from ${pidShapesLibrary.length} total shapes in library:`);
+  console.table(pidEdges);
+
+
+  function simplifyConnections(pidVertices, pidEdges) {
+    /**
+     * Simplifies connections from and to groups by replacing both the preEdge and
+     * postEdge of that connection with a single, direct connection when that is
+     * the case. NOTE: simplifiedId retains the id of the startEdge (so remaining
+     * properties are inherited from the startEdge, which should have same as endEdge)
+     */
+
+    console.groupCollapsed("Simplifying connections of pidEdges...");
+
+    let vertices = pidVertices;
+    let edges = pidEdges;
+    let simplifiedEdges = [];
+    let idsToSkip = [];
+
+    edges.forEach((edge) => {
+
+      let startEdge;
+      let endEdge;
+      let source = getVertexBy('id', edge.sourceId, vertices);
+      let target = getVertexBy('id', edge.targetId, vertices);
+      //console.log(source);
+      //console.log(target);
+      //console.log(idsToSkip);
+
+      // Case: if connection of edge already simplified and thus edge.id pushed to idsToSkip array
+      if (idsToSkip.find((id) => id === edge.id)) {
+        console.log(`${edge.id} found in idsToSkip --> return`);
+        return;
+      } else if (undefined !== source && undefined !== target) {
+        // Case: shape --> shape
+        if ('group' !== target.pidClass && 'group' !== source.pidClass) {
+          console.log(`edge ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass} --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
+          simplifiedEdges.push(edge);
+        }
+
+        // Case: group --> group
+        else {
+          // Traverse connection back and forth (to first startPort and last endPort)
+          startEdge = getFirstEdge(edge, source, target); // recursively get previousEdge until startEdge
+          endEdge = getLastEdge(edge, source, target); // recursively get nextEdge until endEdge
+          // Clone targetId and targetPort of endEdge and rest of startEdge
+          let simplifiedEdge = startEdge;
+          simplifiedEdge.targetId = endEdge.targetId;
+          simplifiedEdge.targetPort = endEdge.targetPort;
+          // Push a single, direct and simplified edge to the array
+          simplifiedEdges.push(simplifiedEdge);
+
+          let simplifiedEdgeSource = getVertexBy('id', simplifiedEdge.sourceId, vertices);
+          let previousEdgeTarget = getVertexBy('id', simplifiedEdge.targetId, vertices);
+          console.log(`simplifiedEdge ${simplifiedEdge.id}: ${simplifiedEdge.sourceId} | ${simplifiedEdgeSource.shortName} | ${source.pidClass} --> ${previousEdgeTarget.shortName} | ${source.pidClass} | ${edge.targetId}`);
+        }
+      }
+
+    });
+
+
+    function getVertexBy(property, value, array) {
+      return array.find((vertex) => vertex[property] === value);
+    }
+
+    function getFirstEdge(edge, source, target) {
+      /**
+       * Recursively get previousEdge until startEdge
+       */
+      idsToSkip.push(edge.id);
+      //console.log(idsToSkip.length);
+      let previousEdge = getPreviousEdge(edge);
+      if (!previousEdge) {
+        console.log(`return ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass} --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
+        return edge;
+      } else {
+        let previousEdgeSource = getVertexBy('id', previousEdge.sourceId, vertices);
+        let previousEdgeTarget = getVertexBy('id', previousEdge.targetId, vertices);
+        let firstEdge = getFirstEdge(previousEdge, previousEdgeSource, previousEdgeTarget);
+        return firstEdge;
+      }
+    }
+
+    function getPreviousEdge(edge) {
+      // Find corresponding edge and clone
+      return edges.find((previousEdge) => edge.sourcePort === previousEdge.targetPort);
+      // Return clone or 'isStartEdge' string if previousEdge = undefined (no previousEdge found)
+    }
+
+    function getLastEdge(edge, source, target) {
+      /**
+       * Recursively get nextEdge until endEdge
+       */
+      idsToSkip.push(edge.id);
+      //console.log(idsToSkip.length);
+      let nextEdge = getNextEdge(edge);
+      if (!nextEdge) {
+        console.log(`return ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass}) --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
+      } else if (nextEdge) {
+        let nextEdgeSource = getVertexBy('id', nextEdge.sourceId, vertices);
+        let nextEdgeTarget = getVertexBy('id', nextEdge.targetId, vertices);
+        getLastEdge(nextEdge, nextEdgeSource, nextEdgeTarget);
+      }
+      return edge;
+    }
+
+    function getNextEdge(edge) {
+      // Find corresponding edge and clone
+      return edges.find((nextEdge) => edge.targetPort === nextEdge.sourcePort);
+    }
+
+    console.groupEnd();
+    return simplifiedEdges;
+  }
+
+  console.groupEnd();
+  return pidEdges;
+}
+
+
+function vertexPlacement(pidVertices, pidEdges) {
+  console.groupCollapsed("Positioning vertices in graph...");
+  let vertices = pidVertices;
+  let edges = pidEdges;
+  // let vertices = pidJson.filter(object => object._vertex === "1");
+  // let edges = pidJson.filter(object => object._edge === "1");
+  console.log(vertices);
+  console.log(edges);
 
   let simplifiedEdges = simplifyConnections(vertices, edges);
   console.log('simplifiedEdges:');
@@ -25,6 +323,7 @@ function vertexPlacement(pidJson) {
   let m = {};
   let p = {}; // p: previousObject clone
   const pidLevelCount = findMax('pidLevel', vertices);
+  console.log(pidLevelCount);
   let memory = []; // Needed to keep track (permanently until end of algorithm) of frequently accessed and calculated variables
   let stack = []; // Needed to keep track ONLY OF VERTICES WITH #CHILDOFGROUP (temporarily until ANY innerGroup of next level reached, where it is cleared) 
   // of frequently accessed and calculated variables #childOfNonGroup elements are not pushed to stack because they don't need to be offset by margin,
@@ -1089,6 +1388,9 @@ function vertexPlacement(pidJson) {
       let source = getVertexBy('id', edge.sourceId, vertices);
       let target = getVertexBy('id', edge.targetId, vertices);
 
+      console.log(source.id);
+      console.log(target.id);
+
       // Case: if connection of edge already simplified and thus edge.id pushed to idsToSkip array
       if (idsToSkip.find((id) => id === edge.id)) {
         console.warn(`${edge.id} found in idsToSkip --> return`);
@@ -1105,7 +1407,6 @@ function vertexPlacement(pidJson) {
 
       // Clse: group --> group
       else {
-        console.group(`edge ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass} --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
         // Traverse connection back and forth (to first startPort and last endPort)
         startEdge = getFirstEdge(edge, source, target); // recursively get previousEdge until startEdge
         endEdge = getLastEdge(edge, source, target); // recursively get nextEdge until endEdge
@@ -1118,7 +1419,7 @@ function vertexPlacement(pidJson) {
 
         let simplifiedEdgeSource = getVertexBy('id', simplifiedEdge.sourceId, vertices);
         let previousEdgeTarget = getVertexBy('id', simplifiedEdge.targetId, vertices);
-        console.log(`simplifiedEdge ${simplifiedEdge.id}: ${simplifiedEdge.sourceId} | ${simplifiedEdgeSource.shortName} | ${source.pidClass} --> ${previousEdgeTarget.shortName} | ${source.pidClass} | ${edge.targetId}`);
+        console.group(`simplifiedEdge ${simplifiedEdge.id}: ${simplifiedEdge.sourceId} | ${simplifiedEdgeSource.shortName} | ${source.pidClass} --> ${source.pidClass} | ${previousEdgeTarget.shortName} | ${edge.targetId}`);
         console.groupEnd();
       }
     });
@@ -1273,7 +1574,7 @@ function generatePidXmlString(pidJson) {
     //   };
     //   const sapientBindString = JSON.stringify(sapientBind);
     //   console.log(sapientBindString);
-    //   const escapedSapientBind = this.escapeToHtmlValid(sapientBindString);
+    //   const escapedSapientBind = escapeToHtmlValid(sapientBindString);
     //   console.log(escapedSapientBind);
     // }
     // else if ('instrument' === shape.pidClass) {}
@@ -1429,9 +1730,3 @@ function escapeXmlToHtml(xmlString) {
     .replace(/'/g, "&quot;")
   return htmlString;
 }
-
-let pidJsonAfter = vertexPlacement(pidJson);
-console.log("pidJson after:");
-console.log(pidJsonAfter);
-pidXmlString = generatePidXmlString(pidJsonAfter);
-renderXml(pidXmlString);
