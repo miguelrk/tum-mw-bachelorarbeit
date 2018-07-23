@@ -1,20 +1,20 @@
-// Simple for p_values_current
+/* Simple for p_values_current
 {
   "datasources": {
-    "pValueCurrent": {
+    "text": {
       "source": "var", // var/nodestatus/...
       "params": {
         "id": 1292 // id of p_values_current
       }
     }
   },
-  "bindings": {
+  "bindings": { value="%text% %unit%" unit=="m2"
     "text": {
       "value": {
         "source": "dataref",
         "defaultValue": "---",
         "params": {
-          "ref": "pValueCurrent"
+          "ref": "text"
         }
       }
     }
@@ -32,7 +32,7 @@
     "color": {
       "source": "var",
       "params": {
-        "id": "INSERT P_VALUES_CURRENT ID"
+        "id": 12323
       }
     }
   },
@@ -55,30 +55,19 @@
           "name": "map",
           "params": {
             "input": {
-              "source": "function",
+              "source": "dataref",
               "params": {
-                "name": "sum",
-                "params": {
-                  "values": [
-                    0,
-                    {
-                      "source": "dataref",
-                      "params": {
-                        "ref": "color"
-                      }
-                    }
-                  ]
-                }
+                "ref": "color"
               }
             },
             "map": [
               [
-                0,
-                "red"
+                false,
+                "white"
               ],
               [
-                2,
-                "green"
+                true,
+                "black"
               ]
             ]
           }
@@ -87,3 +76,5 @@
     }
   }
 }
+
+*/
