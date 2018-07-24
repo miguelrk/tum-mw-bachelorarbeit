@@ -26,7 +26,7 @@
     "text": {
       "source": "var",
       "params": {
-        "id": "INSERT P_VALUES_CURRENT ID"
+        "id": UNIT-ID-AS-INT
       }
     },
     "color": {

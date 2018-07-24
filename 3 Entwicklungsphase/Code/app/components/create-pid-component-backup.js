@@ -14,6 +14,8 @@ const uploader = EmberUploader.Uploader.create({
 
 let component = SapientComponent.extend(Evented, {
     /**
+     * Component for the creation of P&ID Visualizations in XML format.
+     * 
      * @author Miguel Romero
      * @version 2.3
     */
@@ -26,7 +28,6 @@ let component = SapientComponent.extend(Evented, {
     server: service, // for db queries
     subscription: undefined, // for db queries
     // For continue test conditions (booleans)
-    firstCheck: true, // for checkToEnableButton (set to false after first function call)
     fileInput: false, // true when input file succesfully loaded
     rootNode: false, // true when valid root node selected and succesfully fetched corresponding node from database
     loading: false,
@@ -53,17 +54,25 @@ let component = SapientComponent.extend(Evented, {
     pidXmlString: '', // to download/upload pid-visualization in XML format
     pidHtmlString: '', // to render pid-visualization in HTML valid (escaped XML) format
 
-    // Variable initialization:
+
+    /*********************** Variable initialization ***************************/
     init() {
         this._super(...arguments);
         this.set('jsonObject', null);
         this.set('jsonString', '');
-        this.checkToEnableButton(this.get('firstCheck'));
     },
-    // Action declarations:
+
+    /************************** Action declarations ****************************/
     actions: {
+
+        /**
+         * Loads input file on upload by adding response to object
+         *
+         * @param {String} object
+         * @param {String} response
+         */
         loadSuccess: function(object, response) {
-            //console.log('File uploaded and response added to object...');
+
             this.set(object, response);
             this.set('pidShapesLibrary', this.get(object));
             console.log(`File loaded succesfully.`);
@@ -72,7 +81,13 @@ let component = SapientComponent.extend(Evented, {
             this.checkToEnableButton();
         },
             
+        /**
+         * Catches any error when loading input file
+         *
+         * @param {String} err
+         */
         loadError: function(err) {
+
             console.log('Error during File Upload...\n');
             console.log(err);
 
@@ -82,13 +97,17 @@ let component = SapientComponent.extend(Evented, {
         },
         
     },
-    // Observer declarations:
+    
+    /************************* Observer declarations ***************************/
+
+    /**
+     * Observer: gets selected root node id on change in selection from Node Tree 
+     * Boardlet from parentView.parameters.node.value and writes it in value
+     * attribute of input field
+     *
+     */
     rootSelected: observer('parentView.parameters.node.value', function () {
-        /**
-        * Gets selected root node id on change in selection from Node Tree 
-        * Boardlet from parentView.parameters.node.value and writes it in value
-        * attribute of input field
-        */
+        
         this.resetProgressBar();
         let value = this.get('parentView.parameters.node.value');
         // Skip initial value of pidRootNodeId Because null == undefined:
@@ -100,24 +119,25 @@ let component = SapientComponent.extend(Evented, {
             document.getElementById('root-node-selection').value = 'Please select a node under the Legato root node.';
             document.getElementById('selection-field').style.color = 'red';
         } else {
+            this.set('rootNode', true);
             this.set('pidRootNodeId', value);
             this.getData('pidRootNode');            
         }
         console.log(`Selected root node Id: ${this.get('pidRootNodeId')}`);
+        this.checkToEnableButton();
     }),
 
-
-    checkToEnableButton: function(firstCheck) {
-        /**
-        * Checks fileInput and rootNode boolean values to enable or disable
-        * Generate P&ID XML Button (default value is false, called with true on 
-        * first call) 
-        */
-        if (firstCheck) {
-            console.groupCollapsed('File input and root node selection...');
-            this.set('firstCheck', false);
-            return;
-        }
+    /************************* Function declarations ***************************/
+    
+    /**
+     * Checks fileInput and rootNode global boolean values to enable or disable generate
+     * P&ID XML button (default value is false, called with true on first call) 
+     * 
+     * @param {bool}
+     *
+     */
+    checkToEnableButton: function() {
+        
         // If file loaded and node selected
         if (this.get('fileInput') && this.get('rootNode')) {
             // Remove sapient disabled class for success-button and add event listener
@@ -138,51 +158,49 @@ let component = SapientComponent.extend(Evented, {
         }
     },
 
+    /**
+     * Function to set the value of the progress bar
+     *
+     * @param progress sets the current value of the progress bar
+     * @param max defines the max value of the progress bar
+     *
+     */
+    updateProgressBar: function(progress, max) {
 
-    updateProgressBar: async function(progress, max) {
-        /**
-         * Function to set the value of the progress bar.
-         * @param progress - 0 <= progress <= maxProgressVal, defines the value of the progress bar.
-         */
         if (1 === progress) {
             this.set('showProgressBar',true); // show
             this.set('maxProgressValue', max) // set max once
-            console.warn(`progressBar set: ${progress}/${max}`);
+            //console.log(`progressBar set: ${progress}/${max}`);
         }
         else if (1 < progress && progress < max) {
-            console.warn(`progressBar updated: ${progress}/${max}`);
+            //console.log(`progressBar updated: ${progress}/${max}`);
         }
         else if (progress === max) {
-            // Reset and optionally hide progress bar
-            console.warn(`progressBar reset: ${progress}`);
-            console.warn(`progressBar reached 100%: (${progress}/${max})`);
-            // OPTIONAL: setTimeout to hide progressBar after a few seconds
-            // because if no delay, progress is too fast and progressBar will be hidden 
-            // almost immedeately after showing
+            // Reset and optionally hide progress bar (if no delay, hides too fast to be seen) 
             //setTimeout(() => this.set('showProgressBar', false), 3000);
+            //console.log(`progressBar reached 100% and reset: (${progress}/${max})`);
         }
         this.set("currentProgressValue", progress); // update
     },
     
-    
-    resetProgressBar: async function() {
-        /**
-         * Hide and then reset to avoid resetting animation
-         */
+    /**
+     * Resets progress bar
+     */
+    resetProgressBar: function() {
+        
         this.set('currentProgressValue', 0);
         this.set('maxProgressValue', 1);
         //this.set('showProgressBar', false); // hide
     },
 
-
+    /**
+     * Resets globall variables for another XML generation (next script run) 
+     * to be called on click event of generate-pid-button
+     */
     resetGlobalVariables: function() {
-        /**
-        * Resets globall variables for another XML generation script run 
-        * (called on click event of generate-pid-button)
-        */
+        
         console.groupCollapsed('Reseting global variables...');
         // For continue test conditions (booleans)
-        this.set('firstCheck', true);
         this.set('rootNode', false);
         this.set('loading', false);
         // For fetched data from database
@@ -201,8 +219,11 @@ let component = SapientComponent.extend(Evented, {
         console.groupEnd();
     },
 
-
+    /**
+     * Makes the required database queries
+     */
     databaseQueries: function() {
+        
         let root = this.get('pidRootNode')[0];
         document.getElementById('xml-viewer-div').innerHTML = `Generating P&ID visualization of ${root.shortName} ...`;
         // Add sapient disabled class for success-button
@@ -215,8 +236,15 @@ let component = SapientComponent.extend(Evented, {
         this.set('pidConnections', this.getData('pidConnections'));
     },
 
-
+    /**
+     * Queries PostgreSQL database, maps data with nameMappings and sets
+     * corresponding global variable ('data') to  object of mapped data
+     *
+     * @param {String} data A String of data to query (either 'pidRootNode', 'pidNodes' or 'pidConnections')
+     * @return {Object} 
+     */
     getData: function(data) {
+        
         console.log(`Querying database for ${data} records...`);
         let resource, alias, fields, relate, filter;
         let rootId = this.get('pidRootNodeId');
@@ -224,6 +252,7 @@ let component = SapientComponent.extend(Evented, {
 
         // Build query parameters dynamically depending on data request
         if (data === "pidRootNode") {
+
             // SELECT node WHERE id = this.get('pidRootNodeId') 
             resource = 'l_nodes';
             filter = [{
@@ -232,17 +261,19 @@ let component = SapientComponent.extend(Evented, {
                 val: rootId
             }];
             nameMappings = [
-                { id: 'id' },
-                { nodeLevel: 'node_level' },
-                { parentId: 'parent' },
-                { shortName: 'short_name' },
-                { name: 'name' },
-                { details: 'attr_jsonb' },
+                // From l_nodes:
+                { id: 'id' },                       // {Int} Primary Key
+                { nodeLevel: 'node_level' },        // {Int}
+                { parentId: 'parent' },             // {Int} Id of parent in l_nodes
+                { shortName: 'short_name' },        // {String}
+                { name: 'name' },                   // {String}
+                { details: 'attr_jsonb' }           // {Int} Other details in JsonB format
             ];
         } 
         if (data === "pidNodes") {
+
             /* OPTIMAL POSTGRESQL QUERY: Query hierarchy of selected root node via recursive PostgreSQL query
-            * (couldn't find a way to implement it with available sapient API in javascript)
+             * (couldn't find a way to implement it with available sapient API in javascript)
 
                 -- Select all vertices
                 select * from sapient_owner.prj_prc_visu_vertices;
@@ -269,63 +300,96 @@ let component = SapientComponent.extend(Evented, {
                 where parent is not null
                 order by
                 id; 
-            */
+             */
             resource = "l_nodes";
-            alias = { "n":"l_nodes", "v":"prj_prc_visu_vertices", "r":"p_value_relations", "c":"p_values_config", "t":"p_value_types" };
+            alias = { "n":"l_nodes", "v":"prj_prc_visu_vertices", "r":"p_value_relations", "c":"p_values_config", "f": "sys_value_formats", "t":"p_value_types", "u":"sys_units" };
             fields = {
                 "n": "id, node_level, parent, short_name, name, attr_jsonb",
                 "v": "id, node, is_instrument, shape_name, pid_label, pid_function, pid_number",
-                "r": "id as r_id, node, value",
+                "r": "id, node, value",
                 "c": "id as c_id, value_type, value_format, unit, value_symbol, name as c_name",
-                "t": "id as t_id, name as t_name"
+                "f": "id, name as f_name",
+                "t": "id, name as t_name",
+                "u": "id, name as u_name, unit_symbol"
             };
             relate = [
                     { "src":"n", "dst":"v", "how":"left", "on":{ "src":"id", "dst":"node" } },
                     { "src":"n", "dst":"r", "how":"left", "on":{ "src":"id", "dst":"node" } },
                     { "src":"r", "dst":"c", "how":"left", "on":{ "src":"value", "dst":"id" } },
-                    { "src":"c", "dst":"t", "how":"left", "on":{ "src":"value_type", "dst":"id" } }
+                    { "src":"c", "dst":"f", "how":"left", "on":{ "src":"value_format", "dst":"id" } },
+                    { "src":"c", "dst":"t", "how":"left", "on":{ "src":"value_type", "dst":"id" } },
+                    { "src":"c", "dst":"u", "how":"left", "on":{ "src":"unit", "dst":"id" } }
             ];
             filter = { "field":"n.id", "op":"ge", "val":this.get("pidRootNodeId") };
             nameMappings = [
                 // From l_nodes:
-                { id: 'id' },
-                { nodeLevel: 'node_level' },
-                { parentId: 'parent' },
-                { shortName: 'short_name' },
-                { name: 'name' },
-                { details: 'attr_jsonb' },
-                // From prj_prc_visu_vertices
-                { vId: 'id' },
-                { isInstrument: 'is_instrument' },
-                { shapeName: 'shape_name' },
-                { pidLabel: 'pid_label' },
-                { pidFunction: 'pid_function' },
-                { pidNumber: 'pid_number' },
+                { id: 'id' },                       // {Int} Primary Key
+                { nodeLevel: 'node_level' },        // {Int}
+                { parentId: 'parent' },             // {Int} Id of parent in l_nodes
+                { shortName: 'short_name' },        // {String}
+                { name: 'name' }, // {String}
+                { details: 'attr_jsonb' },          // {Int} Other details in JsonB format
+                // From prj_prc_visu_vertices:
+                { vId: 'id' },                      // {Int} Primary Key (prj_prc_visu_vertices)
+                { isInstrument: 'is_instrument' },  // {Bool} User defined boolean (required for instruments) default is false
+                { shapeName: 'shape_name' },        // {String} Shape Name that maps to P&ID shapes library (required!)
+                { pidLabel: 'pid_label' },          // {String} Optional label for shapes
+                { pidFunction: 'pid_function' },    // {String} User defined instrument function (required for instruments)
+                { pidNumber: 'pid_number' },        // {String} User defined instrument number (required for instruments)
                 // From p_value_relations:
-                { rId: 'r_id' },
                 // From p_values_config:
-                { cValueFormat: 'value_format' },
-                { cUnit: 'unit' },
-                { cValueSymbol: 'value_symbol' },
-                { cName: 'c_name' },
+                { cValueId: 'c_id'},                // {Int} Primary Key of value (in p_values_config and also in p_values_current)
+                // From sys_value_formats
+                { fDataType: 'f_name' },            // {Sring} Data type of value (numeric, boolean, string)
                 // From p_value_types:
-                { tName: 't_name' }
+                { tValueType: 't_name' },           // {Sring} (limit, counter, air consumptuion, energy consumption, ...)
+                // From sys_units
+                { uUnitSymbol: 'unit_symbol' },     // {String} (Nm, J, kPa, °C, ...)
+                { uName: 'u_name' },                // {String} (Newtonmeter, Joule, Kilopascal, ...)
+                { uFactor: 'factor' }               // {String} (1000, /1000, 10000, ,277778, ...)
             ];
         }
         if (data === "pidConnections") {
-            // FIXME: determine resource (table) name
-            resource = 'prj_prc_pro_flows';
-            filter = [{ field: 'id', op: 'nn' }];
+
+            resource = "prj_prc_pro_flows";
+            alias = { "flows":"prj_prc_pro_flows", "p": "pro_products", "c":"p_values_config", "f":"sys_value_formats", "t":"p_value_types", "u":"sys_units" };
+            fields = {
+                "flows": "id, node0, node1, port0, port1, product, is_continuous, rate_value, flow_type",
+                "p": "id, symbol",
+                "c": "id as c_id, value_type, value_format, unit, value_symbol, name as c_name",
+                "f": "id, name as f_name",
+                "t": "id, name as t_name",
+                "u": "id, name as u_name, unit_symbol"
+            };
+            relate = [
+                    { "src":"flows", "dst":"c", "how":"left", "on":{ "src":"rate_value", "dst":"id" } },
+                    { "src":"flows", "dst":"p", "how":"left", "on":{ "src":"product", "dst":"id" } },
+                    { "src":"c", "dst":"f", "how":"left", "on":{ "src":"value_format", "dst":"id" } },
+                    { "src":"c", "dst":"t", "how":"left", "on":{ "src":"value_type", "dst":"id" } },
+                    { "src":"c", "dst":"u", "how":"left", "on":{ "src":"unit", "dst":"id" } }
+            ];
+            filter = { "field":"flows.id", "op":"nn" };
             nameMappings = [
-                { id: 'id'},
-                { sourceId: 'node0' },
-                { targetId: 'node1' },
-                { sourcePort: 'port0' }, // FIXME
-                { targetPort: 'port1' },
-                { product: 'product' },
-                { isContinuous: 'is_continuous' },
-                { rateValue: 'rate_value' },
-                { flowType: 'flow_type' }
+                // From prj_prc_pro_flows
+                { id: 'id'},                        // {Int} Primary Key
+                { sourceId: 'node0' },              // {Int} Id of source in l_nodes
+                { targetId: 'node1' },              // {Int} Id of target in l_nodes
+                { sourcePort: 'port0' },            // {Int} Id of source port
+                { targetPort: 'port1' },            // {Int} Id of target port
+                { isContinuous: 'is_continuous' },  // {Boolean}
+                { flowType: 'flow_type' },          // {String} Type of flow (material_flow, ...)
+                // From pro_products
+                { pProduct: 'symbol' },             // {String} Product of flow (bier, chair, wheel, ...)
+                // From p_values_config:
+                { cValueId: 'c_id'},                // {Int} Primary Key of value (in p_values_config and also in p_values_current)
+                // From sys_value_formats
+                { fDataType: 'f_name' },            // {Sring} Data type of value (numeric, boolean, string)
+                // From p_value_types:
+                { tValueType: 't_name' },           // {Sring} (air consumptuion, energy consumption, ...)
+                // From sys_units
+                { uUnitSymbol: 'unit_symbol' },     // {String} (Nm, J, kPa, °C, ...)
+                { uName: 'u_name' },                // {String} (Newtonmeter, Joule, Kilopascal, ...)
+                { uFactor: 'factor' }               // {String} (1000, /1000, 10000, ,277778, ...)
             ];
         }
 
@@ -363,7 +427,7 @@ let component = SapientComponent.extend(Evented, {
         })
         .then(() => {
             if ('pidRootNode' === data) this.renderRootName(this.get('pidRootNode'));
-            this.checkIfQueriesDone(data);
+            this.filterData(data);
         });
     },
 
@@ -377,29 +441,47 @@ let component = SapientComponent.extend(Evented, {
         document.getElementById('root-node-selection').value = name;
         document.getElementById('selection-field').style.borderColor = 'green';
         this.set('rootNode', true);
-        this.checkToEnableButton(this.get('firstCheck'));
     },
 
-
-    checkIfQueriesDone: function(data) {
-        /**
-        * Filters queried data (might include nodes that aren't descendants
-        * of selected root node) and calls next function (generatePid) 
-        * if queried data (pidNodes and pidConnections correctly set to global 
-        * variables to continue.
-        */
+    /**
+     * Filters queried data (might include nodes that aren't descendants
+     * of selected root node) and calls next function (generatePid) 
+     * if queried data (pidNodes and pidConnections correctly set to global 
+     * variables to continue.
+     *
+     * @param {String}  data A String queried data (either 'pidRootNode', 'pidNodes' or 'pidConnections')
+     *
+     */
+    filterData: function(data) {
+        
         // Continue with PID generation when all queries and left join done
         if (this.get('pidNodes') && this.get('pidConnections')) {
+
             console.groupCollapsed('Database queries and data mappings done.');
             console.groupCollapsed('all pidNodes');
             console.log(this.get('pidNodes'));
             console.groupEnd();
-            // Filter out non-descendants of selected root node (prefered over
-            // recursive database queries of each descendant because of speed)
+            console.groupCollapsed('all pidConnections');
+            console.log(this.get('pidConnections'));
+            console.groupEnd();
+
+            /********************************** pidNodes ********************************************/
+
+            // Filter out non-descendants of selected root node
             this.set('pidNodes', this.getDescendants(this.get('pidRootNodeId'), 0, this.get('pidNodes')));
+
             // Sort by ascending pidLevel
-            this.set('pidNodes', this.get('pidNodes').sort((previous, next) => previous.pidLevel - next.pidLevel));           
-            console.groupCollapsed('filtered pidNodes');
+            this.set('pidNodes', this.get('pidNodes').sort((previous, next) => previous.pidLevel - next.pidLevel));
+
+            /******************************* pidConnections ****************************************/
+
+            // Filter out connections with either a source or a target not in pidNodes
+            this.set('pidConnections', this.filterConnections(this.get('pidConnections')));
+
+            // Simplify connections (clear waypoints/wayports of edges)
+            this.set('pidConnections', this.simplifyConnections(this.get('pidNodes'), this.get('pidConnections')));
+
+            console.groupCollapsed('pidNodes');
             console.log(this.get('pidNodes'));
             console.groupEnd();
             console.groupCollapsed('pidConnections:');
@@ -431,10 +513,145 @@ let component = SapientComponent.extend(Evented, {
             descendants = Array.isArray(grandchildren) ? descendants.concat(grandchildren) : descendants; // if grandchildren array is not empty, concatenate it, else, return existing
         });
         return descendants;
-    },  
+    },
+
+
+    filterConnections: function(connections) {
+
+        console.groupCollapsed(`Filtering out connections with non-descendant source or target...`);
+        const connectionCount = this.get('pidConnections').length;
+        let pidConnections = [];
+        connections.forEach((connection) => {
+
+            // Find corresponding source and target vertices from vertices (filtered already in buildHierarchy())
+            const sourceIdFound = this.get('pidNodes').some((node) => node.id === connection.sourceId);
+            const targetIdFound = this.get('pidNodes').some((node) => node.id === connection.targetId);
+
+            if (sourceIdFound && targetIdFound) pidConnections.push(connection);
+        })
+
+        console.log(`Filtered connections: kept ${pidConnections.length}/${connectionCount} of all connections:`);
+        console.groupEnd();
+        return pidConnections;
+    },
+
+
+    simplifyConnections: function(pidVertices, pidEdges) {
+        /**
+        * Simplifies connections from and to groups by replacing both the preEdge and
+        * postEdge of that connection with a single, direct connection when that is
+        * the case. NOTE: simplifiedId retains the id of the startEdge (so remaining
+        * properties are inherited from the startEdge, which should have same as endEdge)
+        * Simplify connections (clear waypoints/wayports of edges
+        * (ex. shape1 --> group1 --> group2 --> shape2  simplified to  shape1 --> shape1))
+        *
+        */
+
+        console.groupCollapsed(`Simplifying connections by collapsing intermediate ports...`);
+
+        let vertices = pidVertices;
+        let edges = pidEdges;
+        let simplifiedEdges = [];
+        let idsToSkip = [];
+        
+        edges.forEach((edge) => {
+
+            let startEdge;
+            let endEdge;
+            let source = getVertexBy('id', edge.sourceId, vertices);
+            let target = getVertexBy('id', edge.targetId, vertices);
+
+            // Case: if connection of edge already simplified and thus edge.id pushed to idsToSkip array
+            if (idsToSkip.find((id) => id === edge.id)) {
+                console.log(`${edge.id} found in idsToSkip --> return`);
+                return;
+            }
+            else if (undefined !== source && undefined !== target) {
+                // Case: shape --> shape
+                if ('group' !== target.pidClass && 'group' !== source.pidClass) {
+                    console.log(`edge ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass} --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
+                    simplifiedEdges.push(edge);
+                }
+
+                // Case: group --> group
+                else {
+                    // Traverse connection back and forth (to first startPort and last endPort)
+                    startEdge = getFirstEdge(edge, source, target); // recursively get previousEdge until startEdge
+                    endEdge = getLastEdge(edge, source, target); // recursively get nextEdge until endEdge
+                    // Clone targetId and targetPort of endEdge and rest of startEdge
+                    let simplifiedEdge = startEdge;
+                    simplifiedEdge.targetId = endEdge.targetId;
+                    simplifiedEdge.targetPort = endEdge.targetPort;
+                    // Push a single, direct and simplified edge to the array
+                    simplifiedEdges.push(simplifiedEdge);
+
+                    let simplifiedEdgeSource = getVertexBy('id', simplifiedEdge.sourceId, vertices);
+                    let previousEdgeTarget = getVertexBy('id', simplifiedEdge.targetId, vertices);
+                    console.log(`simplifiedEdge ${simplifiedEdge.id}: ${simplifiedEdge.sourceId} | ${simplifiedEdgeSource.shortName} | ${source.pidClass} --> ${previousEdgeTarget.shortName} | ${source.pidClass} | ${edge.targetId}`);
+                }
+            }
+            console.log(`Simplified connections: kept ${simplifiedEdges.length}/${edges.length} filtered connections:`);
+            
+        });
+
+
+        function getVertexBy(property, value, array) {
+            return array.find((vertex) => vertex[property] === value);
+        }
+
+        function getFirstEdge(edge, source, target) {
+            /**
+            * Recursively get previousEdge until startEdge
+            */
+            idsToSkip.push(edge.id);
+            //console.log(idsToSkip.length);
+            let previousEdge = getPreviousEdge(edge);
+            if (!previousEdge) {
+                console.log(`return ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass} --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
+                return edge;
+            } else {
+                let previousEdgeSource = getVertexBy('id', previousEdge.sourceId, vertices);
+                let previousEdgeTarget = getVertexBy('id', previousEdge.targetId, vertices);
+                let firstEdge = getFirstEdge(previousEdge, previousEdgeSource, previousEdgeTarget);
+                return firstEdge;
+            }
+        }
+
+        function getPreviousEdge(edge) {
+            // Find corresponding edge and clone
+            return edges.find((previousEdge) => edge.sourcePort === previousEdge.targetPort);
+            // Return clone or 'isStartEdge' string if previousEdge = undefined (no previousEdge found)
+        }
+
+        function getLastEdge(edge, source, target) {
+            /**
+            * Recursively get nextEdge until endEdge
+            */
+            idsToSkip.push(edge.id);
+            //console.log(idsToSkip.length);
+            let nextEdge = getNextEdge(edge);
+            if (!nextEdge) {
+                console.log(`return ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass}) --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
+            } else if (nextEdge) {
+                let nextEdgeSource = getVertexBy('id', nextEdge.sourceId, vertices);
+                let nextEdgeTarget = getVertexBy('id', nextEdge.targetId, vertices);
+                getLastEdge(nextEdge, nextEdgeSource, nextEdgeTarget);
+            }
+            return edge;
+        }
+
+        function getNextEdge(edge) {
+            // Find corresponding edge and clone
+            return edges.find((nextEdge) => edge.targetPort === nextEdge.sourcePort);
+        }
+
+        console.groupEnd();
+        return simplifiedEdges;
+    },
 
 
     generatePid: function() {
+
         console.groupEnd();
             
         // Create node hierarchy out of parent relations (filter nodes only from pidJson)
@@ -461,7 +678,6 @@ let component = SapientComponent.extend(Evented, {
         // Render XML as Text in xml-viewer-div of boardlet
         this.set('loading', false);
         this.renderXml(this.get('pidXmlString'));
-        console.log('generatePid() done after:');
 
         // Remove sapient disabled class for success-button and adds event listener
         document.getElementById('download-json-button').className = 'button';
@@ -480,17 +696,23 @@ let component = SapientComponent.extend(Evented, {
 
         // Reset global variables for next visualization generation (fired on click of generate-pid-button)
         this.resetGlobalVariables();
+        this.checkToEnableButton();
 
         console.groupEnd();
     },
 
 
+    /**
+     * Filters the queried nodes array to include only descendandts of 
+     * selected root node and builds hierarchical/nested json object of the
+     * instance hierarchy from a flat array via the parent attribute.
+     *
+     * @param {Array} flatArray Flat array with hierarchy via 'parent' property
+     * @returns {Array} Nested array with hierarchy via the 'children' property
+     *
+     */
     buildHierarchy: function(flatArray) {
-        /**
-        * Filters the queried nodes array to include only descendandts of 
-        * selected root node and builds hierarchical/nested json object of the
-        * instance hierarchy from a flat array via the parent attribute.
-        */
+        
         console.groupCollapsed("Building hierarchy (pidNodeTree) from pidNodes...");
         let treeArray = [];
         let lookup = [];
@@ -538,12 +760,17 @@ let component = SapientComponent.extend(Evented, {
     },
 
 
+    /**
+     *
+     * Takes a tree (hierarchical JS-object with children array) and traverses
+     * it (post-order DFS - depth-first search) to return the path of the
+     * traversed vertices in the form of an ordered array of JS-objects.
+     *
+     * @param {*} treeArray
+     * @returns
+     */
     traverseAndSort: function(treeArray) {
-        /**
-        * Takes a tree (hierarchical JS-object with children array) and traverses
-        * it (post-order DFS - depth-first search) to return the path of the
-        * traversed vertices in the form of an ordered array of JS-objects.
-        */
+        
         console.groupCollapsed("Traversing pidNodeTree depth-first to find path...");
 
         let path = [];
@@ -606,14 +833,16 @@ let component = SapientComponent.extend(Evented, {
         return path;
     },
 
-
+    /**
+     * Maps each pidNode to its corresponding vertex shape (E/I/G/A) and creates a pidVertex
+     * instance with all pidNode and pidShape attributes. For pidNodes without 
+     * a shapeName (shapeName === '') like groups, it determines the shapeName
+     * according to the pidLevel set in traverseAndSort.
+     *
+     * @returns
+     */
     mapNodesToShapes: function() {
-        /**
-        * Maps each pidNode to its corresponding vertex shape (E/I/G/A) and creates a pidVertex
-        * instance with all pidNode and pidShape attributes. For pidNodes without 
-        * a shapeName (shapeName === '') like groups, it determines the shapeName
-        * according to the pidLevel set in traverseAndSort.
-        */
+        
         console.groupCollapsed("Mapping nodes to shapes (equipment, instruments, arrows, groups)...");
         const pidShapesCount = this.get('pidShapesLibrary').length;
         const pidNodesCount = this.get('pidNodesInOrder').length;
@@ -683,41 +912,25 @@ let component = SapientComponent.extend(Evented, {
         return pidVertices;
     },
 
-
+    /**
+     * Maps each pidConnection to its corresponding edge shape and creates a pidEdge
+     * instance with all pidConnection and pidShape attributes. Because only 
+     * process_flows modelled, additionally determines
+     * the shapeName according to certain PID Rules for pidConnections.
+     *
+     * @returns
+     *
+     */
     mapConnectionsToShapes: function() {
-        /**
-        * Maps each pidConnection to its corresponding edge shape and creates a pidEdge
-        * instance with all pidConnection and pidShape attributes. Because only 
-        * process_flows modelled, additionally determines
-        * the shapeName according to certain PID Rules for pidConnections. 
-        */
+        
         console.groupCollapsed("Mapping connections to line shapes...");
-        const vertices = this.get('pidVertices');
-        const allConnections = this.get('pidConnections');
-
-        // 1) Filter: keep connections only if both target and id found in filtered vertices
-        let connections = [];
-        allConnections.forEach((connection) => {
-            // Find corresponding source and target vertices from vertices (filtered already in buildHierarchy())
-            const sourceIdFound = vertices.some((vertex) => vertex.id === connection.sourceId);
-            const targetIdFound = vertices.some((vertex) => vertex.id === connection.targetId);
-
-            if (sourceIdFound && targetIdFound) connections.push(connection);
-        });
-        console.log(`Filtered connections: kept ${connections.length}/${this.get('pidConnections').length} of all connections:`);
-        console.table(connections);
-
-        // 2) Simplify: Clear waypoints/wayports of edges (ex. shape1 --> group1 --> group2 --> shape2  simplified to  shape1 --> shape1)
-        let simplifiedConnections = simplifyConnections(vertices, connections);
-        console.log(`Simplified connections: kept ${simplifiedConnections.length}/${connections.length} filtered connections:`);
-        console.table(simplifiedConnections);
         
         // 3) Map to shapes: set shapeName property and map to corresponding edge shape in pid shapes library
         let pidEdges = [];
-        simplifiedConnections.forEach((simpleConnection) => {
+        this.get('pidConnections').forEach((simpleConnection) => {
             // Find corresponding source and target vertices from vertices
-            let source = vertices.find((vertex) => vertex.id === simpleConnection.sourceId);
-            let target = vertices.find((vertex) => vertex.id === simpleConnection.targetId);
+            let source = this.get('pidVertices').find((vertex) => vertex.id === simpleConnection.sourceId);
+            let target = this.get('pidVertices').find((vertex) => vertex.id === simpleConnection.targetId);
 
             // Catches possible wrongly non-filtered connections
             if ((source !== null || source !== undefined) && (target !== null || target !== undefined)) {
@@ -789,136 +1002,37 @@ let component = SapientComponent.extend(Evented, {
         console.log(`Mapped ${pidEdges.length} connection instances to edge shapes from ${this.get('pidShapesLibrary').length} total shapes in library:`);
         console.table(pidEdges);
 
-
-        function simplifyConnections(pidVertices, pidEdges) {
-            /**
-            * Simplifies connections from and to groups by replacing both the preEdge and
-            * postEdge of that connection with a single, direct connection when that is
-            * the case. NOTE: simplifiedId retains the id of the startEdge (so remaining
-            * properties are inherited from the startEdge, which should have same as endEdge)
-            */
-
-            console.groupCollapsed("Simplifying connections of pidEdges...");
-
-            let vertices = pidVertices;
-            let edges = pidEdges;
-            let simplifiedEdges = [];
-            let idsToSkip = [];
-            
-            edges.forEach((edge) => {
-
-                let startEdge;
-                let endEdge;
-                let source = getVertexBy('id', edge.sourceId, vertices);
-                let target = getVertexBy('id', edge.targetId, vertices);
-                //console.log(source);
-                //console.log(target);
-                //console.log(idsToSkip);
-
-                // Case: if connection of edge already simplified and thus edge.id pushed to idsToSkip array
-                if (idsToSkip.find((id) => id === edge.id)) {
-                    console.log(`${edge.id} found in idsToSkip --> return`);
-                    return;
-                }
-                else if (undefined !== source && undefined !== target) {
-                    // Case: shape --> shape
-                    if ('group' !== target.pidClass && 'group' !== source.pidClass) {
-                        console.log(`edge ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass} --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
-                        simplifiedEdges.push(edge);
-                    }
-
-                    // Case: group --> group
-                    else {
-                        // Traverse connection back and forth (to first startPort and last endPort)
-                        startEdge = getFirstEdge(edge, source, target); // recursively get previousEdge until startEdge
-                        endEdge = getLastEdge(edge, source, target); // recursively get nextEdge until endEdge
-                        // Clone targetId and targetPort of endEdge and rest of startEdge
-                        let simplifiedEdge = startEdge;
-                        simplifiedEdge.targetId = endEdge.targetId;
-                        simplifiedEdge.targetPort = endEdge.targetPort;
-                        // Push a single, direct and simplified edge to the array
-                        simplifiedEdges.push(simplifiedEdge);
-
-                        let simplifiedEdgeSource = getVertexBy('id', simplifiedEdge.sourceId, vertices);
-                        let previousEdgeTarget = getVertexBy('id', simplifiedEdge.targetId, vertices);
-                        console.log(`simplifiedEdge ${simplifiedEdge.id}: ${simplifiedEdge.sourceId} | ${simplifiedEdgeSource.shortName} | ${source.pidClass} --> ${previousEdgeTarget.shortName} | ${source.pidClass} | ${edge.targetId}`);
-                    }
-                }
-                
-            });
-
-
-            function getVertexBy(property, value, array) {
-                return array.find((vertex) => vertex[property] === value);
-            }
-
-            function getFirstEdge(edge, source, target) {
-                /**
-                * Recursively get previousEdge until startEdge
-                */
-                idsToSkip.push(edge.id);
-                //console.log(idsToSkip.length);
-                let previousEdge = getPreviousEdge(edge);
-                if (!previousEdge) {
-                    console.log(`return ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass} --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
-                    return edge;
-                } else {
-                    let previousEdgeSource = getVertexBy('id', previousEdge.sourceId, vertices);
-                    let previousEdgeTarget = getVertexBy('id', previousEdge.targetId, vertices);
-                    let firstEdge = getFirstEdge(previousEdge, previousEdgeSource, previousEdgeTarget);
-                    return firstEdge;
-                }
-            }
-
-            function getPreviousEdge(edge) {
-                // Find corresponding edge and clone
-                return edges.find((previousEdge) => edge.sourcePort === previousEdge.targetPort);
-                // Return clone or 'isStartEdge' string if previousEdge = undefined (no previousEdge found)
-            }
-
-            function getLastEdge(edge, source, target) {
-                /**
-                * Recursively get nextEdge until endEdge
-                */
-                idsToSkip.push(edge.id);
-                //console.log(idsToSkip.length);
-                let nextEdge = getNextEdge(edge);
-                if (!nextEdge) {
-                    console.log(`return ${edge.id}: ${edge.sourceId} | ${source.shortName} | ${source.pidClass}) --> ${target.pidClass} | ${source.shortName} | ${edge.targetId}`);
-                } else if (nextEdge) {
-                    let nextEdgeSource = getVertexBy('id', nextEdge.sourceId, vertices);
-                    let nextEdgeTarget = getVertexBy('id', nextEdge.targetId, vertices);
-                    getLastEdge(nextEdge, nextEdgeSource, nextEdgeTarget);
-                }
-                return edge;
-            }
-
-            function getNextEdge(edge) {
-                // Find corresponding edge and clone
-                return edges.find((nextEdge) => edge.targetPort === nextEdge.sourcePort);
-            }
-
-            console.groupEnd();
-            return simplifiedEdges;
-        }
-
         console.groupEnd();
         return pidEdges;
     },
 
-
+    /**
+     *
+     *
+     * @param {*} pidVertices
+     * @param {*} pidEdges
+     * @returns
+     *
+     */
     vertexPlacement: function(pidVertices, pidEdges) {
+        
         console.groupCollapsed("Positioning vertices in graph...");
         let vertices = pidVertices.filter((v) => v.shapeName && v.parentId && v.shapeName !== '' && v.parentId !== 1); // filter out not visualizable vertices (enterprise and legato nodes)
         let edges = pidEdges;
-        //console.log(JSON.stringify(vertices));
-        console.log(JSON.stringify(vertices));
+
         console.table(vertices);
         console.table(edges);
-        //console.log(JSON.stringify(edges));
 
-        // s:settings, m:memory, i:index, p:previous, v:vertex
-        // SET ONCE AND NEVER RESET
+        /* 
+         *   Key:
+         *    s: settings - global user defined settings for controlled tunning of the algorithm
+         *    m: memory - temporary memory object (reset each iteration) for frequently accessed variables
+         *    p: previous - clone of previous object
+         *    v: vertex - original instance of vertex object (of current iteration)
+        */
+
+        let m = {};
+        let p = {};
         let s = {
             cellSpacing: 125, // spacing between 2 shapeCells
             cellMargin: 25,
@@ -927,8 +1041,7 @@ let component = SapientComponent.extend(Evented, {
             pageWidth: 1654,
             pageHeight: 1169,
         };
-        let m = {};
-        let p = {}; // p: previousObject clone
+
         const pidLevelCount = findMax('pidLevel', vertices);
         let memory = []; // Needed to keep track (permanently until end of algorithm) of frequently accessed and calculated variables
         let stack = []; // Needed to keep track ONLY OF VERTICES WITH #CHILDOFGROUP (temporarily until ANY innerGroup of next level reached, where it is cleared) 
@@ -949,13 +1062,13 @@ let component = SapientComponent.extend(Evented, {
         vertices.forEach((v) => {
             
             this.updateProgressBar(++progress, max);
-            console.group(`${v.pidLevel}: ${v.pidClass} (${v.shortName})`);
+            console.groupCollapsed(`${v.pidLevel}: ${v.pidClass} (${v.shortName})`);
             console.log(`stack[${v.pidLevel}]`);
             console.table(stack[v.pidLevel]);
 
             // Frequently accessed variables pushed to memory object ('_' indicates mxGraph private variable)
             m = {
-            // Already there:
+            // Extracted from vertex object (v):
             name: v.shortName,
             lvl: v.pidLevel,
             pidClass: v.pidClass,
@@ -969,8 +1082,8 @@ let component = SapientComponent.extend(Evented, {
             tags: [],
             x: parseInt(v.mxGeometry._x, 10),
             y: parseInt(v.mxGeometry._y, 10),
-            w: parseInt(v.mxGeometry._width, 10) ? parseInt(v.mxGeometry._width, 10) : 1000, // if width empty (groups) set to 1000 for now
-            h: parseInt(v.mxGeometry._height, 10) ? parseInt(v.mxGeometry._height, 10) : 1000, // if width empty (groups) set to 1000 for now
+            w: parseInt(v.mxGeometry._width, 10) ? parseInt(v.mxGeometry._width, 10) : 1000, // 1000 if empty (temporary for groups)
+            h: parseInt(v.mxGeometry._height, 10) ? parseInt(v.mxGeometry._height, 10) : 1000, // 1000 if empty (temporary for groups)
             area: parseInt(v.mxGeometry._width, 10) * parseInt(v.mxGeometry._height, 10),
             left: parseInt(v.mxGeometry._x, 10),
             top: parseInt(v.mxGeometry._y, 10),
@@ -982,7 +1095,7 @@ let component = SapientComponent.extend(Evented, {
 
             /*************************************************************************
             *                     SPECIFICATION OF CONSTRAINTS:                      *
-            *************************************************************************
+            **************************************************************************
             * Non-group Tags:
             *  - tag[0]: isShape
             *  - tag[1]: childOfGroup || childOfNonGroup
@@ -1000,12 +1113,13 @@ let component = SapientComponent.extend(Evented, {
             if ("equipment" === v.pidClass || "instrument" === v.pidClass || "arrow" === v.pidClass) {
                 m.tags.push("isShape");
 
-                if ("group" === m.parent.pidClass) {
+                if (undefined === m.parent) m.tags.push("rootNode"); // no parent exists
+                else if ("group" === m.parent.pidClass) {
                     m.tags.push("childOfGroup");
                     if ("vessels" === v.shapeCategory) m.tags.push(`nucleusGroup`);
                     else if ("funnel" === v.shapeType) m.tags.push("funnel");
                     else if ("instrument" === v.shapeType) m.tags.push("centeredAboveParent");
-                    else m.tags.push("inline"); // inline: vertical center-aligned, shifted right (all children of groups except vessels)
+                    else m.tags.push("inline"); // (all children of groups except vessels)
                 } else if ("group" !== m.parent.pidClass) {
                     m.tags.push("childOfNonGroup");
                     if ("engines" === v.shapeCategory) m.tags.push("centeredAboveParent");
@@ -1021,7 +1135,7 @@ let component = SapientComponent.extend(Evented, {
             else if ("group" === v.pidClass) {
                 m.tags.push("isGroup");
 
-                if (undefined === m.parent) m.tags.push("childOfGroup"); // catches undefined parent (for child with 'Legato' or Enterprise level root node as parent)
+                if (undefined === m.parent) m.tags.push("rootNode"); // no parent exists
                 else if ("group" === m.parent.pidClass) m.tags.push("childOfGroup");
                 else if ("group" !== m.parent.pidClass) m.tags.push("childOfNonGroup");
                 if ("Site" === v.pidHierarchy) m.tags.push("outerGroup");
@@ -1043,61 +1157,68 @@ let component = SapientComponent.extend(Evented, {
             if (m.tags.includes('isShape')) {
                 console.group("#isShape");
 
-                if (m.tags.includes('childOfGroup')) {
-                console.group("#childOfGroup");
+                if (m.tags.includes('rootNode')) {
+                    console.group("#rootNode");
 
-                let descendantsWithParent = memory.filter((child) => (child.parentId === m.id));
-                descendantsWithParent.push(m); // Push root/parent vertex as well
-                console.warn('descendantsWithParent:')
-                console.warn(descendantsWithParent);
-
-                if (m.tags.includes("inline")) {
-                    console.group("#inline");
-
-                    // Set x,y-coordinates relative to previous cell ) (Using conditional (ternary) Operator)
-                    m.x = (() => {
-                        if (p.pidClass === undefined || p.pidClass === "group") return 0; // if group set at origin (0, 0)
-                        else if (p.lvl === m.lvl) return (p.right + s.cellSpacing); // else if in current inline level space shape from previous one
-                        else if (p.lvl < m.lvl) return 0; // skip if child (one level lower than current inline shapes). These children move already relative to their parent (next shape)
-                        else if (p.lvl > m.lvl) return 0; // reset when back at level of current inline shapes
-                        else return 0;
-                    })();
-                    m.y = (() => {
-                        if (p.pidClass === undefined || p.pidClass === "group") return 0; // if group set at origin (0, 0)
-                        else if (p.lvl === m.lvl) return (p.y + (p.h - m.h) / 2); // else if in current inline level space shape from previous one
-                        else if (p.lvl < m.lvl) return 0; // skip if child (one level lower than current inline shapes). These children move already relative to their parent (next shape)
-                        else if (p.lvl > m.lvl) return s.spacing + Math.abs(measureBlock('height', descendantsWithParent)); // reset to new line when back at level of current inline shapes
-                    })();
-
-                    console.log(`Coordinates: (${m.x}, ${m.y})`);
-                    console.log(m);
-                    console.groupEnd();
-                } else if (m.tags.includes("funnel")) {
-                    m.x = p.x + s.margin;
-                    m.y = p.y + p.w + s.margin;
-                } else if (m.tags.includes("nucleusGroup")) {
-                    console.group(`#nucleusGroup`); // nucleusGroups of all pidLevels
-                    console.log(`nucleusGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
-
-                    // Measure:
-                    const blockWidth = measureBlock('width', descendantsWithParent);
-                    const blockHeight = measureBlock('height', descendantsWithParent);
-                    const blockX = getMin('left', descendantsWithParent);
-                    const blockY = getMin('top', descendantsWithParent);
-
-                    // Scale:
-                    scaleGroup(blockWidth, blockHeight, s.margin, descendantsWithParent);
-
-                    // Shift: needs to directly modify the v._mxGeometry._x and v._mxGeometry._y properties of all children
-                    // (and with that, its relatively positioned descendants of the children) so function must be 
-                    // passed descendantsWithParent and not m.descendants
-                    //shiftNucleusGroup(m.descendants);
-                    shiftNucleusGroup(blockX, blockY, m.descendants);
-
-                    console.groupEnd();
+                    m.x = s.margin;
+                    m.y = s.margin;
                 }
 
-                console.groupEnd();
+                else if (m.tags.includes('childOfGroup')) {
+                    console.group("#childOfGroup");
+
+                    let descendantsWithParent = memory.filter((child) => (child.parentId === m.id));
+                    descendantsWithParent.push(m); // Push root/parent vertex as well
+                    console.warn('descendantsWithParent:')
+                    console.warn(descendantsWithParent);
+
+                    if (m.tags.includes("inline")) {
+                        console.group("#inline");
+
+                        // Set x,y-coordinates relative to previous cell ) (Using conditional (ternary) Operator)
+                        m.x = (() => {
+                            if (p.pidClass === undefined || p.pidClass === "group") return 0; // if group set at origin (0, 0)
+                            else if (p.lvl === m.lvl) return (p.right + s.cellSpacing); // else if in current inline level space shape from previous one
+                            else if (p.lvl < m.lvl) return 0; // skip if child (one level lower than current inline shapes). These children move already relative to their parent (next shape)
+                            else if (p.lvl > m.lvl) return 0; // reset when back at level of current inline shapes
+                            else return 0;
+                        })();
+                        m.y = (() => {
+                            if (p.pidClass === undefined || p.pidClass === "group") return 0; // if group set at origin (0, 0)
+                            else if (p.lvl === m.lvl) return (p.y + (p.h - m.h) / 2); // else if in current inline level space shape from previous one
+                            else if (p.lvl < m.lvl) return 0; // skip if child (one level lower than current inline shapes). These children move already relative to their parent (next shape)
+                            else if (p.lvl > m.lvl) return s.spacing + Math.abs(measureBlock('height', descendantsWithParent)); // reset to new line when back at level of current inline shapes
+                        })();
+
+                        console.log(`Coordinates: (${m.x}, ${m.y})`);
+                        console.log(m);
+                        console.groupEnd();
+                    } else if (m.tags.includes("funnel")) {
+                        m.x = p.x + s.margin;
+                        m.y = p.y + p.w + s.margin;
+                    } else if (m.tags.includes("nucleusGroup")) {
+                        console.group(`#nucleusGroup`); // nucleusGroups of all pidLevels
+                        console.log(`nucleusGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
+
+                        // Measure:
+                        const blockWidth = measureBlock('width', descendantsWithParent);
+                        const blockHeight = measureBlock('height', descendantsWithParent);
+                        const blockX = getMin('left', descendantsWithParent);
+                        const blockY = getMin('top', descendantsWithParent);
+
+                        // Scale:
+                        scaleGroup(blockWidth, blockHeight, s.margin, descendantsWithParent);
+
+                        // Shift: needs to directly modify the v._mxGeometry._x and v._mxGeometry._y properties of all children
+                        // (and with that, its relatively positioned descendants of the children) so function must be 
+                        // passed descendantsWithParent and not m.descendants
+                        //shiftNucleusGroup(m.descendants);
+                        shiftNucleusGroup(blockX, blockY, m.descendants);
+
+                        console.groupEnd();
+                    }
+
+                    console.groupEnd();
                 } else if (m.tags.includes('childOfNonGroup')) {
                 console.group("#childOfNonGroup");
 
@@ -1138,96 +1259,103 @@ let component = SapientComponent.extend(Evented, {
             else if (m.tags.includes('isGroup')) {
                 console.group("#isGroup");
 
-                if (m.tags.includes('childOfGroup')) {
-                console.group("#childOfGroup");
+                if (m.tags.includes('rootNode')) {
+                    console.group("#rootNode");
 
-                if (m.tags.includes("innerGroup")) {
-                    console.group(`#innerGroup`);
-                    console.log(`innerGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
-
-                    console.log(m.pidHierarchy);
-
-                    // if ('Unit' === m.pidHierarchy) {
-                    //   // innerGroup with only group children (either innerGroups or nucleusGroups)
-                    //   let children = getChildren(m.id, memory);
-                    //   children.forEach((child) => child.tag2)
-                    //   console.log(children);
-                    //   let childrenGroups = children.filter((child) => child.tag2 === 'innerGroup' || 'nucleusGroup' === child.tag2);
-                    //   console.log('childrenGroups');
-                    //   console.log(childrenGroups);
-                    //   let scaledGroup = packBlocks(childrenGroups, vertices, memory); // function returns scaled group dimmensions
-                    //   m.w = scaledGroup.width;
-                    //   m.h = scaledGroup.height;
-                    //   // Scale:
-                    //   //scaleGroup(blockWidth, blockHeight, s.margin, m.descendants);
-                    //   // Center:
-                    //   //shiftChildren(blockWidth, blockHeight, m.children);
-                    //   // Clear:
-                    //   clearStack(stack[p.lvl]);
-                    // } else {
-
-
-                    // innerGroup with at least one shape as children
-
-                    // Measure: get absolute measures of all descendants (relative to current parent/grandparent: m)
-                    let descendantSides = getAbsoluteSides(m.descendants, m);
-
-                    let blockLeft = Math.abs(getMin("left", descendantSides));
-                    let blockRight = getMax("right", descendantSides);
-                    let blockTop = Math.abs(getMin("top", descendantSides));
-                    let blockBottom = getMax("bottom", descendantSides);
-                    let blockWidth = measureBlock('width', descendantSides);
-                    let blockHeight = measureBlock('height', descendantSides);
-                    console.log('descendantSides');
-                    console.log(descendantSides);
-                    console.log(blockLeft);
-                    console.log(blockRight);
-                    console.log(blockTop);
-                    console.log(blockBottom);
-                    console.log(blockWidth);
-                    console.log(blockHeight);
-
-                    // Scale:
-                    scaleGroup(blockWidth, blockHeight, s.margin, descendantSides);
-                    // Shift:
-                    shiftInnerGroup(stack[m.lvl]);
-                    // Center:
-                    shiftChildren(blockWidth, blockHeight, m.children);
-                    // Clear:
-                    clearStack(stack[p.lvl]);
-                    // }
-
-
-                } else if (m.tags.includes("outerGroup")) {
-                    console.group("#outerGroup");
-                    console.log(`outerGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
-
-                    // Measure:
-                    if (m.children.length > 1) {
-                    // Case for m: Brewhouse with units as children
-                    let scaledGroup = packBlocks(m.children, vertices, memory); // function returns scaled group dimmensions
-                    m.w = scaledGroup.width;
-                    m.h = scaledGroup.height;
-                    } else {
-                    m.w = 2 * s.margin + measureBlock('width', m.children);
-                    m.h = 2 * s.margin + measureBlock('height', m.children);
-                    }
-
-                    // Scale: 
-                    //scaleGroup(blockWidth, blockHeight, s.margin, m.children);
-                    // Shift:
-                    //shiftOuterGroup(stack[m.lvl]);
-
-                    // Center:       before: shiftChildren(blockWidth, blockHeight, m.children);
-                    // Clear:
-                    clearStack(stack[p.lvl]);
-                    // m.w = measureBlock('width', m.children); // get width of the only child
-                    // m.h = measureBlock('height', m.children); // get height of the only child
-                    // centerBlock(m.children);
-
+                    m.x = s.margin;
+                    m.y = s.margin;
                 }
 
-                console.groupEnd();
+                else if (m.tags.includes('childOfGroup')) {
+                    console.group("#childOfGroup");
+
+                    if (m.tags.includes("innerGroup")) {
+                        console.group(`#innerGroup`);
+                        console.log(`innerGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
+
+                        console.log(m.pidHierarchy);
+
+                        // if ('Unit' === m.pidHierarchy) {
+                        //   // innerGroup with only group children (either innerGroups or nucleusGroups)
+                        //   let children = getChildren(m.id, memory);
+                        //   children.forEach((child) => child.tag2)
+                        //   console.log(children);
+                        //   let childrenGroups = children.filter((child) => child.tag2 === 'innerGroup' || 'nucleusGroup' === child.tag2);
+                        //   console.log('childrenGroups');
+                        //   console.log(childrenGroups);
+                        //   let scaledGroup = packBlocks(childrenGroups, vertices, memory); // function returns scaled group dimmensions
+                        //   m.w = scaledGroup.width;
+                        //   m.h = scaledGroup.height;
+                        //   // Scale:
+                        //   //scaleGroup(blockWidth, blockHeight, s.margin, m.descendants);
+                        //   // Center:
+                        //   //shiftChildren(blockWidth, blockHeight, m.children);
+                        //   // Clear:
+                        //   clearStack(stack[p.lvl]);
+                        // } else {
+
+
+                        // innerGroup with at least one shape as children
+
+                        // Measure: get absolute measures of all descendants (relative to current parent/grandparent: m)
+                        let descendantSides = getAbsoluteSides(m.descendants, m);
+
+                        let blockLeft = Math.abs(getMin("left", descendantSides));
+                        let blockRight = getMax("right", descendantSides);
+                        let blockTop = Math.abs(getMin("top", descendantSides));
+                        let blockBottom = getMax("bottom", descendantSides);
+                        let blockWidth = measureBlock('width', descendantSides);
+                        let blockHeight = measureBlock('height', descendantSides);
+                        console.log('descendantSides');
+                        console.log(descendantSides);
+                        console.log(blockLeft);
+                        console.log(blockRight);
+                        console.log(blockTop);
+                        console.log(blockBottom);
+                        console.log(blockWidth);
+                        console.log(blockHeight);
+
+                        // Scale:
+                        scaleGroup(blockWidth, blockHeight, s.margin, descendantSides);
+                        // Shift:
+                        shiftInnerGroup(stack[m.lvl]);
+                        // Center:
+                        shiftChildren(blockWidth, blockHeight, m.children);
+                        // Clear:
+                        clearStack(stack[p.lvl]);
+                        // }
+
+
+                    } else if (m.tags.includes("outerGroup")) {
+                        console.group("#outerGroup");
+                        console.log(`outerGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
+
+                        // Measure:
+                        if (m.children.length > 1) {
+                        // Case for m: Brewhouse with units as children
+                        let scaledGroup = packBlocks(m.children, vertices, memory); // function returns scaled group dimmensions
+                        m.w = scaledGroup.width;
+                        m.h = scaledGroup.height;
+                        } else {
+                        m.w = 2 * s.margin + measureBlock('width', m.children);
+                        m.h = 2 * s.margin + measureBlock('height', m.children);
+                        }
+
+                        // Scale: 
+                        //scaleGroup(blockWidth, blockHeight, s.margin, m.children);
+                        // Shift:
+                        //shiftOuterGroup(stack[m.lvl]);
+
+                        // Center:       before: shiftChildren(blockWidth, blockHeight, m.children);
+                        // Clear:
+                        clearStack(stack[p.lvl]);
+                        // m.w = measureBlock('width', m.children); // get width of the only child
+                        // m.h = measureBlock('height', m.children); // get height of the only child
+                        // centerBlock(m.children);
+
+                    }
+
+                    console.groupEnd();
                 }
 
                 console.groupEnd();
@@ -1975,17 +2103,27 @@ let component = SapientComponent.extend(Evented, {
         console.table(data);
         console.log('pidJson:');
         console.table(pidJson);
+        console.groupEnd();
+        console.groupEnd();
         return pidJson;
     },
 
-
+    /**
+     * Generates the XML string of the visualization by looping through the
+     * pidJson instances and creating each XML object individually for each 
+     * (uses ES6 template literals)
+     *
+     * @param {*} pidJson JS Object of the visualization (all vertices and edge instances)
+     * @returns XML String of P&ID visualization (pidXml, input for Legato Graphic Designer)
+     *
+     */
     generatePidXmlString: function(pidJson) {
+        
         console.groupCollapsed("Generating pidXmlString from pidJson...");
         console.log('pidJson:');
         console.table(pidJson);
-        // Filter nodes by their individual pidClasses and create new
-        // individual objects (not too expensive and filtered once before
-        // layout algorithm and string generation, both which need filtered data
+
+        // Filter nodes by their individual pidClasses and create new individual objects
         let pidEquipments;
         pidEquipments = pidJson.filter(
             pidInstance => pidInstance.pidClass === 'equipment'
@@ -2030,82 +2168,16 @@ let component = SapientComponent.extend(Evented, {
             background: 'none',
             math: 0,
             shadow: 0,
-            // FIXME: DELETE THIS WHEN -x and _y VALUES ALLWAYS VALID AFTER VERTEXPLACEMENT (NEVER NaN of Undefined)
-            defaultPadding: 15
+            defaultPadding: 15 // In case _x and _y values are invalid (NaN)
         };
 
         console.groupCollapsed("XML String generation started...");
 
-        function getSapientBind(shape) {
-            /*
-            * Creates JSON strings directly to avoid JSON.stringify() and
-            * to keep new line charachters (so \n escaped into HTML-safe: &#xA;)
-            */
-            let dataBind = {
-                id: shape.id,
-                shortName: shape.shortName,
-                // From prj_prc_visu_vertices
-                isInstrument: shape.isInstrument,
-                shapeName: shape.shapeName,
-                pidLabel: shape.pidLabel,
-                pidFunction: shape.pidFunction,
-                pidNumber: shape.pidNumber,
-                // From p_value_relations:
-                rId: shape.rId,
-                // From p_values_config:
-                cId: shape.cId,
-                cValueType: shape.valueType,
-                cValueFormat: shape.valueFormat,
-                cUnit: shape.cUnit,
-                cValueSymbol: shape.valueSymbol,
-                cName: shape.cName,
-                // From p_value_types:
-                tName: shape.tName
-            };
-            console.table(dataBind);
-            let dataBindString = JSON.stringify(dataBind);
-            console.log(dataBindString);
-            const escapedDataBind = this.escapeToHtmlValid(dataBindString);
-            console.log(escapedDataBind);
-            return '';
-            // //if ('equipment' === shape.pidClass) {}
-            //     let name = 'name';
-            //     // if (flow) name = 'pValueCurrent';
-            //     // else if (bool) {}
-            //     let sapientBind = {
-            //         datasources: {
-            //             text: {
-            //                 source: "var",
-            //                 params: {
-            //                     id: "${shape.id}"
-            //                 }
-            //             }
-            //         },
-            //         bindings: {
-            //             text: {
-            //                 value: {
-            //                     source: "dataref",
-            //                     defaultValue: "---",
-            //                     params: {
-            //                         ref: "text"
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //     };
-            //     console.log(sapientBind);
-            //     let sapientBindString = JSON.stringify(sapientBind);
-            //     console.log(sapientBindString);
-            //     const escapedSapientBind = this.escapeToHtmlValid(sapientBindString);
-            //     console.log(escapedSapientBind);
-            //     return escapedSapientBind;
-        }
-
          // TODO: Set labels in value attribute in pid-shapes-library and set label=${pidEquipment.value} in template literals
-        const htmlLabel = `&lt;b&gt;%pid-label%&lt;br&gt;&lt;span style=&quot;background-color: rgb(0 , 255 , 0)&quot;&gt;&lt;font color=&quot;#ffffff&quot;&gt;&amp;nbsp;%pid-current-value%&amp;nbsp;&lt;/font&gt;&lt;/span&gt;&lt;/b&gt;&lt;br&gt;`;
+        const htmlLabel = `&lt;b&gt;%pid-label%&lt;br&gt;&lt;span style=&quot;background-color: rgb(0 , 255 , 0)&quot;&gt;&lt;font color=&quot;#ffffff&quot;&gt;&amp;nbsp;%sapient-bind%&amp;nbsp;&lt;/font&gt;&lt;/span&gt;&lt;/b&gt;&lt;br&gt;`;
         const htmlLabelInstrument = `&lt;table cellpadding=&quot;4&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;font-size:1em;width:100%;height:100%;&quot;&gt;&lt;tr&gt;&lt;td&gt;%pid-function%&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%pid-number%&lt;/td&gt;&lt;/table&gt;`;
         const htmlLabelGroup = `%pid-hierarchy%: %pid-label%`;
-        const htmlLabelLine = `&lt;b&gt;%pid-label%&lt;br&gt;&lt;span style=&quot;background-color: rgb(0 , 255 , 0)&quot;&gt;&lt;font color=&quot;#ffffff&quot;&gt;&amp;nbsp;%pid-current-value%&amp;nbsp;&lt;/font&gt;&lt;/span&gt;&lt;/b&gt;&lt;br&gt;`;
+        const htmlLabelLine = `&lt;b&gt;%pid-label%&lt;br&gt;&lt;span style=&quot;background-color: rgb(0 , 255 , 0)&quot;&gt;&lt;font color=&quot;#ffffff&quot;&gt;&amp;nbsp;%sapient-bind%&amp;nbsp;&lt;/font&gt;&lt;/span&gt;&lt;/b&gt;&lt;br&gt;`;
         // Add mxGraph and mxGraphModel boilerplate settings
         let xmlString = `
 <mxGraphModel dx="${graphSettings.dx}" dy="${graphSettings.dy}" grid="${graphSettings.grid}" gridSize="${graphSettings.gridSize}" guides="${graphSettings.guides}" tooltips="${graphSettings.tooltips}" connect="${graphSettings.connect}" arrows="${graphSettings.arrows}" fold="${graphSettings.fold}" page="${graphSettings.page}" pageScale="${graphSettings.pageScale}" pageWidth="${graphSettings.pageWidth}" pageHeight="${graphSettings.pageHeight}" background="${graphSettings.background}" math="${graphSettings.math}" shadow="${graphSettings.shadow}">
@@ -2117,11 +2189,8 @@ let component = SapientComponent.extend(Evented, {
         const equipmentCount = pidEquipments.length;
         console.log(`Generating XML-tags for ${equipmentCount} equipment instances...`);
         pidEquipments.forEach((pidEquipment) => {
-            // Conditional inside template literal to set either parent or default _parent
-            // Values not preceeded with '_' are instance attributes (from database)
-            // FIXME: Remove id attribute in mxCell and leave it only in object?
             xmlString += `
-        <object id="${pidEquipment.id ? pidEquipment.id : pidEquipment._id}" label="${pidEquipment._value !== '' ? pidEquipment._value : htmlLabel}" placeholders="1" pid-label="${pidEquipment.pidLabel ? pidEquipment.pidLabel : (pidEquipment.shortName ? pidEquipment.shortName : (pidEquipment.name ? pidEquipment.name : null))}" pid-current-value="${pidEquipment.id}" pid-function="${pidEquipment.pidFunction}" pid-number="${pidEquipment.pidNumber}" sapient-bind="${getSapientBind(pidEquipment)}">
+        <object id="${pidEquipment.id ? pidEquipment.id : pidEquipment._id}" label="${pidEquipment._value !== '' ? pidEquipment._value : htmlLabel}" placeholders="1" pid-label="${pidEquipment.pidLabel ? pidEquipment.pidLabel : (pidEquipment.shortName ? pidEquipment.shortName : (pidEquipment.name ? pidEquipment.name : null))}" pid-current-value="" pid-function="${pidEquipment.pidFunction}" pid-number="${pidEquipment.pidNumber}" sapient-bind="${this.getSapientBind(pidEquipment)}">
             <mxCell style="${this.concatenateStyles(pidEquipment.styleObject)}" vertex="${pidEquipment._vertex}" connectable="1" parent="${pidEquipment.parentId ? pidEquipment.parentId : pidEquipment._parent}">
                 <mxGeometry x="${pidEquipment.mxGeometry._x ? pidEquipment.mxGeometry._x : 50}" y="${pidEquipment.mxGeometry._y ? pidEquipment.mxGeometry._y : 50}" width="${pidEquipment.mxGeometry._width}" height="${pidEquipment.mxGeometry._height}" as="${pidEquipment.mxGeometry._as}"></mxGeometry>
             </mxCell>
@@ -2132,7 +2201,7 @@ let component = SapientComponent.extend(Evented, {
         console.log(`Generating XML-tags for ${instrumentCount} instrument instances...`);
         pidInstruments.forEach((pidInstrument) => {
             xmlString += `
-        <object id="${pidInstrument.id ? pidInstrument.id : pidInstrument._id}" label="${htmlLabelInstrument}" placeholders="1" pid-label="${pidInstrument.pidLabel ? pidInstrument.pidLabel : (pidInstrument.shortName ? pidInstrument.shortName : (pidInstrument.name ? pidInstrument.name : null))}" pid-current-value="${pidInstrument.id}" pid-function="${pidInstrument.pidFunction}" pid-number="${pidInstrument.pidNumber}" sapient-bind="${getSapientBind(pidInstrument)}">
+        <object id="${pidInstrument.id ? pidInstrument.id : pidInstrument._id}" label="${htmlLabelInstrument}" placeholders="1" pid-label="${pidInstrument.pidLabel ? pidInstrument.pidLabel : (pidInstrument.shortName ? pidInstrument.shortName : (pidInstrument.name ? pidInstrument.name : null))}" pid-current-value="" pid-function="${pidInstrument.pidFunction}" pid-number="${pidInstrument.pidNumber}" sapient-bind="${this.getSapientBind(pidInstrument)}">
             <mxCell style="${this.concatenateStyles(pidInstrument.styleObject)}" vertex="${pidInstrument._vertex}" connectable="1" parent="${pidInstrument.parentId ? pidInstrument.parentId : pidInstrument._parent}">
                 <mxGeometry x="${pidInstrument.mxGeometry._x ? pidInstrument.mxGeometry._x : 50}" y="${pidInstrument.mxGeometry._y ? pidInstrument.mxGeometry._y : 50}" width="${pidInstrument.mxGeometry._width}" height="${pidInstrument.mxGeometry._height}" as="${pidInstrument.mxGeometry._as}"></mxGeometry>
             </mxCell>
@@ -2143,7 +2212,7 @@ let component = SapientComponent.extend(Evented, {
         console.log(`Generating XML-tags for ${arrowCount} arrow instances...`);
         pidArrows.forEach((pidArrow) => {
             xmlString += `
-        <object id="${pidArrow.id ? pidArrow.id : pidArrow._id}" label="${pidArrow._value !== '' ? pidArrow._value : htmlLabel}" placeholders="1" pid-label="${pidArrow.pidLabel ? pidArrow.pidLabel : (pidArrow.shortName ? pidArrow.shortName : (pidArrow.name ? pidArrow.name : null))}" pid-current-value="${pidArrow.id}" pid-function="${pidArrow.pidFunction}" pid-number="${pidArrow.pidNumber}" sapient-bind="${getSapientBind(pidArrow)}">
+        <object id="${pidArrow.id ? pidArrow.id : pidArrow._id}" label="${pidArrow._value !== '' ? pidArrow._value : htmlLabel}" placeholders="1" pid-label="${pidArrow.pidLabel ? pidArrow.pidLabel : (pidArrow.shortName ? pidArrow.shortName : (pidArrow.name ? pidArrow.name : null))}" pid-current-value="" pid-function="${pidArrow.pidFunction}" pid-number="${pidArrow.pidNumber}" sapient-bind="${this.getSapientBind(pidArrow)}">
             <mxCell style="${this.concatenateStyles(pidArrow.styleObject)}" vertex="${pidArrow._vertex}" connectable="1" parent="${pidArrow.parentId ? pidArrow.parentId : pidArrow._parent}">
                 <mxGeometry x="${pidArrow.mxGeometry._x ? pidArrow.mxGeometry._x : 50}" y="${pidArrow.mxGeometry._y ? pidArrow.mxGeometry._y : 50}" width="${pidArrow.mxGeometry._width}" height="${pidArrow.mxGeometry._height}" as="${pidArrow.mxGeometry._as}"></mxGeometry>
             </mxCell>
@@ -2154,7 +2223,7 @@ let component = SapientComponent.extend(Evented, {
         console.log(`Generating XML-tags for ${groupCount} group instances...`);
         pidGroups.forEach((pidGroup) => {
             xmlString += `
-        <object id="${pidGroup.id ? pidGroup.id : pidGroup._id}" label="${pidGroup._value !== '' ? pidGroup._value : htmlLabelGroup}" placeholders="1" pid-label="${pidGroup.pidLabel ? pidGroup.pidLabel : (pidGroup.shortName ? pidGroup.shortName : (pidGroup.name ? pidGroup.name : null))}" pid-hierarchy="${pidGroup.pidHierarchy}" pid-current-value="${pidGroup.id}" pid-function="${pidGroup.pidFunction}" pid-number="${pidGroup.pidNumber}" sapient-bind="${getSapientBind(pidGroup)}">
+        <object id="${pidGroup.id ? pidGroup.id : pidGroup._id}" label="${pidGroup._value !== '' ? pidGroup._value : htmlLabelGroup}" placeholders="1" pid-label="${pidGroup.pidLabel ? pidGroup.pidLabel : (pidGroup.shortName ? pidGroup.shortName : (pidGroup.name ? pidGroup.name : null))}" pid-hierarchy="${pidGroup.pidHierarchy}" pid-current-value="" pid-function="${pidGroup.pidFunction}" pid-number="${pidGroup.pidNumber}" sapient-bind="${this.getSapientBind(pidGroup)}">
             <mxCell style="${this.concatenateStyles(pidGroup.styleObject)}" vertex="${pidGroup._vertex}" connectable="${pidGroup._connectable}" parent="${pidGroup.parentId ? pidGroup.parentId : pidGroup._parent}">
                 <mxGeometry x="${pidGroup.mxGeometry._x ? pidGroup.mxGeometry._x : graphSettings.defaultPadding}" y="${pidGroup.mxGeometry._y ? pidGroup.mxGeometry._y : graphSettings.defaultPadding}" width="${pidGroup.mxGeometry._width}" height="${pidGroup.mxGeometry._height}" as="${pidGroup.mxGeometry._as}"></mxGeometry>
             </mxCell>
@@ -2170,14 +2239,12 @@ let component = SapientComponent.extend(Evented, {
             //const target = pidJson.find((vertex) => vertex.id === pidLine.targetId);
             const parent = pidJson.find((parent) => parent.id === source.id);
             xmlString += `
-        <object id="${pidLine.id ? pidLine.id : pidLine._id}" label="${pidLine._value !== '' ? pidLine._value : htmlLabelLine}" placeholders="1" pid-label="${pidLine.pidLabel ? pidLine.pidLabel : (pidLine.shortName ? pidLine.shortName : (pidLine.name ? pidLine.name : 'Beer'))}" pid-current-value="${pidLine.id}" pid-function="${pidLine.pidFunction}" pid-number="${pidLine.pidNumber}" sapient-bind="${getSapientBind(pidLine)}">
+        <object id="${pidLine.id ? pidLine.id : pidLine._id}" label="${pidLine._value !== '' ? pidLine._value : htmlLabelLine}" placeholders="1" pid-label="${pidLine.pidLabel ? pidLine.pidLabel : (pidLine.shortName ? pidLine.shortName : (pidLine.name ? pidLine.name : 'Beer'))}" pid-current-value="" pid-function="${pidLine.pidFunction}" pid-number="${pidLine.pidNumber}" sapient-bind="${this.getSapientBind(pidLine)}">
             <mxCell id="${pidLine.id ? pidLine.id : pidLine._id}" style="${this.concatenateStyles(pidLine.styleObject)}" edge="${pidLine._edge}" source="${pidLine.sourceId}" target="${pidLine.targetId}" parent="${parent.id ? parent.id : pidLine._parent}">
                 <mxGeometry relative="${pidLine.mxGeometry._relative ? pidLine.mxGeometry._relative : 1}" as="${pidLine.mxGeometry._as ? pidLine.mxGeometry._as : 'geometry'}"></mxGeometry>
             </mxCell>
         </object>`;
         });
-
-        // TODO:  Add database bindings
 
         // Add boilerplate closing tags
         xmlString += `
@@ -2210,6 +2277,161 @@ let component = SapientComponent.extend(Evented, {
     },
 
 
+    /**
+     * Creates sapientBind object depending on shape.shapeCategory and shape.fDataType
+     *
+     * @param {Object} shape Vertex instance for whom to build the sapientBind object
+     *
+     */
+    getSapientBind: function(shape) {
+
+        /*
+            Key of Properties for Values to Display:
+
+            Vertices (Equipment/Instruments/Arrows/Groups):
+
+            id:             {Int}       Primary Key
+            shortName:      {String}    A shortened version of the name
+            isInstrument:   {Bool}      User defined boolean (default is false)
+            shapeName:      {String}    Shape Name that maps to P&ID shapes library (required!)
+            pidLabel:       {String}    Optional label for shapes
+            pidFunction:    {String}    User defined instrument function (required for instruments)
+            pidNumber:      {String}    User defined instrument number (required for instruments)
+            cValueId:       {Int}       Primary Key of value (in p_values_config and p_values_current)
+            tValueType:     {Sring}     (air consumptuion, energy consumption, ...)
+            tValueFormat:   {Sring}     (limit, actual piece counter, ...)
+            uUnitSymbol:    {String}    (Nm, J, kPa, °C, ...)
+            uName:          {String}    (Newtonmeter, Joule, Kilopascal, ...)
+            uFactor:        {String}    (1000, /1000, 10000, ,277778, ...)
+
+            Edges (Lines):
+
+            id:             {Int}       Primary Key
+            isContinuous:   {Boolean}   If flow ins continuous
+            flowType:       {String}    Type of flow (material_flow, ...)
+            pProduct:       {String}    Product of flow (bier, chair, wheel, ...)
+            cValueId:       {Int}       Primary Key of value (in p_values_config and p_values_current)
+            tValueType:     {Sring}     (air consumptuion, energy consumption, ...)
+            tValueFormat:   {Sring}     (limit, actual piece counter, ...)
+            uUnitSymbol:    {String}    (Nm, J, kPa, °C, ...)
+            uName:          {String}    (Newtonmeter, Joule, Kilopascal, ...)
+            uFactor:        {String}    (1000, /1000, 10000, ,277778, ...)
+
+        */
+
+        let sapientBind = {};
+        console.log(shape);
+
+        // Return empty sapientBind if shape has no binded value
+        if (null === shape.cValueId || undefined === shape.cValueId) sapientBind = '';
+
+        else if ('numeric' === shape.fDataType) {
+            if ('valve' === shape.shapeCategory || 'instruments' === shape.shapeCategory) {
+                sapientBind = {
+                    datasources: {
+                        text: {
+                            source: "var",
+                            params: {
+                                id: shape.cValueId
+                            }
+                        }
+                    },
+                    bindings: {
+                        text: {
+                            value: {
+                                source: "dataref",
+                                defaultValue: "---",
+                                params: {
+                                    ref: "text"
+                                }
+                            }
+                        }
+                    }
+                };
+            }
+        }
+        else if ('boolean' === shape.fDataType) {
+            if ('valve' === shape.shapeCategory) {
+                sapientBind = {
+                    datasources: {
+                        text: {
+                            source: "var",
+                            params: {
+                                id: shape.cValueId
+                            }
+                        }
+                    },
+                    bindings: {
+                        text: {
+                            value: {
+                                source: "dataref",
+                                defaultValue: "---",
+                                params: {
+                                    ref: "text"
+                                }
+                            }
+                        }
+                    }
+                };
+            }
+            else if ('engines' === shape.shapeCategory || 'instruments' === shape.shapeCategory || 'compressors_-_iso' === shape.shapeCategory || 'pumps_-_iso' === shape.shapeCategory) {
+                sapientBind = {
+                    datasources: {
+                        text: {
+                            source: "var",
+                            params: {
+                                id: shape.cValueId
+                            }
+                        }
+                    },
+                    bindings: {
+                        text: {
+                            value: {
+                                source: "dataref",
+                                defaultValue: "---",
+                                params: {
+                                    ref: "text"
+                                }
+                            }
+                        }
+                    }
+                };
+            }
+        }
+        else if ('string' === shape.fDataType) {
+            sapientBind = {
+                datasources: {
+                    text: {
+                        source: "var",
+                        params: {
+                            id: shape.cValueId
+                        }
+                    }
+                },
+                bindings: {
+                    text: {
+                        value: {
+                            source: "dataref",
+                            defaultValue: "---",
+                            params: {
+                                ref: "text"
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        
+        let sapientBindString = JSON.stringify(sapientBind);
+        let escapedSapientBind = this.escapeToHtmlValid(sapientBindString);
+        //console.log(sapientBind);
+        console.log(sapientBindString);
+        //console.log(escapedSapientBind);
+        return escapedSapientBind;
+    },
+
+
     renderXml: function(xmlString) {
         // let copyButton = document.getElementById("copyButton");
         // copyButton.disabled = false;
@@ -2223,57 +2445,6 @@ let component = SapientComponent.extend(Evented, {
         //console.log(`pidHtmlString = \n${formattedHtmlString}`);
         document.getElementById('xml-viewer-div').innerHTML = formattedHtmlString;
     },
-
-
-    /* copyToClipboard: function(elem) {
-        // create hidden text element, if it doesn't already exist
-        var targetId = "_hiddenCopyText_";
-        var isInput = elem.tagName === "INPUT" || elem.tagName === "TEXTAREA";
-        var origSelectionStart, origSelectionEnd;
-        if (isInput) {
-            // can just use the original source element for the selection and copy
-            target = elem;
-            origSelectionStart = elem.selectionStart;
-            origSelectionEnd = elem.selectionEnd;
-        } else {
-            // must use a temporary form element for the selection and copy
-            target = document.getElementById(targetId);
-            if (!target) {
-                var target = document.createElement("textarea");
-                target.style.position = "absolute";
-                target.style.left = "-9999px";
-                target.style.top = "0";
-                target.id = targetId;
-                document.body.appendChild(target);
-            }
-            target.textContent = elem.textContent;
-        }
-        // select the content
-        var currentFocus = document.activeElement;
-        target.focus();
-        target.setSelectionRange(0, target.value.length);
-        
-        // copy the selection
-        var succeed;
-        try {
-            succeed = document.execCommand("copy");
-        } catch(e) {
-            succeed = false;
-        }
-        // restore original focus
-        if (currentFocus && typeof currentFocus.focus === "function") {
-            currentFocus.focus();
-        }
-        
-        if (isInput) {
-            // restore prior selection
-            elem.setSelectionRange(origSelectionStart, origSelectionEnd);
-        } else {
-            // clear temporary content
-            target.textContent = "";
-        }
-        return succeed;
-    }, */
 
 
     formatXml: function(xml, tab) {
