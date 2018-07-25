@@ -22,6 +22,11 @@ function vertexPlacement(pidJson) {
     pageWidth: 1654,
     pageHeight: 1169,
   };
+  // Set after iteration if any side of the iterated vertex exceeds the global:
+  let globalLeft = 0; // min
+  let globalRight = 0; // max
+  let globalTop = 0; // min
+  let globalBottom = 0; // max
   let m = {};
   let p = {}; // p: previousObject clone
   const pidLevelCount = findMax('pidLevel', vertices);
@@ -165,7 +170,8 @@ function vertexPlacement(pidJson) {
             console.log(m);
             console.groupEnd();
           } else if (m.tags.includes("funnel")) {
-
+            m.x = p.x + s.margin;
+            m.y = p.y + p.w + s.margin;
           } else if (m.tags.includes("nucleusGroup")) {
             console.group(`#nucleusGroup`); // nucleusGroups of all pidLevels
             console.log(`nucleusGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
@@ -324,8 +330,6 @@ function vertexPlacement(pidJson) {
           }
 
           console.groupEnd();
-        }
-
         console.groupEnd();
 
       } else if (m.tags.includes('childOfNonGroup')) {
@@ -334,7 +338,14 @@ function vertexPlacement(pidJson) {
         console.groupEnd();
       }
 
+      // Reset all global sides after each group uses them
+      globalLeft = 0; // min
+      globalRight = 0; // max
+      globalTop = 0; // min
+      globalBottom = 0; // max
+
       console.groupEnd();
+    }
 
       /****************************SET VARIABLES********************************/
 
@@ -358,12 +369,20 @@ function vertexPlacement(pidJson) {
         v.mxGeometry._height = m.h;
       }
 
+      // 3) Global sides:
+      globalLeft = (m.left < globalLeft ? m.left : globalLeft); // min
+      globalRight = (m.right > globalRight ? m.right : globalRight); // max
+      globalTop = (m.top < globalTop ? m.top : globalTop); // min
+      globalBottom = (m.bottom > globalBottom ? m.bottom : globalBottom); // max
+
       console.log(`id: ${v.id}`);
       console.log(`parent: ${m.parent !== undefined ? m.parent.shortName : "N/A"}`);
       console.log(`m.x: ${v.mxGeometry._x} -> _x`);
       console.log(`m.y: ${v.mxGeometry._y} -> _y`);
       console.log(`m.w: ${v.mxGeometry._width} -> _width`);
       console.log(`m.h: ${v.mxGeometry._height} -> _height`);
+      console.warn(`globalLeft: ${globalLeft}, globalRight: ${globalRight}, globalTop: ${globalTop}, globalBottom: ${globalBottom}`);
+
       console.groupEnd();
 
       /*************************END OF ALGORITHM********************************/
@@ -536,62 +555,12 @@ function vertexPlacement(pidJson) {
     }
   }
 
-  // function centerBlock(children) {
-
-  //   let child = children[0];
-  //   console.log('child:');
-  //   console.log(child);
-
-  //   let block = {
-  //     // Work with properties of scaled block inside 
-  //     id: child.id,
-  //     name: child.name,
-  //     lvl: child.lvl,
-  //     pidClass: child.pidClass,
-  //     pidHierarchy: child.pidHierarchy,
-  //     w: 2 * s.margin + child.w, // scales block (applies padding)
-  //     h: 2 * s.margin + child.h, // scales block (applies padding)
-  //     x: s.margin, // Reset x
-  //     y: s.margin // Reset y
-  //   };
-
-  //   console.log('block:');
-  //   console.log(block);
-
-  //   // Get corresponding object in vertices and memory arrays
-  //   let originalVertex = vertices.find(v => v.id === block.id);
-  //   let memoryVertex = memory.find(v => v.id === block.id);
-
-  //   console.log(originalVertex);
-  //   console.log(memoryVertex);
-
-  //   console.log(`Updating coordinates of ${block.id}: ${block.name} to (${block.x}, ${block.y}) ${block.x === null ? '(null)' : ''}`);
-
-  //   // Update properties in vertices array
-  //   originalVertex.mxGeometry._x = block.x;
-  //   originalVertex.mxGeometry._y = block.y;
-  //   originalVertex.mxGeometry._width = block.w;
-  //   originalVertex.mxGeometry._height = block.h;
-  //   // FIXME: Arreglar que si uncommenteo siguientes dos lineas para que a partir de units w y h no sea NaN desaparecen los units, y si no, no se dibujan los grupos grises
-  //   //originalVertex.mxGeometry._width = isNaN(originalVertex.mxGeometry._width) ? memoryVertex.w : block.fit.width;
-  //   //originalVertex.mxGeometry._height = isNaN(originalVertex.mxGeometry._height) ? memoryVertex.h : block.fit.height;
-  //   // Update properties in memory array
-  //   memoryVertex.x = block.x;
-  //   memoryVertex.y = block.y;
-  //   memoryVertex.w = block.w;
-  //   memoryVertex.h = block.h;
-  //   memoryVertex.a = block.w * block.h;
-  //   memoryVertex.left = block.x;
-  //   memoryVertex.top = block.y;
-  //   memoryVertex.right = Math.round(block.x + block.w);
-  //   memoryVertex.bottom = Math.round(block.y + block.h);
-  // }
-
   function packBlocks(children, vertices, memory) {
     /* Runs algorithm to optimally pack blocks based on passed sorting option,
      * updates the original properties in the vertices and memory arrays 
      * and returns scaled group dimmensions for setting m.w and m.h of current group
      */
+
     console.group(`Packing blocks.`);
 
     let root;
@@ -601,6 +570,7 @@ function vertexPlacement(pidJson) {
 
     // 1) Measure children blocks with included margin (padded blocks)
     blocks = getScaledBlocks(children);
+
     // 2) Pre-sort input array by longest block side (either width or height) 
     blocks = sortBlocksBy('maxSide', blocks); // Options: flows, none, width, height, area
 
@@ -734,7 +704,8 @@ function vertexPlacement(pidJson) {
           h: root.h
         }
       };
-      if (node = findNode(root, w, h))
+      let node = findNode(root, w, h);
+      if (node)
         return splitNode(node, w, h);
       else
         return null;
@@ -755,7 +726,8 @@ function vertexPlacement(pidJson) {
         },
         right: root
       };
-      if (node = findNode(root, w, h))
+      let node = findNode(root, w, h);
+      if (node)
         return splitNode(node, w, h);
       else
         return null;
@@ -796,6 +768,7 @@ function vertexPlacement(pidJson) {
         memoryVertex.bottom = yWithOffset + memoryVertex.h;
       });
     }
+
     let scaledGroup = {
       width: Math.abs(getMin("left", memory)) + getMax("right", memory),
       height: Math.abs(getMin("top", memory)) + getMax("bottom", memory)
@@ -835,8 +808,6 @@ function vertexPlacement(pidJson) {
     m.area = groupArea;
   }
 
-  // 3a) #nucleusGroup
-
   function shiftNucleusGroup(blockX, blockY, stack) {
     /**
      * Shifts nucleus group from its previous sibling by the corresponding offset,
@@ -852,31 +823,19 @@ function vertexPlacement(pidJson) {
     // and nucleusY should be relative to the origin of the parent of the nucleus)
 
     // Set nucleus corner at origin-blockX so that nucleusGroup corner lands on origin (0, 0) (ex: if nucleusGroup at x=10, sets to 0-10 so that nucleus set to - 10 which leaves the nucleusGroup at origin)
-    nucleusX = 0 - blockX;
-    nucleusY = 0 - blockY;
-
-    // CHANGE COORDINATE SYSTEM:
-    // Get coordinates of nucleus in relation to coordinates of block, because 
-    // only nucleus should be shifted (and with that, descendants shift as well together with it)
-    // (blockX and blockY are relative to nucleus origin of (0,0) and nucleusX 
-    // and nucleusY should be relative to the origin of the parent of the nucleus)
-
-    // Set nucleus corner at origin-blockX so that nucleusGroup corner lands on origin (0, 0) (ex: if nucleusGroup at x=10, sets to 0-10 so that nucleus set to - 10 which leaves the nucleusGroup at origin)
-    nucleusX = 0 - blockX;
-    nucleusY = 0 - blockY;
+    let nucleusX = 0 - blockX; 
+    let nucleusY = 0 - blockY;
 
     if (stackLength === 0) {
       // Case if nucleus is first innerGroup in group of current level
       console.log(`${groupLength + 1}st innerGroup (nucleus) in stack[${m.lvl}].`);
 
       // Shift NUCLEUS (and with that it's descendants):
-      m.x = nucleusX;
-      m.y = nucleusY;
+      m.x = p.x + p.w + nucleusX;
+      m.y = p.y + p.h + nucleusY;
 
       console.log(`nucleusGroup (innerGroup) is first of stack an thus positioned at (${m.x}, ${m.y})`);
-    } else if (stackLength >= 1) {
-
-    } else if (stackLength >= 1) {
+      } else if (stackLength >= 1) {
       // Case if nucleus is second, third, ..., n-th innerGroup in 
       console.log(`nucleusGroup (innerGroup) number ${stackLength + 1} in stack[${m.lvl}].`);
       const indexOfPrevious = stackLength - 1;
@@ -888,8 +847,8 @@ function vertexPlacement(pidJson) {
       const hOfPrevious = stack[indexOfPrevious].h;
 
       // Shift NUCLEUS (and with that it's descendants): x: offset from previous, y: inline with previous (both analog to #inline)
-      m.x = (xOfPrevious + wOfPrevious + s.groupSpacing) + nucleusX;
-      m.y = (yOfPrevious) + nucleusY;
+      m.x = xOfPrevious + wOfPrevious + s.groupSpacing + nucleusX;
+      m.y = yOfPrevious + (hOfPrevious - m.h) / 2 + nucleusY;
       //m.y = (yOfPrevious) + (hOfPrevious / 2) + (hOfPrevious / 2) + nucleusY;
 
       console.log(`x-Coordinate = xOfPrevious + wOfPrevious + s.groupSpacing + nucleusX = ${xOfPrevious} + ${wOfPrevious} + ${s.groupSpacing} + ${nucleusX} = ${m.x}`);
@@ -900,7 +859,6 @@ function vertexPlacement(pidJson) {
     console.log(`Coordinates set to: (${m.x}, ${m.y})`);
   }
 
-  // 3b) #innerGroup
   function shiftInnerGroup(stack) {
     /**
      * Shifts nucleus group from its previous sibling by the corresponding offset,

@@ -91,20 +91,45 @@ function packBlocks(children) {
 
   function getScaledBlocks(children) {
     let blocks = [];
-    children.forEach((child) => blocks.push({
-      // Work with properties of scaled block inside 
-      id: child.id,
-      name: child.name,
-      lvl: child.lvl,
-      pidClass: child.pidClass,
-      descendants: child.descendants,
-      w: 2 * 50 + measureBlock('width', child.descendants), // scales block (applies padding)
-      h: 2 * 50 + measureBlock('height', child.descendants), // scales block (applies padding)
-      x: child.x,
-      y: child.y,
-      a: child.w * child.h
-    }));
+    children.forEach((child) => {
+
+      let childDescendants = getDescendants(child.id, vertices);
+      childDescendants.push(child);
+      
+      
+      blocks.push({
+        // Work with properties of scaled block inside 
+        id: child.id,
+        name: child.name,
+        lvl: child.lvl,
+        pidClass: child.pidClass,
+        descendants: child.descendants,
+        w: 2 * 50 + measureBlock('width', childDescendants), // scales block (applies padding)
+        h: 2 * 50 + measureBlock('height', childDescendants), // scales block (applies padding)
+        x: child.x,
+        y: child.y,
+        a: child.w * child.h
+      });
+    });
     return blocks;
+  }
+
+  function getDescendants(id, array) {
+      /**
+      * Flattens deeply nested arrays recursively with concat.
+      */
+      // Termination:
+      if (!id) return;
+      // Base case:
+      let descendants = [];
+      // Recursion
+      let children = array.filter((child) => child.parentId === id);
+      children.forEach((child) => {
+      descendants.push(child);
+      let grandchildren = getDescendants(child.id, array); // recursive
+      descendants = Array.isArray(grandchildren) ? descendants.concat(grandchildren) : descendants; // if grandchildren array is not empty, concatenate it, else, return existing
+      });
+      return descendants;
   }
 
   function measureBlock(dimension, shapes) {
@@ -217,6 +242,7 @@ function packBlocks(children) {
         h: root.h
       }
     };
+    let node;
     if (node = findNode(root, w, h))
       return splitNode(node, w, h);
     else
@@ -238,6 +264,7 @@ function packBlocks(children) {
       },
       right: root
     };
+    let node;
     if (node = findNode(root, w, h))
       return splitNode(node, w, h);
     else

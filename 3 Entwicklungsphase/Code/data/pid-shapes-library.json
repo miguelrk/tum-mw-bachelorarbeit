@@ -35992,7 +35992,7 @@
     "shapeThumbnail": "images\\group.svg",
     "_vertex": "1",
     "_edge": "",
-    "_style": "group;container=1;align=right;labelPosition=center;verticalLabelPosition=top;verticalAlign=bottom;strokeColor=#FFFFFF;fontColor=#FFFFFF;dashed=1;strokeWidth=2;",
+    "_style": "group;container=1;align=right;labelPosition=center;verticalLabelPosition=top;verticalAlign=bottom;strokeColor=#FFFFFF;fontColor=#FFFFFF;dashed=1;strokeWidth=2;aspect=fixed;",
     "styleObject" : {
       "shape" : "",
       "overflow" : "",
@@ -36034,7 +36034,8 @@
       "fillColor" : "",
       "fontSize" : "",
       "fontColor" : "fontColor=#FFFFFF",
-      "rotation" : ""
+      "rotation" : "",
+      "aspect" : "aspect=fixed"
     },
     "_value" : "",
     "_connectable" : "1",
@@ -36068,7 +36069,7 @@
     "shapeThumbnail": "images\\group.svg",
     "_vertex": "1",
     "_edge": "",
-    "_style": "group;container=1;align=right;labelPosition=center;verticalLabelPosition=top;verticalAlign=bottom;strokeColor=#FFFFFF;fontColor=#FFFFFF;dashed=1;strokeWidth=2;",
+    "_style": "group;container=1;align=right;labelPosition=center;verticalLabelPosition=top;verticalAlign=bottom;strokeColor=#FFFFFF;fontColor=#FFFFFF;dashed=1;strokeWidth=2;aspect=fixed;",
     "styleObject" : {
       "shape" : "",
       "overflow" : "",
@@ -36110,7 +36111,8 @@
       "fillColor" : "",
       "fontSize" : "",
       "fontColor" : "fontColor=#FFFFFF",
-      "rotation" : ""
+      "rotation" : "",
+      "aspect" : "aspect=fixed"
     },
     "_value" : "",
     "_connectable" : "1",
@@ -36144,7 +36146,7 @@
     "shapeThumbnail": "images\\group.svg",
     "_vertex": "1",
     "_edge": "",
-    "_style": "group;container=1;align=right;labelPosition=center;verticalLabelPosition=top;verticalAlign=bottom;strokeColor=#FFFFFF;fontColor=#FFFFFF;dashed=1;strokeWidth=2;",
+    "_style": "group;container=1;align=right;labelPosition=center;verticalLabelPosition=top;verticalAlign=bottom;strokeColor=#FFFFFF;fontColor=#FFFFFF;dashed=1;strokeWidth=2;aspect=fixed;",
     "styleObject" : {
       "shape" : "",
       "overflow" : "",
@@ -36186,7 +36188,8 @@
       "fillColor" : "",
       "fontSize" : "",
       "fontColor" : "fontColor=#FFFFFF",
-      "rotation" : ""
+      "rotation" : "",
+      "aspect" : "aspect=fixed"
     },
     "_value" : "",
     "_connectable" : "1",
@@ -36220,7 +36223,7 @@
     "shapeThumbnail": "images\\group.svg",
     "_vertex": "1",
     "_edge": "",
-    "_style": "group;container=1;align=right;labelPosition=center;verticalLabelPosition=top;verticalAlign=bottom;strokeColor=#0000FF;fontColor=#0000FF;dashed=1;strokeWidth=2;",
+    "_style": "group;container=1;align=right;labelPosition=center;verticalLabelPosition=top;verticalAlign=bottom;strokeColor=#0000FF;fontColor=#0000FF;dashed=1;strokeWidth=2;aspect=fixed;",
     "styleObject" : {
       "shape" : "",
       "overflow" : "",
@@ -36262,7 +36265,8 @@
       "fillColor" : "",
       "fontSize" : "",
       "fontColor" : "fontColor=#0000FF",
-      "rotation" : ""
+      "rotation" : "",
+      "aspect" : "aspect=fixed"
     },
     "_value" : "",
     "_connectable" : "1",
@@ -36296,7 +36300,7 @@
     "shapeThumbnail" : "images\\group.svg",
     "_vertex" : "1",
     "_edge" : "",
-    "_style": "group;container=1;align=right;labelPosition=center;verticalLabelPosition=top;verticalAlign=bottom;strokeColor=#00CCCC;fontColor=#00CCCC;dashed=1;strokeWidth=2;",
+    "_style": "group;container=1;align=right;labelPosition=center;verticalLabelPosition=top;verticalAlign=bottom;strokeColor=#00CCCC;fontColor=#00CCCC;dashed=1;strokeWidth=2;aspect=fixed;",
     "styleObject" : {
       "shape" : "",
       "overflow" : "",
@@ -36338,7 +36342,8 @@
       "fillColor" : "",
       "fontSize" : "",
       "fontColor" : "fontColor=#00CCCC",
-      "rotation" : ""
+      "rotation" : "",
+      "aspect" : "aspect=fixed"
     },
     "_value" : "",
     "_connectable" : "1",

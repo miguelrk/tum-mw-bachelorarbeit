@@ -457,23 +457,31 @@ let component = SapientComponent.extend(Evented, {
         // Continue with PID generation when all queries and left join done
         if (this.get('pidNodes') && this.get('pidConnections')) {
 
-            console.groupCollapsed('Database queries and data mappings done.');
-            console.groupCollapsed('all pidNodes');
-            console.log(this.get('pidNodes'));
-            console.groupEnd();
-            console.groupCollapsed('all pidConnections');
-            console.log(this.get('pidConnections'));
+            console.log('Database queries done succesfully.');
             console.groupEnd();
 
             /********************************** pidNodes ********************************************/
 
-            // Filter out non-descendants of selected root node
-            this.set('pidNodes', this.getDescendants(this.get('pidRootNodeId'), 0, this.get('pidNodes')));
+            console.groupCollapsed('Filtering queried nodes and connections data...');
+            console.groupCollapsed(`${this.get('pidNodes').length} total nodes queried.`);
+            console.log(this.get('pidNodes'));
+            console.groupEnd();
+
+            // Filter out non-descendants of selected root node (keep only nodes in root's hierarchy)
+            this.set('pidNodes', this.getHierarchy(this.get('pidRootNodeId'), 0, this.get('pidNodes')));
 
             // Sort by ascending pidLevel
             this.set('pidNodes', this.get('pidNodes').sort((previous, next) => previous.pidLevel - next.pidLevel));
 
+            console.groupCollapsed(`${this.get('pidNodes').length} nodes in selected root node hierarchy.`);
+            console.log(this.get('pidNodes'));
+            console.groupEnd();
+
             /******************************* pidConnections ****************************************/
+
+            console.groupCollapsed(`${this.get('pidConnections').length} total connections queried.`);
+            console.log(this.get('pidConnections'));
+            console.groupEnd();
 
             // Filter out connections with either a source or a target not in pidNodes
             this.set('pidConnections', this.filterConnections(this.get('pidConnections')));
@@ -481,10 +489,7 @@ let component = SapientComponent.extend(Evented, {
             // Simplify connections (clear waypoints/wayports of edges)
             this.set('pidConnections', this.simplifyConnections(this.get('pidNodes'), this.get('pidConnections')));
 
-            console.groupCollapsed('pidNodes');
-            console.log(this.get('pidNodes'));
-            console.groupEnd();
-            console.groupCollapsed('pidConnections:');
+            console.groupCollapsed(`${this.get('pidConnections').length} connections between nodes of selected root node hierarchy.`);
             console.log(this.get('pidConnections'));
             console.groupEnd();
             console.groupEnd();
@@ -492,24 +497,29 @@ let component = SapientComponent.extend(Evented, {
         }   
     },
 
-
-    getDescendants: function(id, level, array) {
-        /**
-        * Flattens deeply nested arrays (via the children attribute) recursively 
-        * with concat and simoultaneously sets the corresponding pidLevel during
-        * traversal (starting from level=0 for selected rootNode).
-        */
+    /**
+     * Returns passed root node and all of its descendants by recursively 
+     * and sets the corresponding pidLevel for each, starting with pidLevel=0
+     * for the selected root node)
+     *
+     * param {Object} root
+     * param {Int} level
+     * param {Array} array
+     * 
+     */
+    getHierarchy: function(id, level, array) {
+        
         // Termination:
         if (!id) return;
-        // Base case:
-        let descendants = [];
-        // Recursion
-        level += 1; // Increase for every recursive call of getDescendants()
+        // Base case: includes selected root node to hierarchy
+        let descendants = (this.get('pidRootNodeId') === id ? this.get('pidRootNode') : []);
+        // Recursion:
+        level += 1; // Increase for every recursive call of getHierarchy()
         let children = array.filter((child) => child.parentId === id);
         children.forEach((child) => {
             child.pidLevel = level;
             descendants.push(child);
-            let grandchildren = this.getDescendants(child.id, level, array); // recursive
+            let grandchildren = this.getHierarchy(child.id, level, array); // recursive
             descendants = Array.isArray(grandchildren) ? descendants.concat(grandchildren) : descendants; // if grandchildren array is not empty, concatenate it, else, return existing
         });
         return descendants;
@@ -540,7 +550,8 @@ let component = SapientComponent.extend(Evented, {
         /**
         * Simplifies connections from and to groups by replacing both the preEdge and
         * postEdge of that connection with a single, direct connection when that is
-        * the case. NOTE: simplifiedId retains the id of the startEdge (so remaining
+        * the case and sets the parentId property of each simplified edge to the id of its
+        * source. NOTE: simplifiedId retains the id of the startEdge (so remaining
         * properties are inherited from the startEdge, which should have same as endEdge)
         * Simplify connections (clear waypoints/wayports of edges
         * (ex. shape1 --> group1 --> group2 --> shape2  simplified to  shape1 --> shape1))
@@ -1074,7 +1085,7 @@ let component = SapientComponent.extend(Evented, {
             pidClass: v.pidClass,
             pidHierarchy: v.pidHierarchy,
             id: v.id,
-            parent: getParent(v.parentId, vertices),
+            parent: getParent(v.parentId, vertices) !== undefined ? getParent(v.parentId, vertices) : 1, // If root node (no parent in vertices, set to 1 for mxGraph)
             siblings: getSiblings(v.parentId, memory),
             children: getChildren(v.id, memory),
             descendants: getDescendants(v.id, memory),
@@ -1090,8 +1101,8 @@ let component = SapientComponent.extend(Evented, {
             right: parseInt(v.mxGeometry._width, 10),
             bottom: parseInt(v.mxGeometry._height, 10)
             };
-            console.warn(m.children);
-            console.warn(m.descendants);
+            console.log(m.children);
+            console.log(m.descendants);
 
             /*************************************************************************
             *                     SPECIFICATION OF CONSTRAINTS:                      *
@@ -1113,7 +1124,7 @@ let component = SapientComponent.extend(Evented, {
             if ("equipment" === v.pidClass || "instrument" === v.pidClass || "arrow" === v.pidClass) {
                 m.tags.push("isShape");
 
-                if (undefined === m.parent) m.tags.push("rootNode"); // no parent exists
+                if (undefined === m.parent || 0 === m.lvl) m.tags.push("rootNode"); // no parent exists
                 else if ("group" === m.parent.pidClass) {
                     m.tags.push("childOfGroup");
                     if ("vessels" === v.shapeCategory) m.tags.push(`nucleusGroup`);
@@ -1135,7 +1146,7 @@ let component = SapientComponent.extend(Evented, {
             else if ("group" === v.pidClass) {
                 m.tags.push("isGroup");
 
-                if (undefined === m.parent) m.tags.push("rootNode"); // no parent exists
+                if (undefined === m.parent || 0 === m.lvl) m.tags.push("rootNode"); // no parent exists
                 else if ("group" === m.parent.pidClass) m.tags.push("childOfGroup");
                 else if ("group" !== m.parent.pidClass) m.tags.push("childOfNonGroup");
                 if ("Site" === v.pidHierarchy) m.tags.push("outerGroup");
@@ -1160,8 +1171,26 @@ let component = SapientComponent.extend(Evented, {
                 if (m.tags.includes('rootNode')) {
                     console.group("#rootNode");
 
+                   /*
+                            // Measure:
+                            if (m.children.length > 1) {
+                                // Case for m: Brewhouse with units as children
+                                let scaledGroup = packBlocks(m.children, vertices, memory); // function returns scaled group dimmensions
+                                m.w = scaledGroup.width;
+                                m.h = scaledGroup.height;
+                            } else {
+                                m.w = 2 * s.margin + measureBlock('width', m.children);
+                                m.h = 2 * s.margin + measureBlock('height', m.children);
+                            } 
+                         */
+
+                        
+                    m.w = 2 * s.margin + measureBlock('width', m.children);
+                    m.h = 2 * s.margin + measureBlock('height', m.children);
                     m.x = s.margin;
                     m.y = s.margin;
+
+                    clearStack(stack[p.lvl]);
                 }
 
                 else if (m.tags.includes('childOfGroup')) {
@@ -1169,8 +1198,8 @@ let component = SapientComponent.extend(Evented, {
 
                     let descendantsWithParent = memory.filter((child) => (child.parentId === m.id));
                     descendantsWithParent.push(m); // Push root/parent vertex as well
-                    console.warn('descendantsWithParent:')
-                    console.warn(descendantsWithParent);
+                    console.log('descendantsWithParent:')
+                    console.log(descendantsWithParent);
 
                     if (m.tags.includes("inline")) {
                         console.group("#inline");
@@ -1242,13 +1271,13 @@ let component = SapientComponent.extend(Evented, {
                     console.log(`1st aroundParent child of ${m.parent.shortName} set to take 1st slot.`);
                     m.x = parentWidth + s.cellSpacing;
                     m.y = s.cellSpacing;
+                    console.log(`(p.x, p.y): (${m.x}, ${m.y})`);
                     } else if (p.tags.includes('childOfNonGroup')) {
                     // Case for second, third, ..., n-th childOfNonGroup in current level stack
                     console.log(`aroundParent child of ${m.parent.shortName} set to take next slot (offset relative to previous).`);
                     m.x = parentWidth + s.cellSpacing;
-                    console.warn('p.y:');
-                    console.warn(p.y);
                     m.y = p.y + p.h + s.cellMargin;
+                    console.log(`(p.x, p.y): (${m.x}, ${m.y})`);
                     }
                     console.groupEnd();
                 }
@@ -1262,8 +1291,26 @@ let component = SapientComponent.extend(Evented, {
                 if (m.tags.includes('rootNode')) {
                     console.group("#rootNode");
 
+                    /*
+                            // Measure:
+                            if (m.children.length > 1) {
+                                // Case for m: Brewhouse with units as children
+                                let scaledGroup = packBlocks(m.children, vertices, memory); // function returns scaled group dimmensions
+                                m.w = scaledGroup.width;
+                                m.h = scaledGroup.height;
+                            } else {
+                                m.w = 2 * s.margin + measureBlock('width', m.children);
+                                m.h = 2 * s.margin + measureBlock('height', m.children);
+                            } 
+                         */
+
+                        
+                    m.w = 2 * s.margin + measureBlock('width', m.children);
+                    m.h = 2 * s.margin + measureBlock('height', m.children);
                     m.x = s.margin;
                     m.y = s.margin;
+
+                    clearStack(stack[p.lvl]);
                 }
 
                 else if (m.tags.includes('childOfGroup')) {
@@ -1306,14 +1353,11 @@ let component = SapientComponent.extend(Evented, {
                         let blockBottom = getMax("bottom", descendantSides);
                         let blockWidth = measureBlock('width', descendantSides);
                         let blockHeight = measureBlock('height', descendantSides);
-                        console.log('descendantSides');
+                        console.log('descendantSides measured:');
                         console.log(descendantSides);
-                        console.log(blockLeft);
-                        console.log(blockRight);
-                        console.log(blockTop);
-                        console.log(blockBottom);
-                        console.log(blockWidth);
-                        console.log(blockHeight);
+                        console.log('blockSides set:');
+                        const blockSides = { left: blockLeft, right: blockRight, top: blockTop, bottom: blockBottom, width: blockWidth, height: blockHeight };
+                        console.log(blockSides);
 
                         // Scale:
                         scaleGroup(blockWidth, blockHeight, s.margin, descendantSides);
@@ -1330,17 +1374,24 @@ let component = SapientComponent.extend(Evented, {
                         console.group("#outerGroup");
                         console.log(`outerGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
 
-                        // Measure:
-                        if (m.children.length > 1) {
-                        // Case for m: Brewhouse with units as children
-                        let scaledGroup = packBlocks(m.children, vertices, memory); // function returns scaled group dimmensions
-                        m.w = scaledGroup.width;
-                        m.h = scaledGroup.height;
-                        } else {
+                        /*
+                            // Measure:
+                            if (m.children.length > 1) {
+                                // Case for m: Brewhouse with units as children
+                                let scaledGroup = packBlocks(m.children, vertices, memory); // function returns scaled group dimmensions
+                                m.w = scaledGroup.width;
+                                m.h = scaledGroup.height;
+                            } else {
+                                m.w = 2 * s.margin + measureBlock('width', m.children);
+                                m.h = 2 * s.margin + measureBlock('height', m.children);
+                            } 
+                         */
+
+                        
                         m.w = 2 * s.margin + measureBlock('width', m.children);
                         m.h = 2 * s.margin + measureBlock('height', m.children);
-                        }
-
+                        m.x = s.margin;
+                        m.y = s.margin;
                         // Scale: 
                         //scaleGroup(blockWidth, blockHeight, s.margin, m.children);
                         // Shift:
@@ -1529,7 +1580,6 @@ let component = SapientComponent.extend(Evented, {
                 top: getAbsolute("top", descendant, m),
                 bottom: getAbsolute("bottom", descendant, m)
             }
-            console.log(cell);
             descendantSides.push(cell);
             });
             return descendantSides;
@@ -1540,16 +1590,16 @@ let component = SapientComponent.extend(Evented, {
             * Receives a variable name (string) and an array and returns the absolute value
             */
             let levelDifference = descendant.lvl - parent.lvl;
-            console.log("levelDifference");
-            console.log(levelDifference);
-            if (1 === levelDifference) return descendant[variable];
-            else if (2 === levelDifference) {
-            let parent = memory.find((parent) => parent.id === descendant.parentId);
-            return descendant[variable] - parent[variable];
+
+            if (1 === levelDifference) {
+                return descendant[variable];
+            } else if (2 === levelDifference) {
+                let parent = memory.find((parent) => parent.id === descendant.parentId);
+                return descendant[variable] - parent[variable];
             } else if (3 === levelDifference) {
-            let parent = memory.find((parent) => parent.id === descendant.parentId);
-            let grandparent = memory.find((grandparent) => grandparent.id === parent.id);
-            return descendant[variable] - grandparent[variable];
+                let parent = memory.find((parent) => parent.id === descendant.parentId);
+                let grandparent = memory.find((grandparent) => grandparent.id === parent.id);
+                return descendant[variable] - grandparent[variable];
             }
         }
 
@@ -1618,50 +1668,61 @@ let component = SapientComponent.extend(Evented, {
 
             // 1) Measure children blocks with included margin (padded blocks)
             blocks = getScaledBlocks(children);
+
+            // Reset previously set x and y properties for all blocks
+            blocks.forEach((block) => {
+                block.x = 0;
+                block.y = 0;
+            });
+
             // 2) Pre-sort input array by longest block side (either width or height) 
             blocks = sortBlocksBy('maxSide', blocks); // Options: flows, none, width, height, area
 
-            console.log('Before:');
+            console.log('Blocks before:');
             console.log(blocks);
 
             // 3) Binary tree bin packing algorithm to calculate x and y
             fit(blocks);
+
+            console.log('Blocks after fit():');
+            console.log(blocks);
+
             // 4) Set x and y properties of shapes in original arrays
             updateProperties(blocks, vertices, memory);
 
 
-            console.log('After:');
+            console.log('Blocks after:');
             console.log(blocks);
 
             //////////////////////// FUNCTION DECLARATIONS ////////////////////////////////
 
             function getScaledBlocks(children) {
-            console.log(`Measuring and scaling blocks.`);
-            let blocks = [];
-            children.forEach((child) => {
+                console.log(`Measuring and scaling blocks.`);
+                let blocks = [];
+                children.forEach((child) => {
 
-                let childDescendants = getDescendants(child.id, memory);
-                childDescendants.push(child);
+                    let childDescendants = getDescendants(child.id, memory);
+                    childDescendants.push(child);
 
-                console.log(child);
-                console.log(childDescendants);
+                    console.log(child);
+                    console.log(childDescendants);
 
-                blocks.push({
-                // Work with properties of scaled block inside 
-                id: child.id,
-                name: child.name,
-                lvl: child.lvl,
-                pidClass: child.pidClass,
-                pidHierarchy: child.pidHierarchy,
-                descendants: childDescendants,
-                w: measureBlock('width', childDescendants), // scales block (applies padding)
-                h: measureBlock('height', childDescendants), // scales block (applies padding)
-                x: 0, // Reset x
-                y: 0, // Reset y
-                a: child.w * child.h
-                })
-            });
-            return blocks;
+                    blocks.push({
+                        // Work with properties of scaled block inside 
+                        id: child.id,
+                        name: child.name,
+                        lvl: child.lvl,
+                        pidClass: child.pidClass,
+                        pidHierarchy: child.pidHierarchy,
+                        descendants: childDescendants,
+                        w: measureBlock('width', childDescendants), // scales block (applies padding)
+                        h: measureBlock('height', childDescendants), // scales block (applies padding)
+                        x: 0, // Reset x
+                        y: 0, // Reset y
+                        a: child.w * child.h
+                    })
+                });
+                return blocks;
             }
 
             function sortBlocksBy(sortOrder, blocks) {
@@ -1693,10 +1754,16 @@ let component = SapientComponent.extend(Evented, {
                     h: h
                 };
                 blocks.forEach((block) => {
-                    if (node === findNode(root, block.w, block.h))
+                    if (node === findNode(root, block.w, block.h)) {
                         block.fit = splitNode(node, block.w, block.h);
-                    else
-                        block.fit = scaleNode(block.w, block.h)
+                        console.log('splited Node');
+                        console.log(block.fit);
+                    }
+                    else  {
+                        block.fit = scaleNode(block.w, block.h);
+                        console.log('scaled Node. block.fit =');
+                        console.log(block.fit);
+                    }
                 });
             }
 
@@ -1730,8 +1797,8 @@ let component = SapientComponent.extend(Evented, {
                 let canScaleDown = (w <= root.w);
                 let canScaleRight = (h <= root.h);
 
-                let shouldScaleDown = canScaleDown && (root.w >= (root.h + h)); // attempt to keep square-ish by scaleing down  when width  is much greater than height
-                let shouldScaleRight = canScaleRight && (root.h >= (root.w + w)); // attempt to keep square-ish by scaleing right when height is much greater than width
+                let shouldScaleDown = canScaleDown && (root.w >= (root.h + h)); // attempt to keep square-ish by scaling down  when width  is much greater than height
+                let shouldScaleRight = canScaleRight && (root.h >= (root.w + w)); // attempt to keep square-ish by scaling right when height is much greater than width
 
                 if (shouldScaleRight)
                     return scaleRight(w, h);
@@ -1761,7 +1828,7 @@ let component = SapientComponent.extend(Evented, {
                     }
                 };
                 let node;
-                if (node === findNode(root, w, h))
+                if (node = findNode(root, w, h))
                     return splitNode(node, w, h);
                 else
                     return null;
@@ -1783,7 +1850,7 @@ let component = SapientComponent.extend(Evented, {
                     right: root
                 };
                 let node;
-                if (node === findNode(root, w, h))
+                if (node = findNode(root, w, h))
                     return splitNode(node, w, h);
                 else
                     return null;
@@ -1802,10 +1869,15 @@ let component = SapientComponent.extend(Evented, {
                     console.log(originalVertex);
                     console.log(memoryVertex);
 
+                    console.log(block.fit);
+
                     // Get x and y coordinates and catch null values (if one or zero child exist, set to margin)
                     let xWithOffset = block.fit !== null ? Math.round(block.fit.x) + s.margin : s.margin; // offset from parent if one child
                     let yWithOffset = block.fit !== null ? Math.round(block.fit.y) + s.margin : s.margin; // offset from parent if one child
 
+                    console.log(`xWithOffset = Math.round(block.fit.x) + s.margin = ${Math.round(block.fit !== null ? Math.round(block.fit.x) + s.margin : 0)} + ${s.margin} = ${xWithOffset}`);
+                    console.log(`yWithOffset = Math.round(block.fit.y) + s.margin = ${Math.round(block.fit !== null ? Math.round(block.fit.x) + s.margin : 0)} + ${s.margin} = ${yWithOffset}`);
+            
                     console.log(`Updating coordinates of ${block.id}: ${block.name} to (${xWithOffset}, ${yWithOffset}) ${xWithOffset === null ? '(null)' : ''}`);
 
                     // Update properties in vertices array
@@ -2120,8 +2192,8 @@ let component = SapientComponent.extend(Evented, {
     generatePidXmlString: function(pidJson) {
         
         console.groupCollapsed("Generating pidXmlString from pidJson...");
-        console.log('pidJson:');
-        console.table(pidJson);
+        //console.log('pidJson:');
+        //console.table(pidJson);
 
         // Filter nodes by their individual pidClasses and create new individual objects
         let pidEquipments;
@@ -2191,7 +2263,7 @@ let component = SapientComponent.extend(Evented, {
         pidEquipments.forEach((pidEquipment) => {
             xmlString += `
         <object id="${pidEquipment.id ? pidEquipment.id : pidEquipment._id}" label="${pidEquipment._value !== '' ? pidEquipment._value : htmlLabel}" placeholders="1" pid-label="${pidEquipment.pidLabel ? pidEquipment.pidLabel : (pidEquipment.shortName ? pidEquipment.shortName : (pidEquipment.name ? pidEquipment.name : null))}" pid-current-value="" pid-function="${pidEquipment.pidFunction}" pid-number="${pidEquipment.pidNumber}" sapient-bind="${this.getSapientBind(pidEquipment)}">
-            <mxCell style="${this.concatenateStyles(pidEquipment.styleObject)}" vertex="${pidEquipment._vertex}" connectable="1" parent="${pidEquipment.parentId ? pidEquipment.parentId : pidEquipment._parent}">
+            <mxCell style="${this.concatenateStyles(pidEquipment.styleObject)}" vertex="${pidEquipment._vertex}" connectable="1" parent="${0 === pidEquipment.pidLevel ? 1 : pidEquipment.parentId}">
                 <mxGeometry x="${pidEquipment.mxGeometry._x ? pidEquipment.mxGeometry._x : 50}" y="${pidEquipment.mxGeometry._y ? pidEquipment.mxGeometry._y : 50}" width="${pidEquipment.mxGeometry._width}" height="${pidEquipment.mxGeometry._height}" as="${pidEquipment.mxGeometry._as}"></mxGeometry>
             </mxCell>
         </object>`;
@@ -2202,7 +2274,7 @@ let component = SapientComponent.extend(Evented, {
         pidInstruments.forEach((pidInstrument) => {
             xmlString += `
         <object id="${pidInstrument.id ? pidInstrument.id : pidInstrument._id}" label="${htmlLabelInstrument}" placeholders="1" pid-label="${pidInstrument.pidLabel ? pidInstrument.pidLabel : (pidInstrument.shortName ? pidInstrument.shortName : (pidInstrument.name ? pidInstrument.name : null))}" pid-current-value="" pid-function="${pidInstrument.pidFunction}" pid-number="${pidInstrument.pidNumber}" sapient-bind="${this.getSapientBind(pidInstrument)}">
-            <mxCell style="${this.concatenateStyles(pidInstrument.styleObject)}" vertex="${pidInstrument._vertex}" connectable="1" parent="${pidInstrument.parentId ? pidInstrument.parentId : pidInstrument._parent}">
+            <mxCell style="${this.concatenateStyles(pidInstrument.styleObject)}" vertex="${pidInstrument._vertex}" connectable="1" parent="${0 === pidInstrument.pidLevel ? 1 : pidInstrument.parentId}">
                 <mxGeometry x="${pidInstrument.mxGeometry._x ? pidInstrument.mxGeometry._x : 50}" y="${pidInstrument.mxGeometry._y ? pidInstrument.mxGeometry._y : 50}" width="${pidInstrument.mxGeometry._width}" height="${pidInstrument.mxGeometry._height}" as="${pidInstrument.mxGeometry._as}"></mxGeometry>
             </mxCell>
         </object>`;
@@ -2213,7 +2285,7 @@ let component = SapientComponent.extend(Evented, {
         pidArrows.forEach((pidArrow) => {
             xmlString += `
         <object id="${pidArrow.id ? pidArrow.id : pidArrow._id}" label="${pidArrow._value !== '' ? pidArrow._value : htmlLabel}" placeholders="1" pid-label="${pidArrow.pidLabel ? pidArrow.pidLabel : (pidArrow.shortName ? pidArrow.shortName : (pidArrow.name ? pidArrow.name : null))}" pid-current-value="" pid-function="${pidArrow.pidFunction}" pid-number="${pidArrow.pidNumber}" sapient-bind="${this.getSapientBind(pidArrow)}">
-            <mxCell style="${this.concatenateStyles(pidArrow.styleObject)}" vertex="${pidArrow._vertex}" connectable="1" parent="${pidArrow.parentId ? pidArrow.parentId : pidArrow._parent}">
+            <mxCell style="${this.concatenateStyles(pidArrow.styleObject)}" vertex="${pidArrow._vertex}" connectable="1" parent="${0 === pidArrow.pidLevel ? 1 : pidArrow.parentId}">
                 <mxGeometry x="${pidArrow.mxGeometry._x ? pidArrow.mxGeometry._x : 50}" y="${pidArrow.mxGeometry._y ? pidArrow.mxGeometry._y : 50}" width="${pidArrow.mxGeometry._width}" height="${pidArrow.mxGeometry._height}" as="${pidArrow.mxGeometry._as}"></mxGeometry>
             </mxCell>
         </object>`;
@@ -2224,7 +2296,7 @@ let component = SapientComponent.extend(Evented, {
         pidGroups.forEach((pidGroup) => {
             xmlString += `
         <object id="${pidGroup.id ? pidGroup.id : pidGroup._id}" label="${pidGroup._value !== '' ? pidGroup._value : htmlLabelGroup}" placeholders="1" pid-label="${pidGroup.pidLabel ? pidGroup.pidLabel : (pidGroup.shortName ? pidGroup.shortName : (pidGroup.name ? pidGroup.name : null))}" pid-hierarchy="${pidGroup.pidHierarchy}" pid-current-value="" pid-function="${pidGroup.pidFunction}" pid-number="${pidGroup.pidNumber}" sapient-bind="${this.getSapientBind(pidGroup)}">
-            <mxCell style="${this.concatenateStyles(pidGroup.styleObject)}" vertex="${pidGroup._vertex}" connectable="${pidGroup._connectable}" parent="${pidGroup.parentId ? pidGroup.parentId : pidGroup._parent}">
+            <mxCell style="${this.concatenateStyles(pidGroup.styleObject)}" vertex="${pidGroup._vertex}" connectable="${pidGroup._connectable}" parent="${0 === pidGroup.pidLevel ? 1 : pidGroup.parentId}">
                 <mxGeometry x="${pidGroup.mxGeometry._x ? pidGroup.mxGeometry._x : graphSettings.defaultPadding}" y="${pidGroup.mxGeometry._y ? pidGroup.mxGeometry._y : graphSettings.defaultPadding}" width="${pidGroup.mxGeometry._width}" height="${pidGroup.mxGeometry._height}" as="${pidGroup.mxGeometry._as}"></mxGeometry>
             </mxCell>
         </object>`;
@@ -2322,8 +2394,8 @@ let component = SapientComponent.extend(Evented, {
         let sapientBind = {};
         console.log(shape);
 
-        // Return empty sapientBind if shape has no binded value
-        if (null === shape.cValueId || undefined === shape.cValueId) sapientBind = '';
+        // Return no sapientBind (empty string) if shape has no binded value
+        if (null === shape.cValueId || undefined === shape.cValueId) return '';
 
         else if ('numeric' === shape.fDataType) {
             if ('valve' === shape.shapeCategory || 'instruments' === shape.shapeCategory) {
@@ -2355,24 +2427,62 @@ let component = SapientComponent.extend(Evented, {
                 sapientBind = {
                     datasources: {
                         text: {
-                            source: "var",
-                            params: {
-                                id: shape.cValueId
-                            }
+                        source: 'var',
+                        params: {
+                            id: 12322
+                        }
+                        },
+                        color: {
+                        source: 'var',
+                        params: {
+                            id: 12323
+                        }
                         }
                     },
                     bindings: {
                         text: {
-                            value: {
-                                source: "dataref",
-                                defaultValue: "---",
+                        value: {
+                            source: 'dataref',
+                            params: {
+                            ref: 'text'
+                            }
+                        },
+                        defaultValue: '---',
+                        exceptionValue: 'Ex!'
+                        },
+                        fillColor: {
+                        value: {
+                            source: 'function',
+                            defaultValue: 'white',
+                            params: {
+                            name: 'map',
+                            params: {
+                                input: {
+                                source: 'dataref',
                                 params: {
-                                    ref: "text"
+                                    ref: 'color'
                                 }
+                                },
+                                map: [
+                                [
+                                    false,
+                                    'white'
+                                ],
+                                [
+                                    true,
+                                    'black'
+                                ],
+                                [
+                                    null,
+                                    'gray'
+                                ]
+                                ]
+                            }
                             }
                         }
+                        }
                     }
-                };
+                    };
             }
             else if ('engines' === shape.shapeCategory || 'instruments' === shape.shapeCategory || 'compressors_-_iso' === shape.shapeCategory || 'pumps_-_iso' === shape.shapeCategory) {
                 sapientBind = {
