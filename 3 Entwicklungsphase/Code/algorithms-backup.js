@@ -8,7 +8,6 @@ function vertexPlacement(pidJson) {
   console.table(edges);
   //console.log(JSON.stringify(edges));
 
-  // TODO:
   let simplifiedEdges = simplifyConnections(vertices, edges);
   console.log('simplifiedEdges:');
   console.table(simplifiedEdges);
@@ -23,6 +22,11 @@ function vertexPlacement(pidJson) {
     pageWidth: 1654,
     pageHeight: 1169,
   };
+  // Set after iteration if any side of the iterated vertex exceeds the global:
+  let globalLeft = 0; // min
+  let globalRight = 0; // max
+  let globalTop = 0; // min
+  let globalBottom = 0; // max
   let m = {};
   let p = {}; // p: previousObject clone
   const pidLevelCount = findMax('pidLevel', vertices);
@@ -41,45 +45,46 @@ function vertexPlacement(pidJson) {
     console.group(`${v.pidLevel}: ${v.pidClass} (${v.shortName})`);
     console.log(`stack[${v.pidLevel}]`);
     console.table(stack[v.pidLevel]);
-    // Frequently accessed variables pushed to memory object ('_' indicates mxGraph private variable)
-    m = {
-      // Already there:
-      name: v.shortName,
-      lvl: v.pidLevel,
-      pidClass: v.pidClass,
-      pidHierarchy: v.pidHierarchy,
-      id: v.id,
-      parent: getParent(v.parentId, vertices),
-      siblings: getSiblings(v.parentId, memory),
-      children: getChildren(v.id, memory),
-      descendants: getDescendants(v.id, memory),
-      // To be calculated:
-      tags: [],
-      x: parseInt(v.mxGeometry._x, 10),
-      y: parseInt(v.mxGeometry._y, 10),
-      w: parseInt(v.mxGeometry._width, 10) ? parseInt(v.mxGeometry._width, 10) : 1000, // if width empty (groups) set to 1000 for now
-      h: parseInt(v.mxGeometry._height, 10) ? parseInt(v.mxGeometry._height, 10) : 1000, // if width empty (groups) set to 1000 for now
-      area: parseInt(v.mxGeometry._width, 10) * parseInt(v.mxGeometry._height, 10),
-      left: parseInt(v.mxGeometry._x, 10),
-      top: parseInt(v.mxGeometry._y, 10),
-      right: parseInt(v.mxGeometry._width, 10),
-      bottom: parseInt(v.mxGeometry._height, 10)
-    };
-    console.warn(m.children);
-    console.warn(m.descendants);
 
     if (v.shapeName && v.parentId) {
+      // Frequently accessed variables pushed to memory object ('_' indicates mxGraph private variable)
+      m = {
+        // Already there:
+        name: v.shortName,
+        lvl: v.pidLevel,
+        pidClass: v.pidClass,
+        pidHierarchy: v.pidHierarchy,
+        id: v.id,
+        parent: getParent(v.parentId, vertices),
+        siblings: getSiblings(v.parentId, memory),
+        children: getChildren(v.id, memory),
+        descendants: getDescendants(v.id, memory),
+        // To be calculated:
+        tags: [],
+        x: parseInt(v.mxGeometry._x, 10),
+        y: parseInt(v.mxGeometry._y, 10),
+        w: parseInt(v.mxGeometry._width, 10) ? parseInt(v.mxGeometry._width, 10) : 1000, // if width empty (groups) set to 1000 for now
+        h: parseInt(v.mxGeometry._height, 10) ? parseInt(v.mxGeometry._height, 10) : 1000, // if width empty (groups) set to 1000 for now
+        area: parseInt(v.mxGeometry._width, 10) * parseInt(v.mxGeometry._height, 10),
+        left: parseInt(v.mxGeometry._x, 10),
+        top: parseInt(v.mxGeometry._y, 10),
+        right: parseInt(v.mxGeometry._width, 10),
+        bottom: parseInt(v.mxGeometry._height, 10)
+      };
+      console.warn(m.children);
+      console.warn(m.descendants);
+
       /*************************************************************************
        *                     SPECIFICATION OF CONSTRAINTS:                      *
        *************************************************************************
        * Non-group Tags:
        *  - tag[0]: isShape
-       *  - tag[1]: childOfGroup || childOfNonGroup
+       *  - tag[1]: rootNode || childOfGroup || childOfNonGroup
        *  - tag[2]: [nucleus || funnel || inline] || [centeredAboveParent || aroundParent || insideParent]
        *  
        * Group Tags:
        *  - tag[0]: isGroup
-       *  - tag[1]: childOfGroup || childOfNonGroup
+       *  -tag[1]: rootNode || childOfGroup || childOfNonGroup
        *  - tag[2]: outerGroup || innerGroup
        */
 
@@ -134,6 +139,11 @@ function vertexPlacement(pidJson) {
         if (m.tags.includes('childOfGroup')) {
           console.group("#childOfGroup");
 
+          let descendantsWithParent = memory.filter((child) => (child.parentId === m.id));
+          descendantsWithParent.push(m); // Push root/parent vertex as well
+          console.warn('descendantsWithParent:')
+          console.warn(descendantsWithParent);
+
           if (m.tags.includes("inline")) {
             console.group("#inline");
 
@@ -141,15 +151,17 @@ function vertexPlacement(pidJson) {
             m.x = (() => {
               if (p.pidClass === undefined || p.pidClass === "group") return 0; // if group set at origin (0, 0)
               else if (p.lvl === m.lvl) return (p.right + s.cellSpacing); // else if in current inline level space shape from previous one
-              else if (p.lvl < m.lvl) return; // skip if child (one level lower than current inline shapes). These children move already relative to their parent (next shape)
-              else if (p.lvl > m.lvl) return 0; // reset when back at level of current inline shapes
+              else if (p.lvl < m.lvl) {
+                // skip if child (one level lower than current inline shapes). These children move already relative to their parent (next shape)
+              } else if (p.lvl > m.lvl) return 0; // reset when back at level of current inline shapes
               else return 0;
             })();
             m.y = (() => {
               if (p.pidClass === undefined || p.pidClass === "group") return 0; // if group set at origin (0, 0)
               else if (p.lvl === m.lvl) return (p.y + (p.h - m.h) / 2); // else if in current inline level space shape from previous one
-              else if (p.lvl < m.lvl) return; // skip if child (one level lower than current inline shapes). These children move already relative to their parent (next shape)
-              else if (p.lvl > m.lvl) return 0; // reset to new line when back at level of current inline shapes
+              else if (p.lvl < m.lvl) {
+                // skip if child (one level lower than current inline shapes). These children move already relative to their parent (next shape)
+              } else if (p.lvl > m.lvl) return s.spacing + Math.abs(measureBlock('height', descendantsWithParent)); // reset to new line when back at level of current inline shapes
             })();
 
             console.log(`Coordinates: (${m.x}, ${m.y})`);
@@ -158,15 +170,11 @@ function vertexPlacement(pidJson) {
             console.log(m);
             console.groupEnd();
           } else if (m.tags.includes("funnel")) {
-
+            m.x = p.x + s.margin;
+            m.y = p.y + p.w + s.margin;
           } else if (m.tags.includes("nucleusGroup")) {
             console.group(`#nucleusGroup`); // nucleusGroups of all pidLevels
             console.log(`nucleusGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
-
-            let descendantsWithParent = memory.filter((child) => (child.parentId === m.id));
-            descendantsWithParent.push(m); // Push root/parent vertex as well
-            console.warn('descendantsWithParent:')
-            console.warn(descendantsWithParent);
 
             // Measure:
             const blockWidth = measureBlock('width', descendantsWithParent);
@@ -234,58 +242,86 @@ function vertexPlacement(pidJson) {
             console.group(`#innerGroup`);
             console.log(`innerGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
 
-            if ('Cell' === m.pidHierarchy) {
-              // innerGroup with only group children (either innerGroups or nucleusGroups)
-              packBlocks(m.children, vertices, memory); // function returns scaled group dimmensions
+            console.log(m.pidHierarchy);
 
-              // Measure:
-              let blockWidth = measureBlock('width', m.descendants);
-              let blockHeight = measureBlock('height', m.descendants);
-              // Scale:
-              scaleGroup(blockWidth, blockHeight, s.margin, m.descendants);
-              // Center:
-              shiftChildren(blockWidth, blockHeight, m.children);
-              // Clear:
-              clearStack(stack[p.lvl]);
-            }
-            
-            else {
-              // innerGroup with at least one shape as children
+            // if ('Unit' === m.pidHierarchy) {
+            //   // innerGroup with only group children (either innerGroups or nucleusGroups)
+            //   let children = getChildren(m.id, memory);
+            //   children.forEach((child) => child.tag2)
+            //   console.log(children);
+            //   let childrenGroups = children.filter((child) => child.tag2 === 'innerGroup' || 'nucleusGroup' === child.tag2);
+            //   console.log('childrenGroups');
+            //   console.log(childrenGroups);
+            //   let scaledGroup = packBlocks(childrenGroups, vertices, memory); // function returns scaled group dimmensions
+            //   m.w = scaledGroup.width;
+            //   m.h = scaledGroup.height;
+            //   // Scale:
+            //   //scaleGroup(blockWidth, blockHeight, s.margin, m.descendants);
+            //   // Center:
+            //   //shiftChildren(blockWidth, blockHeight, m.children);
+            //   // Clear:
+            //   clearStack(stack[p.lvl]);
+            // } else {
 
-              // Measure:
-              let blockWidth = measureBlock('width', m.descendants);
-              let blockHeight = measureBlock('height', m.descendants);
-              // Scale:
-              scaleGroup(blockWidth, blockHeight, s.margin, m.descendants);
-              // Shift:
-              shiftInnerGroup(stack[m.lvl]);
-              // Center:
-              shiftChildren(blockWidth, blockHeight, m.children);
-              // Clear:
-              clearStack(stack[p.lvl]);
-            }
-            
+
+            // innerGroup with at least one shape as children
+
+            // Measure: get absolute measures of all descendants (relative to current parent/grandparent: m)
+            let descendantSides = getAbsoluteSides(m.descendants, m);
+
+            let blockLeft = Math.abs(getMin("left", descendantSides));
+            let blockRight = getMax("right", descendantSides);
+            let blockTop = Math.abs(getMin("top", descendantSides));
+            let blockBottom = getMax("bottom", descendantSides);
+            let blockWidth = measureBlock('width', descendantSides);
+            let blockHeight = measureBlock('height', descendantSides);
+            console.log('descendantSides');
+            console.log(descendantSides);
+            console.log(blockLeft);
+            console.log(blockRight);
+            console.log(blockTop);
+            console.log(blockBottom);
+            console.log(blockWidth);
+            console.log(blockHeight);
+            // Set sides of block
+            m.left = blockLeft;
+            m.right = blockRight;
+            m.top = blockTop;
+            m.bottom = blockBottom;
+
+            // Scale:
+            scaleGroup(blockWidth, blockHeight, s.margin, descendantSides);
+            // Shift:
+            shiftInnerGroup(stack[m.lvl]);
+            // Center:
+            shiftChildren(blockWidth, blockHeight, m.children);
+            // Clear:
+            clearStack(stack[p.lvl]);
+            // }
+
 
           } else if (m.tags.includes("outerGroup")) {
             console.group("#outerGroup");
             console.log(`outerGroup reached (currentLevel: ${m.lvl}, previousLevel: ${p.lvl})`);
 
-            // 1b) MEASURE: 
-            const blockWidth = measureBlock('width', m.children);
-            const blockHeight = measureBlock('height', m.children);
-            // 2) SCALE: 
-            scaleGroup(blockWidth, blockHeight, s.margin, m.children);
-            // 3) SHIFT:
-            //shiftOuterGroup(stack[m.lvl]);
-            m.x = s.margin;
-            m.y = s.margin;
-            // 4) CENTER:       before: shiftChildren(blockWidth, blockHeight, m.children);
+            // Measure:
             if (m.children.length > 1) {
+              // Case for m: Brewhouse with units as children
               let scaledGroup = packBlocks(m.children, vertices, memory); // function returns scaled group dimmensions
               m.w = scaledGroup.width;
               m.h = scaledGroup.height;
+            } else {
+              m.w = 2 * s.margin + measureBlock('width', m.children);
+              m.h = 2 * s.margin + measureBlock('height', m.children);
             }
-            // 5) CLEAR:
+
+            // Scale: 
+            //scaleGroup(blockWidth, blockHeight, s.margin, m.children);
+            // Shift:
+            //shiftOuterGroup(stack[m.lvl]);
+
+            // Center:       before: shiftChildren(blockWidth, blockHeight, m.children);
+            // Clear:
             clearStack(stack[p.lvl]);
             // m.w = measureBlock('width', m.children); // get width of the only child
             // m.h = measureBlock('height', m.children); // get height of the only child
@@ -294,17 +330,22 @@ function vertexPlacement(pidJson) {
           }
 
           console.groupEnd();
+          console.groupEnd();
+
+        } else if (m.tags.includes('childOfNonGroup')) {
+          console.group("#childOfNonGroup");
+          // Shouldn't ever exist
+          console.groupEnd();
         }
 
-        console.groupEnd();
+        // Reset all global sides after each group uses them
+        globalLeft = 0; // min
+        globalRight = 0; // max
+        globalTop = 0; // min
+        globalBottom = 0; // max
 
-      } else if (m.tags.includes('childOfNonGroup')) {
-        console.group("#childOfNonGroup");
-        // Shouldn't ever exist
         console.groupEnd();
       }
-
-      console.groupEnd();
 
       /****************************SET VARIABLES********************************/
 
@@ -328,12 +369,20 @@ function vertexPlacement(pidJson) {
         v.mxGeometry._height = m.h;
       }
 
+      // 3) Global sides:
+      globalLeft = (m.left < globalLeft ? m.left : globalLeft); // min
+      globalRight = (m.right > globalRight ? m.right : globalRight); // max
+      globalTop = (m.top < globalTop ? m.top : globalTop); // min
+      globalBottom = (m.bottom > globalBottom ? m.bottom : globalBottom); // max
+
       console.log(`id: ${v.id}`);
       console.log(`parent: ${m.parent !== undefined ? m.parent.shortName : "N/A"}`);
       console.log(`m.x: ${v.mxGeometry._x} -> _x`);
       console.log(`m.y: ${v.mxGeometry._y} -> _y`);
       console.log(`m.w: ${v.mxGeometry._width} -> _width`);
       console.log(`m.h: ${v.mxGeometry._height} -> _height`);
+      console.warn(`globalLeft: ${globalLeft}, globalRight: ${globalRight}, globalTop: ${globalTop}, globalBottom: ${globalBottom}`);
+
       console.groupEnd();
 
       /*************************END OF ALGORITHM********************************/
@@ -470,62 +519,48 @@ function vertexPlacement(pidJson) {
     return array.reduce((max, vertex) => (vertex[variable] > max[variable] ? vertex : max), array[0]);
   }
 
-  // function centerBlock(children) {
+  function getAbsoluteSides(descendants, m) {
+    /**
+     * Gets absolute sides of descendants (considering the parent's/grandparent's position)
+     */
+    let descendantSides = [];
+    descendants.map((descendant) => {
+      let cell = {
+        left: getAbsolute("left", descendant, m),
+        right: getAbsolute("right", descendant, m),
+        top: getAbsolute("top", descendant, m),
+        bottom: getAbsolute("bottom", descendant, m)
+      }
+      console.log(cell);
+      descendantSides.push(cell);
+    });
+    return descendantSides;
+  }
 
-  //   let child = children[0];
-  //   console.log('child:');
-  //   console.log(child);
-
-  //   let block = {
-  //     // Work with properties of scaled block inside 
-  //     id: child.id,
-  //     name: child.name,
-  //     lvl: child.lvl,
-  //     pidClass: child.pidClass,
-  //     pidHierarchy: child.pidHierarchy,
-  //     w: 2 * s.margin + child.w, // scales block (applies padding)
-  //     h: 2 * s.margin + child.h, // scales block (applies padding)
-  //     x: s.margin, // Reset x
-  //     y: s.margin // Reset y
-  //   };
-
-  //   console.log('block:');
-  //   console.log(block);
-      
-  //   // Get corresponding object in vertices and memory arrays
-  //   let originalVertex = vertices.find(v => v.id === block.id);
-  //   let memoryVertex = memory.find(v => v.id === block.id);
-
-  //   console.log(originalVertex);
-  //   console.log(memoryVertex);
-
-  //   console.log(`Updating coordinates of ${block.id}: ${block.name} to (${block.x}, ${block.y}) ${block.x === null ? '(null)' : ''}`);
-
-  //   // Update properties in vertices array
-  //   originalVertex.mxGeometry._x = block.x;
-  //   originalVertex.mxGeometry._y = block.y;
-  //   originalVertex.mxGeometry._width = block.w;
-  //   originalVertex.mxGeometry._height = block.h;
-  //   // FIXME: Arreglar que si uncommenteo siguientes dos lineas para que a partir de units w y h no sea NaN desaparecen los units, y si no, no se dibujan los grupos grises
-  //   //originalVertex.mxGeometry._width = isNaN(originalVertex.mxGeometry._width) ? memoryVertex.w : block.fit.width;
-  //   //originalVertex.mxGeometry._height = isNaN(originalVertex.mxGeometry._height) ? memoryVertex.h : block.fit.height;
-  //   // Update properties in memory array
-  //   memoryVertex.x = block.x;
-  //   memoryVertex.y = block.y;
-  //   memoryVertex.w = block.w;
-  //   memoryVertex.h = block.h;
-  //   memoryVertex.a = block.w * block.h;
-  //   memoryVertex.left = block.x;
-  //   memoryVertex.top = block.y;
-  //   memoryVertex.right = Math.round(block.x + block.w);
-  //   memoryVertex.bottom = Math.round(block.y + block.h);
-  // }
+  function getAbsolute(variable, descendant, parent) {
+    /**
+     * Receives a variable name (string) and an array and returns the absolute value
+     */
+    let levelDifference = descendant.lvl - parent.lvl;
+    console.log("levelDifference");
+    console.log(levelDifference);
+    if (1 === levelDifference) return descendant[variable];
+    else if (2 === levelDifference) {
+      let parent = memory.find((parent) => parent.id === descendant.parentId);
+      return descendant[variable] - parent[variable];
+    } else if (3 === levelDifference) {
+      let parent = memory.find((parent) => parent.id === descendant.parentId);
+      let grandparent = memory.find((grandparent) => grandparent.id === parent.id);
+      return descendant[variable] - grandparent[variable];
+    }
+  }
 
   function packBlocks(children, vertices, memory) {
     /* Runs algorithm to optimally pack blocks based on passed sorting option,
-    * updates the original properties in the vertices and memory arrays 
-    * and returns scaled group dimmensions for setting m.w and m.h of current group
-    */
+     * updates the original properties in the vertices and memory arrays 
+     * and returns scaled group dimmensions for setting m.w and m.h of current group
+     */
+
     console.group(`Packing blocks.`);
 
     let root;
@@ -535,6 +570,7 @@ function vertexPlacement(pidJson) {
 
     // 1) Measure children blocks with included margin (padded blocks)
     blocks = getScaledBlocks(children);
+
     // 2) Pre-sort input array by longest block side (either width or height) 
     blocks = sortBlocksBy('maxSide', blocks); // Options: flows, none, width, height, area
 
@@ -668,7 +704,8 @@ function vertexPlacement(pidJson) {
           h: root.h
         }
       };
-      if (node = findNode(root, w, h))
+      let node = findNode(root, w, h);
+      if (node)
         return splitNode(node, w, h);
       else
         return null;
@@ -689,7 +726,8 @@ function vertexPlacement(pidJson) {
         },
         right: root
       };
-      if (node = findNode(root, w, h))
+      let node = findNode(root, w, h);
+      if (node)
         return splitNode(node, w, h);
       else
         return null;
@@ -730,6 +768,7 @@ function vertexPlacement(pidJson) {
         memoryVertex.bottom = yWithOffset + memoryVertex.h;
       });
     }
+
     let scaledGroup = {
       width: Math.abs(getMin("left", memory)) + getMax("right", memory),
       height: Math.abs(getMin("top", memory)) + getMax("bottom", memory)
@@ -737,7 +776,7 @@ function vertexPlacement(pidJson) {
     console.log('scaledGroup:');
     console.log(scaledGroup);
     console.groupEnd();
-    
+
     return scaledGroup;
   }
 
@@ -769,8 +808,6 @@ function vertexPlacement(pidJson) {
     m.area = groupArea;
   }
 
-  // 3a) #nucleusGroup
-
   function shiftNucleusGroup(blockX, blockY, stack) {
     /**
      * Shifts nucleus group from its previous sibling by the corresponding offset,
@@ -786,30 +823,18 @@ function vertexPlacement(pidJson) {
     // and nucleusY should be relative to the origin of the parent of the nucleus)
 
     // Set nucleus corner at origin-blockX so that nucleusGroup corner lands on origin (0, 0) (ex: if nucleusGroup at x=10, sets to 0-10 so that nucleus set to - 10 which leaves the nucleusGroup at origin)
-    nucleusX = 0 - blockX;
-    nucleusY = 0 - blockY;
-
-    // CHANGE COORDINATE SYSTEM:
-    // Get coordinates of nucleus in relation to coordinates of block, because 
-    // only nucleus should be shifted (and with that, descendants shift as well together with it)
-    // (blockX and blockY are relative to nucleus origin of (0,0) and nucleusX 
-    // and nucleusY should be relative to the origin of the parent of the nucleus)
-
-    // Set nucleus corner at origin-blockX so that nucleusGroup corner lands on origin (0, 0) (ex: if nucleusGroup at x=10, sets to 0-10 so that nucleus set to - 10 which leaves the nucleusGroup at origin)
-    nucleusX = 0 - blockX;
-    nucleusY = 0 - blockY;
+    let nucleusX = 0 - blockX;
+    let nucleusY = 0 - blockY;
 
     if (stackLength === 0) {
       // Case if nucleus is first innerGroup in group of current level
       console.log(`${groupLength + 1}st innerGroup (nucleus) in stack[${m.lvl}].`);
 
       // Shift NUCLEUS (and with that it's descendants):
-      m.x = nucleusX;
-      m.y = nucleusY;
+      m.x = p.x + p.w + nucleusX;
+      m.y = p.y + p.h + nucleusY;
 
       console.log(`nucleusGroup (innerGroup) is first of stack an thus positioned at (${m.x}, ${m.y})`);
-    } else if (stackLength >= 1) {
-
     } else if (stackLength >= 1) {
       // Case if nucleus is second, third, ..., n-th innerGroup in 
       console.log(`nucleusGroup (innerGroup) number ${stackLength + 1} in stack[${m.lvl}].`);
@@ -822,8 +847,8 @@ function vertexPlacement(pidJson) {
       const hOfPrevious = stack[indexOfPrevious].h;
 
       // Shift NUCLEUS (and with that it's descendants): x: offset from previous, y: inline with previous (both analog to #inline)
-      m.x = (xOfPrevious + wOfPrevious + s.groupSpacing) + nucleusX;
-      m.y = (yOfPrevious) + nucleusY;
+      m.x = xOfPrevious + wOfPrevious + s.groupSpacing + nucleusX;
+      m.y = yOfPrevious + (hOfPrevious - m.h) / 2 + nucleusY;
       //m.y = (yOfPrevious) + (hOfPrevious / 2) + (hOfPrevious / 2) + nucleusY;
 
       console.log(`x-Coordinate = xOfPrevious + wOfPrevious + s.groupSpacing + nucleusX = ${xOfPrevious} + ${wOfPrevious} + ${s.groupSpacing} + ${nucleusX} = ${m.x}`);
@@ -834,7 +859,6 @@ function vertexPlacement(pidJson) {
     console.log(`Coordinates set to: (${m.x}, ${m.y})`);
   }
 
-  // 3b) #innerGroup
   function shiftInnerGroup(stack) {
     /**
      * Shifts nucleus group from its previous sibling by the corresponding offset,
@@ -927,6 +951,11 @@ function vertexPlacement(pidJson) {
         let descendantsWithParent = getDescendants(child.id, memory);
         descendantsWithParent.push(child); // Push root/parent vertex as well
 
+        let rights = descendantsWithParent.map((descendant) => descendant.right);
+        let lefts = descendantsWithParent.map((descendant) => descendant.left);
+        let tops = descendantsWithParent.map((descendant) => descendant.top);
+        let bottoms = descendantsWithParent.map((descendant) => descendant.bottom);
+
         // Measure block of all descendants
         let blockWidth = measureBlock('width', m.descendants);
         let blockHeight = measureBlock('height', m.descendants);
@@ -949,9 +978,7 @@ function vertexPlacement(pidJson) {
         applyOffset("y", yCenteringOffset, child);
 
         console.groupEnd();
-        }
-
-        else if ("group" === child.pidClass) {
+      } else if ("group" === child.pidClass) {
         // Case for children that are group (ex.innerGroups that have other innerGroups as chidlren like units, and maybe emodules).
         console.group(`Applying margin offset of ${s.margin} to ${child.name} for x and y.`);
         const xOffset = ((m.w / 2) - (blockWidth / 2));
@@ -1179,7 +1206,42 @@ function generatePidXmlString(pidJson) {
 
   console.groupCollapsed("XML String generation started...");
 
-  // TODO: Fix pid-current-value in xml-string-templates which is currently set to the ID
+  function getSapientBind(shape) {
+    // if ('equipment' === shape.pidClass) {
+    //   let sapientBind = {
+    //     datasources: {
+    //       pValueCurrent: {
+    //         source: 'var',
+    //         params: {
+    //         id: shape.id
+    //         }
+    //     }
+    //     },
+    //     bindings: {
+    //       text: {
+    //         value: {
+    //         source: 'dataref',
+    //         defaultValue: '---',
+    //         params: {
+    //             ref: 'pValueCurrent'
+    //         }
+    //         }
+    //       }
+    //     }
+    //   };
+    //   const sapientBindString = JSON.stringify(sapientBind);
+    //   console.log(sapientBindString);
+    //   const escapedSapientBind = this.escapeToHtmlValid(sapientBindString);
+    //   console.log(escapedSapientBind);
+    // }
+    // else if ('instrument' === shape.pidClass) {}
+    // else if ('arrow' === shape.pidClass) {}
+    // else if ('group' === shape.pidClass) {}
+    // else if ('line' === shape.pidClass) {}
+    // return escapedSapientBind;
+    return '';
+  }
+
   // TODO: Set labels in value attribute in pid-shapes-library and set label=${pidEquipment.value} in template literals
   const htmlLabel = '&lt;b&gt;%pid-label%&lt;br&gt;&lt;span style=&quot;background-color: rgb(0 , 255 , 0)&quot;&gt;&lt;font color=&quot;#ffffff&quot;&gt;&amp;nbsp;%pid-current-value%&amp;nbsp;&lt;/font&gt;&lt;/span&gt;&lt;/b&gt;&lt;br&gt;';
   const htmlLabelInstrument = '&lt;table cellpadding=&quot;4&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;font-size:1em;width:100%;height:100%;&quot;&gt;&lt;tr&gt;&lt;td&gt;%pid-function%&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%pid-number%&lt;/td&gt;&lt;/table&gt; ';
@@ -1200,7 +1262,7 @@ function generatePidXmlString(pidJson) {
     // Values not preceeded with '_' are instance attributes (from database)
     // FIXME: Remove id attribute in mxCell and leave it only in object?
     xmlString += `
-    <object id="${pidEquipment.id ? pidEquipment.id : pidEquipment._id}" label="${pidEquipment.shapeCategory !== 'engines' ? htmlLabel : 'M'}" placeholders="1" pid-label="${pidEquipment.pidLabel ? pidEquipment.pidLabel : (pidEquipment.shortName ? pidEquipment.shortName : (pidEquipment.germanName ? pidEquipment.germanName : (pidEquipment.englishName ? pidEquipment.englishName : null)))}" pid-current-value="${pidEquipment.id}" pid-function="${pidEquipment.pidFunction}" pid-number="${pidEquipment.pidNumber}" sapient-bind="">
+    <object id="${pidEquipment.id ? pidEquipment.id : pidEquipment._id}" label="${pidEquipment._value !== '' ? pidEquipment._value : htmlLabel}" placeholders="1" pid-label="${pidEquipment.pidLabel ? pidEquipment.pidLabel : (pidEquipment.shortName ? pidEquipment.shortName : (pidEquipment.germanName ? pidEquipment.germanName : (pidEquipment.englishName ? pidEquipment.englishName : null)))}" pid-current-value="${pidEquipment.id}" pid-function="${pidEquipment.pidFunction}" pid-number="${pidEquipment.pidNumber}" sapient-bind="${getSapientBind(pidEquipment)}">
         <mxCell style="${concatenateStyles(pidEquipment.styleObject)}" vertex="${pidEquipment._vertex}" connectable="1" parent="${pidEquipment.parentId ? pidEquipment.parentId : pidEquipment._parent}">
           <mxGeometry x="${pidEquipment.mxGeometry._x ? pidEquipment.mxGeometry._x : 50}" y="${pidEquipment.mxGeometry._y ? pidEquipment.mxGeometry._y : 50}" width="${pidEquipment.mxGeometry._width}" height="${pidEquipment.mxGeometry._height}" as="${pidEquipment.mxGeometry._as}"></mxGeometry>
         </mxCell>
@@ -1211,7 +1273,7 @@ function generatePidXmlString(pidJson) {
   console.log(`Generating XML-tags for ${instrumentCount} instrument instances...`);
   pidInstruments.forEach((pidInstrument) => {
     xmlString += `
-    <object id="${pidInstrument.id ? pidInstrument.id : pidInstrument._id}" label="${htmlLabelInstrument}" placeholders="1" pid-label="${pidInstrument.pidLabel ? pidInstrument.pidLabel : (pidInstrument.shortName ? pidInstrument.shortName : (pidInstrument.germanName ? pidInstrument.germanName : (pidInstrument.englishName ? pidInstrument.englishName : null)))}" pid-current-value="${pidInstrument.id}" pid-function="${pidInstrument.pidFunction}" pid-number="${pidInstrument.pidNumber}" sapient-bind="">
+    <object id="${pidInstrument.id ? pidInstrument.id : pidInstrument._id}" label="${htmlLabelInstrument}" placeholders="1" pid-label="${pidInstrument.pidLabel ? pidInstrument.pidLabel : (pidInstrument.shortName ? pidInstrument.shortName : (pidInstrument.germanName ? pidInstrument.germanName : (pidInstrument.englishName ? pidInstrument.englishName : null)))}" pid-current-value="${pidInstrument.id}" pid-function="${pidInstrument.pidFunction}" pid-number="${pidInstrument.pidNumber}" sapient-bind="${getSapientBind(pidInstrument)}">
       <mxCell style="${concatenateStyles(pidInstrument.styleObject)}" vertex="${pidInstrument._vertex}" connectable="1" parent="${pidInstrument.parentId ? pidInstrument.parentId : pidInstrument._parent}">
         <mxGeometry x="${pidInstrument.mxGeometry._x ? pidInstrument.mxGeometry._x : 50}" y="${pidInstrument.mxGeometry._y ? pidInstrument.mxGeometry._y : 50}" width="${pidInstrument.mxGeometry._width}" height="${pidInstrument.mxGeometry._height}" as="${pidInstrument.mxGeometry._as}"></mxGeometry>
       </mxCell>
@@ -1222,7 +1284,7 @@ function generatePidXmlString(pidJson) {
   console.log(`Generating XML-tags for ${arrowCount} arrow instances...`);
   pidArrows.forEach((pidArrow) => {
     xmlString += `
-    <object id="${pidArrow.id ? pidArrow.id : pidArrow._id}" label="${htmlLabel}" placeholders="1" pid-label="${pidArrow.pidLabel ? pidArrow.pidLabel : (pidArrow.shortName ? pidArrow.shortName : (pidArrow.germanName ? pidArrow.germanName : (pidArrow.englishName ? pidArrow.englishName : null)))}" pid-current-value="${pidArrow.id}" pid-function="${pidArrow.pidFunction}" pid-number="${pidArrow.pidNumber}" sapient-bind="">
+    <object id="${pidArrow.id ? pidArrow.id : pidArrow._id}" label="${pidArrow._value !== '' ? pidArrow._value : htmlLabel}" placeholders="1" pid-label="${pidArrow.pidLabel ? pidArrow.pidLabel : (pidArrow.shortName ? pidArrow.shortName : (pidArrow.germanName ? pidArrow.germanName : (pidArrow.englishName ? pidArrow.englishName : null)))}" pid-current-value="${pidArrow.id}" pid-function="${pidArrow.pidFunction}" pid-number="${pidArrow.pidNumber}" sapient-bind="${getSapientBind(pidArrow)}">
       <mxCell style="${concatenateStyles(pidArrow.styleObject)}" vertex="${pidArrow._vertex}" connectable="1" parent="${pidArrow.parentId ? pidArrow.parentId : pidArrow._parent}">
         <mxGeometry x="${pidArrow.mxGeometry._x ? pidArrow.mxGeometry._x : 50}" y="${pidArrow.mxGeometry._y ? pidArrow.mxGeometry._y : 50}" width="${pidArrow.mxGeometry._width}" height="${pidArrow.mxGeometry._height}" as="${pidArrow.mxGeometry._as}"></mxGeometry>
       </mxCell>
@@ -1233,7 +1295,7 @@ function generatePidXmlString(pidJson) {
   console.log(`Generating XML-tags for ${groupCount} group instances...`);
   pidGroups.forEach((pidGroup) => {
     xmlString += `
-    <object id="${pidGroup.id ? pidGroup.id : pidGroup._id}" label="${htmlLabelGroup}" placeholders="1" pid-label="${pidGroup.pidLabel ? pidGroup.pidLabel : (pidGroup.shortName ? pidGroup.shortName : (pidGroup.germanName ? pidGroup.germanName : (pidGroup.englishName ? pidGroup.englishName : null)))}" pid-hierarchy="${pidGroup.pidHierarchy}" pid-current-value="${pidGroup.id}" pid-function="${pidGroup.pidFunction}" pid-number="${pidGroup.pidNumber}" sapient-bind="">
+    <object id="${pidGroup.id ? pidGroup.id : pidGroup._id}" label="${pidGroup._value !== '' ? pidGroup._value : htmlLabelGroup}" placeholders="1" pid-label="${pidGroup.pidLabel ? pidGroup.pidLabel : (pidGroup.shortName ? pidGroup.shortName : (pidGroup.germanName ? pidGroup.germanName : (pidGroup.englishName ? pidGroup.englishName : null)))}" pid-hierarchy="${pidGroup.pidHierarchy}" pid-current-value="${pidGroup.id}" pid-function="${pidGroup.pidFunction}" pid-number="${pidGroup.pidNumber}" sapient-bind="${getSapientBind(pidGroup)}">
       <mxCell style="${concatenateStyles(pidGroup.styleObject)}" vertex="${pidGroup._vertex}" connectable="${pidGroup._connectable}" parent="${pidGroup.parentId ? pidGroup.parentId : pidGroup._parent}">
         <mxGeometry x="${pidGroup.mxGeometry._x ? pidGroup.mxGeometry._x : graphSettings.defaultPadding}" y="${pidGroup.mxGeometry._y ? pidGroup.mxGeometry._y : graphSettings.defaultPadding}" width="${pidGroup.mxGeometry._width}" height="${pidGroup.mxGeometry._height}" as="${pidGroup.mxGeometry._as}"></mxGeometry>
       </mxCell>
@@ -1249,7 +1311,7 @@ function generatePidXmlString(pidJson) {
     const target = pidJson.find((vertex) => vertex.id === pidLine.targetId);
     const parent = pidJson.find((parent) => parent.id === source.id);
     xmlString += `
-    <object id="${pidLine.id ? pidLine.id : pidLine._id}" label="${pidLine.id}: ${source.id}>${target.id}" placeholders="1" pid-label="${pidLine.pidLabel ? pidLine.pidLabel : (pidLine.shortName ? pidLine.shortName : (pidLine.germanName ? pidLine.germanName : (pidLine.englishName ? pidLine.englishName : 'Beer')))}" pid-current-value="${pidLine.id}" pid-function="${pidLine.pidFunction}" pid-number="${pidLine.pidNumber}" sapient-bind="">
+    <object id="${pidLine.id ? pidLine.id : pidLine._id}" label="${pidLine._value !== '' ? pidLine._value : htmlLabelLine}" placeholders="1" pid-label="${pidLine.pidLabel ? pidLine.pidLabel : (pidLine.shortName ? pidLine.shortName : (pidLine.germanName ? pidLine.germanName : (pidLine.englishName ? pidLine.englishName : 'Beer')))}" pid-current-value="${pidLine.id}" pid-function="${pidLine.pidFunction}" pid-number="${pidLine.pidNumber}" sapient-bind="${getSapientBind(pidLine)}">
       <mxCell id="${pidLine.id ? pidLine.id : pidLine._id}" style="${concatenateStyles(pidLine.styleObject)}" edge="${pidLine._edge}" source="${pidLine.sourceId}" target="${pidLine.targetId}" parent="${parent.id ? parent.id : pidLine._parent}">
         <mxGeometry relative="${pidLine.mxGeometry._relative ? pidLine.mxGeometry._relative : 1}" as="${pidLine.mxGeometry._as ? pidLine.mxGeometry._as : 'geometry'}"></mxGeometry>
       </mxCell>
@@ -1320,7 +1382,9 @@ function escapeXmlToHtml(xmlString) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/ /g, "&nbsp;")
-    .replace(/\n/g, "<br />");
+    .replace(/\n/g, "<br />")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&quot;")
   return htmlString;
 }
 
