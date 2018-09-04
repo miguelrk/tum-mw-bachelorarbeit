@@ -691,9 +691,9 @@ let component = SapientComponent.extend(Evented, {
      * and sets the corresponding pidLevel for each, starting with pidLevel=0
      * for the selected root node)
      *
-     * param {Object} root
-     * param {Int} level
-     * param {Array} array
+     * @param {Object} root
+     * @param {Int} level
+     * @param {Array} array
      * 
      */
     getHierarchy: function (id, level, array) {
@@ -902,7 +902,7 @@ let component = SapientComponent.extend(Evented, {
 
     /**
      * Filters the queried nodes array to include only descendandts of 
-     * selected root node and builds hierarchical/nested json object of the
+     * selected root node and builds hierarchical/nested JS object of the
      * instance hierarchy from a flat array via the parent attribute.
      *
      * @param {Array} flatArray Flat array with hierarchy via 'parent' property
