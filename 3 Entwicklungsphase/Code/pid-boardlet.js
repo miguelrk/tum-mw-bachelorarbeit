@@ -160,21 +160,21 @@ window.addEventListener('load', () => {
     let lookup = [];
 
     array.forEach((node) => {
-        //console.log(node);
-        let nodeId = node.id; // Select current node's id
-        //console.log(`nodeId: ${nodeId}`);
-        lookup[nodeId] = node; // Clone node to id key of lookup array 
-        //console.log(lookup[nodeId]);
-        node.children = []; // Add a children property (array type)
-        //console.log('node[\'children\'] = \n');
-        //console.log(node['children']);
+      //console.log(node);
+      let nodeId = node.id; // Select current node's id
+      //console.log(`nodeId: ${nodeId}`);
+      lookup[nodeId] = node; // Clone node to id key of lookup array 
+      //console.log(lookup[nodeId]);
+      node.children = []; // Add a children property (array type)
+      //console.log('node[\'children\'] = \n');
+      //console.log(node['children']);
     });
     array.forEach((node) => {
       if (node.parent) {
-          let nodeParent = node.parent;
-          lookup[nodeParent].children.push(node);
+        let nodeParent = node.parent;
+        lookup[nodeParent].children.push(node);
       } else {
-          treeArray.push(node);
+        treeArray.push(node);
       }
     });
     let treeString = JSON.stringify(treeArray);
@@ -426,7 +426,7 @@ window.addEventListener('load', () => {
         pValueCurrent: {
           source: 'var', // var/nodestatus/...
           params: {
-            id: flowRate // id of p_values_current
+            id: 'flowRate' // id of p_values_current
           }
         }
       },
@@ -508,24 +508,24 @@ window.addEventListener('load', () => {
     pidLines.forEach((pidLine) => {
 
       // TODO: Filter pidLines based on source and target pair
-        let source = pidJson.find((vertex) => vertex.id === pidLine.sourceId);
-        let target = pidJson.find((vertex) => vertex.id === pidLine.targetId);
+      let source = pidJson.find((vertex) => vertex.id === pidLine.sourceId);
+      let target = pidJson.find((vertex) => vertex.id === pidLine.targetId);
 
-        if (source.pidClass !== 'group' && target.pidClass !== 'group') {
+      if (source.pidClass !== 'group' && target.pidClass !== 'group') {
 
-            console.groupCollapsed(pidLine.id);
-            console.log(`${source.pidClass} -> ${target.pidClass}`);
-            console.log(`${source.shapeName} -> ${target.shapeName}`);
-            console.log(`${pidLine.sourceId} -> ${pidLine.targetId}`);
-            console.groupEnd();
+        console.groupCollapsed(pidLine.id);
+        console.log(`${source.pidClass} -> ${target.pidClass}`);
+        console.log(`${source.shapeName} -> ${target.shapeName}`);
+        console.log(`${pidLine.sourceId} -> ${pidLine.targetId}`);
+        console.groupEnd();
 
-      pidXmlString += `
+        pidXmlString += `
     <object id="${pidLine.id ? pidLine.id : pidLine._id}" label="${htmlLabel}" pid-label="${pidLine.pidLabel}" pid-hierarchy="${pidLine.pidHierarchy}" sapient-bind="">
       <mxCell value="${pidLine._value}" style="${concatenateStyles(pidLine.styleObject)}" edge="${pidLine._edge}" source="${pidLine.sourceId}" target="${pidLine.targetId}" parent="${pidLine.parentId ? pidLine.parentId : pidLine._parent}">
         <mxGeometry relative="${pidLine.mxGeometry._relative ? pidLine.mxGeometry._relative : 1}" as="${pidLine.mxGeometry._as ? pidLine.mxGeometry._as : 'geometry'}"></mxGeometry>
       </mxCell>
     </object>`;
-        }
+      }
     });
 
     // Add database bindings
