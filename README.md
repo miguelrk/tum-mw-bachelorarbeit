@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # tum-mw-bachelorarbeit
 Dynamic Generation of Modular Industrial Plant Visualizations on a Manufacturing Execution System (MES) Interface
 
@@ -27,3 +28,7 @@ Dynamic Generation of Modular Industrial Plant Visualizations on a Manufacturing
   <img width="100%" src="4 Schreibphase/images/pid-visu-best.png">
 </p>
 
+=======
+# bachelorarbeit-mw
+Dynamic Generation of Modular Industrial Plant Visualizations on a Manufacturing Execution System (MES) Interface
+>>>>>>> 4aaf778 (Restructures files)

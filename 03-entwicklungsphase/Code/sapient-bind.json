@@ -1,0 +1,80 @@
+/* Simple for p_values_current
+{
+  "datasources": {
+    "text": {
+      "source": "var", // var/nodestatus/...
+      "params": {
+        "id": 1292 // id of p_values_current
+      }
+    }
+  },
+  "bindings": { value="%text% %unit%" unit=="m2"
+    "text": {
+      "value": {
+        "source": "dataref",
+        "defaultValue": "---",
+        "params": {
+          "ref": "text"
+        }
+      }
+    }
+  }
+}
+
+{
+  "datasources": {
+    "text": {
+      "source": "var",
+      "params": {
+        "id": UNIT-ID-AS-INT
+      }
+    },
+    "color": {
+      "source": "var",
+      "params": {
+        "id": 12323
+      }
+    }
+  },
+  "bindings": {
+    "text": {
+      "value": {
+        "source": "dataref",
+        "params": {
+          "ref": "text"
+        }
+      },
+      "defaultValue": "---",
+      "exceptionValue": "Ex!"
+    },
+    "fillColor": {
+      "value": {
+        "source": "function",
+        "defaultValue": "white",
+        "params": {
+          "name": "map",
+          "params": {
+            "input": {
+              "source": "dataref",
+              "params": {
+                "ref": "color"
+              }
+            },
+            "map": [
+              [
+                false,
+                "white"
+              ],
+              [
+                true,
+                "black"
+              ]
+            ]
+          }
+        }
+      }
+    }
+  }
+}
+
+*/

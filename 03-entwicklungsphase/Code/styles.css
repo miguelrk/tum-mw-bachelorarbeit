@@ -1,0 +1,78 @@
+html,
+body,
+header {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+div {
+    width: 99%;
+}
+
+header {
+    padding: 20px;
+    color: #00796b;
+    font-family: 'Enriqueta', serif;
+}
+
+section {
+    padding: 10px;
+}
+
+input:hover {
+    font-weight: bold;
+}
+
+button {
+    margin: 3px;
+}
+
+.header-div {
+    display: inline-block;
+}
+
+.content-div {
+    height: 480px;
+    overflow: auto;
+    border: 1px solid #ccc;
+    font-family: sans-serif;
+}
+
+.footer-div {}
+
+#file-input-section {
+    float: left;
+}
+
+#total-counter {
+    padding-right: 30px;
+    float: right;
+    color: #37474f;
+}
+
+#table-instructions {
+    color: #37474f;
+}
+
+#visu-container {
+    position: relative;
+    width: 100%;
+    height: 520px;
+    overflow: hidden;
+    border: 1px solid #ccc;
+    cursor: default;
+}
+
+#xml-container {
+    height: 200px;
+    float: right;
+    overflow: scroll;
+}
+
+#create-pid-button {
+    float: right;
+}
+
+#render-pid-button {
+    float: right;
+}

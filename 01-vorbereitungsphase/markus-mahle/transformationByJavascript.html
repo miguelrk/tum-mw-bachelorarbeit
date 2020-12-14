@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge;chrome=1"/>
+<script>
+"use strict";
+function displayResult() {
+	var xmlFilePath;
+	var xslFilePath;
+	// Load filePaths for xsl and xml
+	// code for IE
+	if (window.ActiveXObject)
+	{
+		try
+		{
+			xmlFilePath = document.getElementById("inputBoxXML").value;
+			xslFilePath = document.getElementById("inputBoxXSL").value; 
+			
+		}
+		catch(err) {
+			console.error(err);
+			return;
+		}
+	}
+	// code for Chrome, Firefox, Opera, etc.
+	else if (document.implementation && document.implementation.createDocument){
+		try{
+			xmlFilePath = URL.createObjectURL(document.getElementById("inputBoxXML").files[0]); 
+			xslFilePath = URL.createObjectURL(document.getElementById("inputBoxXSL").files[0]); 
+		}
+		catch(err) {
+			console.error(err);
+			return;
+		}
+	}
+	console.log(xmlFilePath + " is read\n");
+	console.log(xslFilePath + " is read\n");
+	//Load xml and xsl files
+	var xml = loadXML(xmlFilePath);
+	var xsl = loadXML(xslFilePath);
+	//Transform to JSON-string
+	var strJS;
+	strJS = transform(xml,xsl);
+	document.getElementById("output").innerHTML = strJS.replace(/(?:\r\n|\r|\n)/g, '<br />').replace(/\t/g,' ').replace(/\s{2,}/g,' ');
+	//Transform to JSON
+	var jsObject;
+	jsObject = parse(strJS);
+	//Could be done in one step too:
+	//var jsObject = parse(xml,xsl);
+	var txtClassOne = "";
+	if (jsObject != null){
+		txtClassOne = jsObject.nodes[0].name + "<br/>" + jsObject.nodes[0].type + "<br/>" + jsObject.nodes[0].hierarchyLevel + "<br/>" + jsObject.nodes[0].parent;
+	}
+	document.getElementById("outputClassOne").innerHTML = txtClassOne;
+}
+function loadXML(filename)
+{
+
+	if (window.ActiveXObject)
+	{
+		var file = new ActiveXObject("Microsoft.XMLDOM");
+		file.async = false;
+		file.load(filename);
+		return file;
+	}
+	else
+	{
+		var xhttp = new XMLHttpRequest();
+		xhttp.open("GET", filename, false);
+		try {xhttp.responseType = "msxml-document"} catch(err) {console.error(err)} // Helping IE11
+		xhttp.send("");
+		return xhttp.responseXML;
+	}
+}
+	
+function transform(xml,xsl)
+{
+	var jsonTxt;
+	// code for IE
+	if (window.ActiveXObject)
+	{
+		try
+		{
+			return xml.transformNode(xsl);
+		}
+		catch(err)
+		{
+			console.error("xml2json.transform: Error during transformation to JSON-String: [" + err.lineNumber + " \n");
+			console.error(err);
+		}
+	}
+	// code for Chrome, Firefox, Opera, etc.
+	else if (document.implementation && document.implementation.createDocument)
+	{
+		try
+		{
+			var xsltProcessor = new XSLTProcessor();
+			xsltProcessor.importStylesheet(xsl);
+			var jsonXml = xsltProcessor.transformToDocument(xml);
+			return jsonXml.getElementsByTagName("transformiix:result")[0].childNodes[0].nodeValue;
+		}
+		catch(err)
+		{
+			console.error("xml2json.transform: Error during transformation to JSON-String: [" + err.lineNumber + " \n");
+			console.error(err);
+		}
+	}
+}
+function parse(xml,xsl)
+{
+	try
+	{
+		var jsonTxt = transfrom(xml,xsl);
+		return JSON.parse(jsonTxt);
+	}
+	catch(err)
+	{
+		console.error("xml2json.parse: Error during transformation to JSON: [" + err.lineNumber + " \n" + err.message);
+	}
+}
+function parse(str)
+{
+	try
+	{
+		return JSON.parse(str);
+	}
+	catch(err)
+	{
+		console.error("xml2json.parse: Error during transformation to JSON: [" + err.lineNumber + " \n" + err.message);
+	}
+}
+</script>
+</head>
+<h1>Beispiel 1: XML-Trafo</h1><br/>
+<table>
+	<tr>
+		<td align="right"><label for="inputBoxXML">Xml-File:</label></td>
+		<td><input id="inputBoxXML" type="file" value="xml-file"  accept = ".uml, .xmi, .xml, .sysml"/></td>
+		<td rowspan="3">
+			<p>Erste Klasse in Datei:</p>
+			<p id="outputClassOne"></p>
+		</td>
+	</tr>
+	<tr>
+		<td align="right"><label for="inputBoxXSL">Xsl-File:</label></td>
+		<td><input id="inputBoxXSL" type="file" value="xsl-file" accept = ".xsl"/></td>
+	</tr>
+	<tr>
+		<td colspan="2" align = "left"><input type = "submit" value = "start transformation" onclick="displayResult()"/></td>
+	</tr>
+</table>
+<div id = "output" style="height:480px;width:640px;border:1px solid #ccc;font:16px/26px Georgia, Garamond, Serif;overflow:auto;">
+Hier steht dann der Output!
+</div>
+</body>
+</html> 

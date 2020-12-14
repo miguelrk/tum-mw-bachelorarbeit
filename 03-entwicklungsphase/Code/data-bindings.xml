@@ -1,0 +1,103 @@
+<mxGraphModel dx="1251" dy="703" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1000" background="#333D3F" math="0" shadow="0">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    <mxCell id="27" value="" style="rounded=0;whiteSpace=wrap;html=1;glass=0;labelBackgroundColor=none;strokeColor=#FFFFFF;strokeWidth=1;fillColor=#333d3f;gradientColor=none;fontFamily=Tahoma;fontSize=12;fontColor=#FFFFFF;align=left;" parent="1" vertex="1">
+      <mxGeometry x="236" y="196" width="320" height="420" as="geometry"/>
+    </mxCell>
+    <mxCell id="26" value="" style="rounded=0;whiteSpace=wrap;html=1;glass=0;labelBackgroundColor=none;strokeColor=#FFFFFF;strokeWidth=1;fillColor=#ffffff;gradientColor=none;fontFamily=Tahoma;fontSize=12;fontColor=#FFFFFF;align=left;opacity=10;" parent="1" vertex="1">
+      <mxGeometry x="236" y="195" width="320" height="420" as="geometry"/>
+    </mxCell>
+    <mxCell id="3" value="" style="group" parent="1" vertex="1" connectable="0">
+      <mxGeometry x="347.5" y="285.5" width="88" height="240.5" as="geometry"/>
+    </mxCell>
+    <mxCell id="4" value="" style="rounded=1;whiteSpace=wrap;html=1;glass=0;labelBackgroundColor=none;strokeColor=none;strokeWidth=1;fillColor=#333d3f;fontFamily=Tahoma;fontSize=30;fontColor=#FFFFFF;align=left;arcSize=7;" parent="3" vertex="1">
+      <mxGeometry y="14.5" width="88" height="226" as="geometry"/>
+    </mxCell>
+    <mxCell id="5" value="" style="rounded=0;whiteSpace=wrap;html=1;glass=0;labelBackgroundColor=none;strokeColor=none;strokeWidth=1;fillColor=#FFFFFF;fontFamily=Tahoma;fontSize=30;fontColor=#FFFFFF;align=left;opacity=20;" parent="3" vertex="1">
+      <mxGeometry y="164.5" width="88" height="24" as="geometry"/>
+    </mxCell>
+    <mxCell id="6" value="Aufbau 1&lt;br&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;glass=0;labelBackgroundColor=none;fontFamily=Roboto;fontSize=11;fontColor=#FFFFFF;opacity=40;" parent="3" vertex="1">
+      <mxGeometry x="18" width="51" height="10" as="geometry"/>
+    </mxCell>
+    <object label="" sapient-bind="{&#xa;  &quot;datasources&quot;: {&#xa;    &quot;nodestate&quot;: {&#xa;      &quot;source&quot;: &quot;nodestate&quot;,&#xa;      &quot;params&quot;: {&#xa;        &quot;node&quot;: 54                         &#xa;        }&#xa;    }&#xa;  },&#xa;  &quot;bindings&quot;: {&#xa;    &quot;text&quot;: {&#xa;      &quot;value&quot;: {&#xa;        &quot;source&quot;: &quot;dataref&quot;,&#xa;        &quot;defaultValue&quot;: &quot;/&quot;,&#xa;        &quot;params&quot;: {&#xa;          &quot;ref&quot;: &quot;nodestate&quot;&#xa;        }&#xa;      }&#xa;    },&#xa;    &quot;fillColor&quot;: {&#xa;      &quot;value&quot;: {&#xa;        &quot;source&quot;: &quot;dataref&quot;,&#xa;        &quot;params&quot;: {&#xa;          &quot;ref&quot;: &quot;nodestate&quot;,&#xa;          &quot;path&quot;: &quot;color&quot;&#xa;        }&#xa;      }&#xa;    }&#xa;  }&#xa;}&#xa;" id="7">
+      <mxCell style="rounded=1;whiteSpace=wrap;html=1;glass=0;labelBackgroundColor=none;strokeColor=none;strokeWidth=1;fillColor=#FFFFFF;fontFamily=Tahoma;fontSize=30;fontColor=#FFFFFF;align=left;" parent="3" vertex="1">
+        <mxGeometry x="20.5" y="21.5" width="12" height="12" as="geometry"/>
+      </mxCell>
+    </object>
+    <mxCell id="8" value="" style="rounded=0;whiteSpace=wrap;html=1;glass=0;labelBackgroundColor=none;strokeColor=none;strokeWidth=1;fillColor=#FFFFFF;fontFamily=Tahoma;fontSize=30;fontColor=#FFFFFF;align=left;opacity=20;" parent="3" vertex="1">
+      <mxGeometry y="40.5" width="88" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="9" value="Ist" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#CCCCCC;fontFamily=Roboto;fontSize=9;" parent="3" vertex="1">
+      <mxGeometry y="40.5" width="19" height="15" as="geometry"/>
+    </mxCell>
+    <object label="XXX&lt;br style=&quot;font-size: 16px;&quot;&gt;" sapient-bind="{&#xa;  &quot;datasources&quot;: {&#xa;    &quot;text&quot;: {&#xa;      &quot;source&quot;: &quot;var&quot;,&#xa;      &quot;params&quot;: {&#xa;        &quot;id&quot;: 1292&#xa;      }&#xa;    }&#xa;  },&#xa;  &quot;bindings&quot;: {&#xa;    &quot;fontColor&quot;: {&#xa;      &quot;value&quot;: &quot;black&quot;&#xa;    },&#xa;    &quot;text&quot;: {&#xa;      &quot;value&quot;: {&#xa;        &quot;source&quot;: &quot;dataref&quot;,&#xa;        &quot;defaultValue&quot;: &quot;---&quot;,&#xa;        &quot;params&quot;: {&#xa;          &quot;ref&quot;: &quot;text&quot;&#xa;        }&#xa;      }&#xa;    }&#xa;  }&#xa;}" id="10">
+      <mxCell style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;labelBackgroundColor=none;fontColor=#FFFFFF;fontFamily=Roboto;fontSize=16;" parent="3" vertex="1">
+        <mxGeometry x="29" y="40.5" width="30" height="40" as="geometry"/>
+      </mxCell>
+    </object>
+    <mxCell id="11" value="Soll" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#CCCCCC;fontFamily=Roboto;fontSize=9;" parent="3" vertex="1">
+      <mxGeometry x="1.5" y="80.5" width="19" height="15" as="geometry"/>
+    </mxCell>
+    <object label="XXX&lt;br style=&quot;font-size: 16px;&quot;&gt;" sapient-bind="{&#xa;  &quot;datasources&quot;: {&#xa;    &quot;text&quot;: {&#xa;      &quot;source&quot;: &quot;var&quot;,&#xa;      &quot;params&quot;: {&#xa;        &quot;id&quot;: 1292&#xa;      }&#xa;    }&#xa;  },&#xa;  &quot;bindings&quot;: {&#xa;    &quot;fontColor&quot;: {&#xa;      &quot;value&quot;: &quot;black&quot;&#xa;    },&#xa;    &quot;text&quot;: {&#xa;      &quot;value&quot;: {&#xa;        &quot;source&quot;: &quot;dataref&quot;,&#xa;        &quot;defaultValue&quot;: &quot;---&quot;,&#xa;        &quot;params&quot;: {&#xa;          &quot;ref&quot;: &quot;text&quot;&#xa;        }&#xa;      }&#xa;    }&#xa;  }&#xa;}" id="12">
+      <mxCell style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;labelBackgroundColor=none;fontColor=#FFFFFF;fontFamily=Roboto;fontSize=16;" parent="3" vertex="1">
+        <mxGeometry x="29" y="80.5" width="30" height="40" as="geometry"/>
+      </mxCell>
+    </object>
+    <mxCell id="13" value="&lt;div style=&quot;text-align: left&quot;&gt;&lt;span&gt;Soll aktuell&lt;/span&gt;&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#CCCCCC;fontFamily=Roboto;fontSize=9;" parent="3" vertex="1">
+      <mxGeometry x="0.5" y="119.5" width="48" height="15" as="geometry"/>
+    </mxCell>
+    <object label="XXX&lt;br style=&quot;font-size: 16px;&quot;&gt;" sapient-bind="{&#xa;  &quot;datasources&quot;: {&#xa;    &quot;text&quot;: {&#xa;      &quot;source&quot;: &quot;var&quot;,&#xa;      &quot;params&quot;: {&#xa;        &quot;id&quot;: 1292&#xa;      }&#xa;    }&#xa;  },&#xa;  &quot;bindings&quot;: {&#xa;    &quot;fontColor&quot;: {&#xa;      &quot;value&quot;: &quot;black&quot;&#xa;    },&#xa;    &quot;text&quot;: {&#xa;      &quot;value&quot;: {&#xa;        &quot;source&quot;: &quot;dataref&quot;,&#xa;        &quot;defaultValue&quot;: &quot;---&quot;,&#xa;        &quot;params&quot;: {&#xa;          &quot;ref&quot;: &quot;text&quot;&#xa;        }&#xa;      }&#xa;    }&#xa;  }&#xa;}" id="14">
+      <mxCell style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;labelBackgroundColor=none;fontColor=#FFFFFF;fontFamily=Roboto;fontSize=16;" parent="3" vertex="1">
+        <mxGeometry x="29" y="124.5" width="30" height="40" as="geometry"/>
+      </mxCell>
+    </object>
+    <object label="" id="15">
+      <mxCell style="rounded=0;whiteSpace=wrap;html=1;shadow=0;glass=0;comic=0;strokeWidth=1;fillColor=#FFFFFF;fontFamily=Roboto;fontSize=11;align=left;strokeColor=none;direction=north;rotation=180;" parent="3" vertex="1">
+        <mxGeometry y="167.5" width="88" height="18" as="geometry"/>
+      </mxCell>
+    </object>
+    <object label="" sapient-bind="{&#xa;  &quot;datasources&quot;: {&#xa;    &quot;Prozent&quot;: {&#xa;      &quot;source&quot;: &quot;var&quot;,&#xa;      &quot;params&quot;: {&#xa;        &quot;id&quot;: 1577&#xa;      }&#xa;    }&#xa;  },&#xa;  &quot;bindings&quot;: {&#xa;    &quot;width&quot;: {&#xa;      &quot;value&quot;: {&#xa;        &quot;min&quot;: 0,&#xa;        &quot;max&quot;: 115,&#xa;        &quot;input&quot;: {&#xa;          &quot;source&quot;: &quot;dataref&quot;,&#xa;          &quot;params&quot;: {&#xa;            &quot;ref&quot;: &quot;Prozent&quot;&#xa;          }&#xa;        }&#xa;      }&#xa;    },&#xa;    &quot;fillColor&quot;: {&#xa;      &quot;value&quot;: {&#xa;        &quot;source&quot;: &quot;function&quot;,&#xa;        &quot;params&quot;: {&#xa;          &quot;name&quot;: &quot;rangemap&quot;,&#xa;          &quot;params&quot;: {&#xa;            &quot;input&quot;: {&#xa;              &quot;source&quot;: &quot;dataref&quot;,&#xa;              &quot;params&quot;: {&#xa;                &quot;ref&quot;: &quot;Prozent&quot;&#xa;              }&#xa;            },&#xa;            &quot;map&quot;: [&#xa;              [&#xa;                20,&#xa;                &quot;rgb(255, 0, 0)&quot;&#xa;              ],&#xa;              [&#xa;                75,&#xa;                &quot;rgb(255, 255, 0)&quot;&#xa;              ],&#xa;              [&#xa;                100,&#xa;                &quot;rgb(0, 255, 0)&quot;&#xa;              ]&#xa;            ]&#xa;          }&#xa;        }&#xa;      }&#xa;    }&#xa;  }&#xa;}" id="16">
+      <mxCell style="rounded=0;whiteSpace=wrap;html=1;shadow=0;glass=0;comic=0;strokeWidth=1;fillColor=#E8E8E8;fontFamily=Roboto;fontSize=11;align=left;strokeColor=none;direction=north;rotation=180;" parent="3" vertex="1">
+        <mxGeometry y="167.5" width="88" height="18" as="geometry"/>
+      </mxCell>
+    </object>
+    <mxCell id="17" value="" style="endArrow=none;html=1;fontFamily=Roboto;fontSize=11;rounded=1;fillColor=#f5f5f5;strokeColor=#000000;gradientColor=#b3b3b3;fontColor=#666666;" parent="3" edge="1">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="76" y="185.5" as="sourcePoint"/>
+        <mxPoint x="76" y="167.5" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="18" value="" style="endArrow=none;html=1;fontFamily=Roboto;fontSize=11;rounded=1;fillColor=#f5f5f5;strokeColor=#000000;gradientColor=#b3b3b3;fontColor=#666666;" parent="3" edge="1">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="57.099078341013865" y="185.5" as="sourcePoint"/>
+        <mxPoint x="57.099078341013865" y="181.5" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="19" value="" style="endArrow=none;html=1;fontFamily=Roboto;fontSize=11;rounded=1;fillColor=#f5f5f5;strokeColor=#000000;gradientColor=#b3b3b3;fontColor=#666666;" parent="3" edge="1">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="38.13999999999987" y="185.5" as="sourcePoint"/>
+        <mxPoint x="38.13999999999987" y="181.5" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="20" value="%&lt;br&gt;" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontFamily=Roboto;fontColor=#666666;" parent="3" vertex="1">
+      <mxGeometry x="56.5" y="173.5" width="1" height="1" as="geometry"/>
+    </mxCell>
+    <object label="XXX&lt;br&gt;" sapient-bind="{&#xa;  &quot;datasources&quot;: {&#xa;    &quot;text&quot;: {&#xa;      &quot;source&quot;: &quot;var&quot;,&#xa;      &quot;params&quot;: {&#xa;        &quot;id&quot;: 1577&#xa;      }&#xa;    }&#xa;  },&#xa;  &quot;bindings&quot;: {&#xa;    &quot;fontColor&quot;: {&#xa;      &quot;value&quot;: &quot;black&quot;&#xa;    },&#xa;    &quot;text&quot;: {&#xa;      &quot;value&quot;: {&#xa;        &quot;source&quot;: &quot;dataref&quot;,&#xa;        &quot;defaultValue&quot;: &quot;---&quot;,&#xa;        &quot;params&quot;: {&#xa;          &quot;ref&quot;: &quot;text&quot;&#xa;        }&#xa;      }&#xa;    }&#xa;  }&#xa;}" id="21">
+      <mxCell style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;labelBackgroundColor=none;fontColor=#666666;fontFamily=Roboto;" parent="3" vertex="1">
+        <mxGeometry x="41" y="173.5" width="1" height="1" as="geometry"/>
+      </mxCell>
+    </object>
+    <mxCell id="22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.25;exitY=1;entryX=0.25;entryY=1;shadow=0;labelBackgroundColor=none;endSize=6;jettySize=auto;orthogonalLoop=1;strokeColor=#FF0000;strokeWidth=1;fontFamily=Tahoma;fontSize=11;fontColor=#FFFFFF;" parent="3" source="16" target="16" edge="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <object label="XXX&lt;br style=&quot;font-size: 16px;&quot;&gt;" sapient-bind="{&#xa;  &quot;datasources&quot;: {&#xa;    &quot;text&quot;: {&#xa;      &quot;source&quot;: &quot;var&quot;,&#xa;      &quot;params&quot;: {&#xa;        &quot;id&quot;: 1292&#xa;      }&#xa;    }&#xa;  },&#xa;  &quot;bindings&quot;: {&#xa;    &quot;fontColor&quot;: {&#xa;      &quot;value&quot;: &quot;black&quot;&#xa;    },&#xa;    &quot;text&quot;: {&#xa;      &quot;value&quot;: {&#xa;        &quot;source&quot;: &quot;dataref&quot;,&#xa;        &quot;defaultValue&quot;: &quot;---&quot;,&#xa;        &quot;params&quot;: {&#xa;          &quot;ref&quot;: &quot;text&quot;&#xa;        }&#xa;      }&#xa;    }&#xa;  }&#xa;}" id="23">
+      <mxCell style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;labelBackgroundColor=none;fontColor=#FFFFFF;fontFamily=Roboto;fontSize=16;" parent="3" vertex="1">
+        <mxGeometry x="29" y="200" width="30" height="40" as="geometry"/>
+      </mxCell>
+    </object>
+    <mxCell id="24" value="&lt;div style=&quot;text-align: left&quot;&gt;&lt;span&gt;Trend&lt;/span&gt;&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#CCCCCC;fontFamily=Roboto;fontSize=9;" parent="3" vertex="1">
+      <mxGeometry x="1.5" y="200.5" width="24" height="10" as="geometry"/>
+    </mxCell>
+  </root>
+</mxGraphModel>
